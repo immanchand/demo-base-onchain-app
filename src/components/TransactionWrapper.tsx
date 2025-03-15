@@ -1,4 +1,5 @@
 'use client';
+
 import {
   Transaction,
   TransactionButton,
@@ -10,22 +11,34 @@ import type {
   TransactionError,
   TransactionResponse,
 } from '@coinbase/onchainkit/transaction';
-import type { Address, ContractFunctionParameters } from 'viem';
+import type { Address, ContractFunctionParameters, GetValue, Hex } from 'viem';
+import { encodeFunctionData } from 'viem'
 import {
   BASE_SEPOLIA_CHAIN_ID,
-  mintABI,
-  mintContractAddress,
+  contractABI,
+  contractAddress,
 } from '../constants';
+import { stat } from 'fs';
 
 export default function TransactionWrapper({ address }: { address: Address }) {
   const contracts = [
     {
-      address: mintContractAddress,
-      abi: mintABI,
-      functionName: 'mint',
-      args: [address],
+      address: contractAddress,
+      abi: contractABI,
+      functionName: 'mintTickets',
     },
   ] as unknown as ContractFunctionParameters[];
+
+  const data = encodeFunctionData({
+    abi: contractABI,
+    functionName: 'mintTickets',
+  });
+
+  const calls = [{
+    to: contractAddress as Hex,
+    data: data as Hex,
+    value: 100000000000000n,  // Amount to send (0.001 ETH in wei)
+  }];
 
   const handleError = (err: TransactionError) => {
     console.error('Transaction error:', err);
@@ -38,7 +51,7 @@ export default function TransactionWrapper({ address }: { address: Address }) {
   return (
     <div className="flex w-[450px]">
       <Transaction
-        contracts={contracts}
+        calls={calls}
         className="w-[450px]"
         chainId={BASE_SEPOLIA_CHAIN_ID}
         onError={handleError}

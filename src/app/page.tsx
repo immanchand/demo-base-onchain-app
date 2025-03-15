@@ -12,6 +12,7 @@ import GetPlayerTicketsWrapper from 'src/components/GetPlayerTicketsWrapper';
 
 
 export default function Page() {
+
   const account = useAccount();
 
   return (
@@ -41,7 +42,6 @@ export default function Page() {
                     <p className="font-normal text-indigo-600 text-xl not-italic tracking-[-1.2px]">
                       Tickets: 0
                     </p>
-                    <LoginButton />
                   </div>
               </div>
                 )}

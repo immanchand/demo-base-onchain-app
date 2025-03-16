@@ -25,8 +25,11 @@ import {
 import { QuantitySelector } from '../../node_modules/@coinbase/onchainkit/esm/internal/components/QuantitySelector';
 import { useState } from 'react';
 
-export default function BuyTicketsWrapper() {
-  const [quantity, setQuantity] = useState(1);
+
+
+export default function BuyTicketsWrapper({ updateTickets }: { updateTickets: Function }) {
+  
+  const [quantity, setQuantity] = useState<number>(1);
   
   const data = encodeFunctionData({
     abi: contractABI,
@@ -45,6 +48,7 @@ export default function BuyTicketsWrapper() {
 
   const handleSuccess = (response: TransactionResponse) => {
     console.log('Transaction successful', response);
+    updateTickets(quantity);
   };
 
   return (

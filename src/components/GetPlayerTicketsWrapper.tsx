@@ -16,7 +16,7 @@ export default function GetPlayerTicketsWrapper({
   refreshKey,
 }: GetPlayerTicketsWrapperProps) {
   const { address } = useAccount();
-  const [playerTickets, setPlayerTickets] = useState<number>(0);
+  //const [playerTickets, setPlayerTickets] = useState<number>(0);
 
   useEffect(() => {
     async function fetchPlayerTickets() {
@@ -38,9 +38,8 @@ export default function GetPlayerTicketsWrapper({
           args: [address as Hex],
         });
 
-        const totalTickets = Number(playerTicketsResult);
-        setPlayerTickets(totalTickets);
-        onTicketsUpdate(totalTickets); // Pass the absolute ticket count
+
+        onTicketsUpdate(Number(playerTicketsResult)); // Pass the absolute ticket count
       } catch (error) {
         console.error('Error fetching player tickets:', error);
         onTicketsUpdate(0); // Fallback to 0 on error

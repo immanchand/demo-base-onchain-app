@@ -1,48 +1,54 @@
 'use client';
 import { createPublicClient, http } from 'viem';
-import type { Address, Hex } from 'viem';
+import type { Hex } from 'viem';
 import { baseSepolia } from 'viem/chains';
-import {
-    contractABI,
-    contractAddress,
-  } from '../constants';
-import React, { useEffect, useState } from 'react';
+import { contractABI, contractAddress } from '../constants';
+import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
 
+interface GetPlayerTicketsWrapperProps {
+  onTicketsUpdate: (totalTickets: number) => void;
+  refreshKey: number; // Add refreshKey to trigger re-fetch
+}
 
-export default function GetPlayerTicketsWrapper({ tickets }: { tickets: number }) {
+export default function GetPlayerTicketsWrapper({
+  onTicketsUpdate,
+  refreshKey,
+}: GetPlayerTicketsWrapperProps) {
+  const { address } = useAccount();
+  const [playerTickets, setPlayerTickets] = useState<number>(0);
 
-    const { address } = useAccount();
+  useEffect(() => {
+    async function fetchPlayerTickets() {
+      if (!address) {
+        onTicketsUpdate(0); // If no address, set tickets to 0
+        return;
+      }
 
-    const [playerTickets, setPlayerTickets] = useState<number>(0);
+      const client = createPublicClient({
+        chain: baseSepolia,
+        transport: http(),
+      });
 
+      try {
+        const playerTicketsResult = await client.readContract({
+          address: contractAddress,
+          abi: contractABI,
+          functionName: 'getTickets',
+          args: [address as Hex],
+        });
 
-    useEffect(() => {
+        const totalTickets = Number(playerTicketsResult);
+        setPlayerTickets(totalTickets);
+        onTicketsUpdate(totalTickets); // Pass the absolute ticket count
+      } catch (error) {
+        console.error('Error fetching player tickets:', error);
+        onTicketsUpdate(0); // Fallback to 0 on error
+      }
+    }
 
-        async function fetchPlayerTickets() {
-          
-          const client = createPublicClient({
-            chain: baseSepolia,
-            transport: http(),
-          });
+    fetchPlayerTickets();
+  }, [address, onTicketsUpdate, refreshKey]); // Re-run if address or refreshKey changes
 
-          const playerTickets = await client.readContract({
-            address: contractAddress,
-            abi: contractABI,
-            functionName: 'getTickets',
-            args: [address as Hex],
-          });
-
-          setPlayerTickets(Number(playerTickets));
-        }
-    
-        fetchPlayerTickets();
-      }, []);
-
-
-    return (
-        <span >
-            {playerTickets + tickets}
-        </span>
-    );
-  }
+  return null; // No UI needed
+}

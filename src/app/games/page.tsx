@@ -17,11 +17,78 @@ interface GameData {
   error?: boolean;
 }
 
+interface GameCardProps {
+  game: GameData;
+  refreshing: boolean;
+  refreshGame: (gameId: number) => void;
+  getCountdown: (endTime: bigint) => { isOver: boolean; countdown: string; timeLeft: number };
+}
+
+const GameCard = React.memo(({ game, refreshing, refreshGame, getCountdown }: GameCardProps) => {
+  const { isOver, countdown, timeLeft } = getCountdown(game.endTime);
+
+  return (
+    <div
+      key={game.gameId}
+      className="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 border border-gray-200 relative"
+    >
+      <h3 className="text-lg font-semibold text-gray-800">Game {game.gameId}</h3>
+      <button
+        onClick={() => refreshGame(game.gameId)}
+        className={`absolute top-2 right-2 w-6 h-6 text-gray-500 hover:text-gray-700 focus:outline-none ${
+          refreshing ? 'animate-spin' : ''
+        }`}
+        disabled={refreshing}
+        aria-label={`Refresh game ${game.gameId}`}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          className="w-6 h-6"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.001 8.001 0 01-15.356-2m15.356 2H15"
+          />
+        </svg>
+      </button>
+      {game.error ? (
+        <p className="text-red-500">Failed to load game data</p>
+      ) : (
+        <>
+          <p className="text-gray-600">
+            <span className="font-medium">End Time:</span>{' '}
+            {isOver ? (
+              <span className="text-red-500 font-semibold">Game Over</span>
+            ) : (
+              <span className={timeLeft < 3600 ? 'text-red-500' : 'text-green-500'}>{countdown}</span>
+            )}
+          </p>
+          <p className="text-gray-600">
+            <span className="font-medium">High Score:</span> {game.highScore.toString()}
+          </p>
+          <p className="text-gray-600">
+            <span className="font-medium">Leader:</span>{' '}
+            {game.leader.slice(0, 6)}...{game.leader.slice(-4)}
+          </p>
+          <p className="text-gray-600">
+            <span className="font-medium">Pot:</span> {formatEther(game.pot)} ETH
+          </p>
+        </>
+      )}
+    </div>
+  );
+});
+
 export default function Page() {
   const [games, setGames] = useState<GameData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<{ [key: number]: boolean }>({}); // Per-game loading state
-  const [tick, setTick] = useState<number>(0); // Trigger re-render every second
+  const [tick, setTick] = useState<number>(0); // Trigger re-render every 2 seconds
 
   const handleGamesUpdate = useCallback((games: GameData[]) => {
     setGames(games);
@@ -59,13 +126,21 @@ export default function Page() {
     }
   }, []);
 
-  // Single timer to update all countdowns
+  // Timer to update countdowns every 2 seconds using requestAnimationFrame
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTick(prev => prev + 1); // Trigger re-render every second
-    }, 1000);
+    let frameId: number;
+    let lastUpdate = performance.now();
 
-    return () => clearInterval(timer); // Cleanup on unmount
+    const update = (currentTime: number) => {
+      if (currentTime - lastUpdate >= 2000) { // Update every 2 seconds
+        setTick(prev => prev + 1);
+        lastUpdate = currentTime;
+      }
+      frameId = requestAnimationFrame(update);
+    };
+
+    frameId = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(frameId); // Ensure cleanup
   }, []);
 
   // Memoized countdown calculation
@@ -102,67 +177,15 @@ export default function Page() {
           <p>No games available</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-            {sortedGames.map(game => {
-              const { isOver, countdown, timeLeft } = getCountdown(game.endTime); // Calculate countdown dynamically
-
-              return (
-                <div
-                  key={game.gameId}
-                  className="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 border border-gray-200 relative"
-                >
-                  <h3 className="text-lg font-semibold text-gray-800">Game {game.gameId}</h3>
-                  <button
-                    onClick={() => refreshGame(game.gameId)}
-                    className={`absolute top-2 right-2 w-6 h-6 text-gray-500 hover:text-gray-700 focus:outline-none ${
-                      refreshing[game.gameId] ? 'animate-spin' : ''
-                    }`}
-                    disabled={refreshing[game.gameId]}
-                    aria-label={`Refresh game ${game.gameId}`}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      className="w-6 h-6"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.001 8.001 0 01-15.356-2m15.356 2H15"
-                      />
-                    </svg>
-                  </button>
-                  {game.error ? (
-                    <p className="text-red-500">Failed to load game data</p>
-                  ) : (
-                    <>
-                      <p className="text-gray-600">
-                        <span className="font-medium">End Time:</span>{' '}
-                        {isOver ? (
-                          <span className="text-red-500 font-semibold">Game Over</span>
-                        ) : (
-                          <span className={timeLeft < 3600 ? 'text-red-500' : 'text-green-500'}>
-                            {countdown}
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-gray-600">
-                        <span className="font-medium">High Score:</span> {game.highScore.toString()}
-                      </p>
-                      <p className="text-gray-600">
-                        <span className="font-medium">Leader:</span>{' '}
-                        {game.leader.slice(0, 6)}...{game.leader.slice(-4)}
-                      </p>
-                      <p className="text-gray-600">
-                        <span className="font-medium">Pot:</span> {formatEther(game.pot)} ETH
-                      </p>
-                    </>
-                  )}
-                </div>
-              );
-            })}
+            {sortedGames.map(game => (
+              <GameCard
+                key={game.gameId}
+                game={game}
+                refreshing={refreshing[game.gameId] || false}
+                refreshGame={refreshGame}
+                getCountdown={getCountdown}
+              />
+            ))}
           </div>
         )}
         <GetGamesWrapper onGamesUpdate={handleGamesUpdate} />

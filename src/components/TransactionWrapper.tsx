@@ -6,29 +6,30 @@ import {
   TransactionStatus,
   TransactionStatusAction,
   TransactionStatusLabel,
+  TransactionToast,
+  TransactionToastAction,
+  TransactionToastIcon,
+  TransactionToastLabel,
 } from '@coinbase/onchainkit/transaction';
 import type {
   TransactionError,
   TransactionResponse,
 } from '@coinbase/onchainkit/transaction';
-import type { Address, ContractFunctionParameters, GetValue, Hex } from 'viem';
+import type { Address, Hex } from 'viem';
 import { encodeFunctionData } from 'viem'
 import {
   BASE_SEPOLIA_CHAIN_ID,
   contractABI,
   contractAddress,
+  GAME_PRICE_WEI,
 } from '../constants';
-import { stat } from 'fs';
+import { QuantitySelector } from '../../node_modules/@coinbase/onchainkit/esm/internal/components/QuantitySelector';
+import { NFTQuantitySelector } from '@coinbase/onchainkit/nft/mint';
+import { useState } from 'react';
 
 export default function TransactionWrapper({ address }: { address: Address }) {
-  const contracts = [
-    {
-      address: contractAddress,
-      abi: contractABI,
-      functionName: 'mintTickets',
-    },
-  ] as unknown as ContractFunctionParameters[];
-
+  const [quantity, setQuantity] = useState(1);
+  
   const data = encodeFunctionData({
     abi: contractABI,
     functionName: 'mintTickets',
@@ -37,7 +38,7 @@ export default function TransactionWrapper({ address }: { address: Address }) {
   const calls = [{
     to: contractAddress as Hex,
     data: data as Hex,
-    value: 100000000000000n,  // Amount to send (0.001 ETH in wei)
+    value: BigInt(GAME_PRICE_WEI * quantity),
   }];
 
   const handleError = (err: TransactionError) => {
@@ -49,7 +50,18 @@ export default function TransactionWrapper({ address }: { address: Address }) {
   };
 
   return (
-    <div className="flex w-[450px]">
+    
+    <div className="flex w-[450px]" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+      <div >
+      <QuantitySelector
+        className="mt-0 mr-auto ml-auto w-[450px] max-w-full text-[white]"
+        onChange={(value: string) => setQuantity(Number(value))}
+        minQuantity={1}
+        maxQuantity={100}
+        placeholder=""
+      />
+      </div>
       <Transaction
         calls={calls}
         className="w-[450px]"
@@ -57,12 +69,19 @@ export default function TransactionWrapper({ address }: { address: Address }) {
         onError={handleError}
         onSuccess={handleSuccess}
       >
-        <TransactionButton className="mt-0 mr-auto ml-auto w-[450px] max-w-full text-[white]" />
+        
+        <TransactionButton className="mt-0 mr-auto ml-auto w-[450px] max-w-full text-[white]" text='Buy Tickets'/>
+        
         <TransactionStatus>
           <TransactionStatusLabel />
           <TransactionStatusAction />
         </TransactionStatus>
+        <TransactionToast >
+          <TransactionToastIcon />
+          <TransactionToastLabel />
+        </TransactionToast>
       </Transaction>
     </div>
   );
 }
+

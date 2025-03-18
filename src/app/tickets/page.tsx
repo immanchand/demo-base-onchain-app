@@ -1,26 +1,23 @@
 'use client';
 import WalletWrapper from '../../components/WalletWrapper';
 import { useAccount } from 'wagmi';
-import GetPlayerTicketsWrapper from '../../components/GetPlayerTicketsWrapper';
 import BuyTicketsWrapper from '../../components/BuyTicketsWrapper';
-import React, { useState, useCallback } from 'react';
 import Navbar from 'src/components/Navbar';
+import { useTicketContext } from 'src/context/TicketContext';
+import { useState, useCallback } from 'react';
 
 export default function Tickets() {
   const { address } = useAccount();
-  const [ticketCount, setTicketCount] = useState<number>(0);
-  const [refreshKey, setRefreshKey] = useState(0); // To trigger refresh of GetPlayerTicketsWrapper
+  const { ticketCount, refreshTickets } = useTicketContext();
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0); // Local trigger to ensure single refresh
 
-  // Function to update ticket count
-  const handleTicketsUpdate = useCallback((totalTickets: number) => {
-    setTicketCount(totalTickets);
-  }, []);
-
-  // Function to refresh GetPlayerTicketsWrapper after a successful purchase
-  const handlePurchaseSuccess = useCallback((refreshNumber: number) => {
-    // Instead of updating ticketCount directly, trigger a refresh
-    setRefreshKey(refreshNumber); // force re-fetch only one unique time per call
-  }, []);
+  // Callback for BuyTicketsWrapper to trigger a refresh
+  const handlePurchaseSuccess = useCallback(() => {
+    if (refreshTrigger === 0) { // Only trigger refresh once
+      setRefreshTrigger(1);
+      refreshTickets(); // Call context refresh
+    }
+  }, [refreshTrigger, refreshTickets]);
 
   return (
     <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px] rounded-xl">
@@ -45,11 +42,6 @@ export default function Tickets() {
           />
         )}
       </section>
-      {/* Fetch ticket count, re-mount when refreshKey changes */}
-      <GetPlayerTicketsWrapper
-        refreshKey={refreshKey}
-        onTicketsUpdate={handleTicketsUpdate}
-      />
     </div>
   );
 }

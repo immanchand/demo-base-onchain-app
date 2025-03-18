@@ -7,6 +7,7 @@ import { contractABI, contractAddress } from '../constants';
 
 interface TicketContextType {
   ticketCount: number;
+  setTicketCount: (count: number) => void;
   refreshTickets: () => void;
 }
 
@@ -43,19 +44,19 @@ export function TicketProvider({ children }: { children: React.ReactNode }) {
     }
   }, [address]);
 
-  // Trigger fetch on address change or refresh
+  // Fetch tickets on address change or refreshKey change
   useEffect(() => {
     fetchTickets();
   }, [address, refreshKey, fetchTickets]);
 
   // Function to manually trigger a refresh (e.g., after purchase)
   const refreshTickets = useCallback(() => {
-    setRefreshKey(1); // trigger useEffect only one time per page load
+    setRefreshKey((prev) => prev + 1); // Increment to trigger fetchTickets
   }, []);
 
-  // Memoized context value to prevent unnecessary re-renders
   const value = {
     ticketCount,
+    setTicketCount,
     refreshTickets,
   };
 
@@ -66,7 +67,6 @@ export function TicketProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Hook to use the context
 export function useTicketContext() {
   const context = useContext(TicketContext);
   if (!context) {

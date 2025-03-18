@@ -1,53 +1,65 @@
+// GetGamesWrapper.tsx
 'use client';
 import { createPublicClient, http } from 'viem';
-import type { Hex } from 'viem';
+import type { Address, Hex } from 'viem';
 import { baseSepolia } from 'viem/chains';
-import { contractABI, contractAddress } from '../constants';
-import { useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
+import { contractABI, contractAddress, GAME_COUNT } from '../constants';
+import React, { useEffect, useState } from 'react';
 
-interface GetPlayerTicketsWrapperProps {
-  onTicketsUpdate: (totalTickets: number) => void;
-  refreshKey: number; // Add refreshKey to trigger re-fetch
+interface GameData {
+  gameId: number;
+  endTime: bigint;
+  highScore: bigint;
+  leader: Address;
+  pot: bigint;
+  error?: boolean;
 }
 
-export default function GetPlayerTicketsWrapper({
-  onTicketsUpdate,
-  refreshKey,
-}: GetPlayerTicketsWrapperProps) {
-  const { address } = useAccount();
-  //const [playerTickets, setPlayerTickets] = useState<number>(0);
+interface GetGamesWrapperProps {
+  onGamesUpdate: (games: GameData[]) => void;
+}
+
+export default function GetGamesWrapper({ onGamesUpdate }: GetGamesWrapperProps) {
+  const [games, setGames] = useState<GameData[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    async function fetchPlayerTickets() {
-      if (!address) {
-        onTicketsUpdate(0); // If no address, set tickets to 0
-        return;
-      }
-
+    async function fetchGames() {
+      setIsLoading(true);
       const client = createPublicClient({
         chain: baseSepolia,
         transport: http(),
       });
 
-      try {
-        const playerTicketsResult = await client.readContract({
-          address: contractAddress,
-          abi: contractABI,
-          functionName: 'getTickets',
-          args: [address as Hex],
-        });
+      const gameResults: GameData[] = [];
 
+      for (let gameId = GAME_COUNT; gameId >= 1; gameId--) {
+        try {
+          const { endTime, highScore, leader, pot } = await client.readContract({
+            address: contractAddress,
+            abi: contractABI,
+            functionName: 'getGame',
+            args: [BigInt(gameId)],
+          });
 
-        onTicketsUpdate(Number(playerTicketsResult)); // Pass the absolute ticket count
-      } catch (error) {
-        console.error('Error fetching player tickets:', error);
-        onTicketsUpdate(0); // Fallback to 0 on error
+          console.log(`Game ${gameId}:`, { endTime, highScore, leader, pot });
+          const gameData = { gameId, endTime, highScore, leader, pot };
+          gameResults.push(gameData);
+        } catch (error) {
+          console.error(`Error fetching game ${gameId}:`, error);
+          const errorGame = { gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, error: true };
+          gameResults.push(errorGame);
+        }
+        setGames([...gameResults]);
+        onGamesUpdate([...gameResults]);
+        await new Promise(resolve => setTimeout(resolve, 100)); // Optional delay
       }
+
+      setIsLoading(false);
     }
 
-    fetchPlayerTickets();
-  }, [address, onTicketsUpdate, refreshKey]); // Re-run if address or refreshKey changes
+    fetchGames();
+  }, [onGamesUpdate]);
 
-  return null; // No UI needed
+  return null;
 }

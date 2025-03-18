@@ -21,7 +21,7 @@ import {
 import { QuantitySelector } from '../../node_modules/@coinbase/onchainkit/esm/internal/components/QuantitySelector';
 import { useState } from 'react';
 
-export default function BuyTicketsWrapper({ updateTickets }: { updateTickets: (newTickets: number) => void }) {
+export default function BuyTicketsWrapper({ updateTickets }: { updateTickets: () => void }) {
   const [quantity, setQuantity] = useState<number>(1);
 
   const data = encodeFunctionData({
@@ -43,9 +43,9 @@ export default function BuyTicketsWrapper({ updateTickets }: { updateTickets: (n
 
   const handleSuccess = (response: TransactionResponse) => {
     console.log('Transaction successful', response);
-    updateTickets(1); // Trigger refresh in parent one time
+    updateTickets(); // Notify Tickets component of success
   };
-  
+
   return (
     <div className="flex w-[450px]" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div>

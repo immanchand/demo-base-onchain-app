@@ -1,11 +1,14 @@
 'use client';
 import GetGamesWrapper from 'src/components/GetGamesWrapper';
 import Navbar from 'src/components/Navbar';
+import CreateGameWrapper from 'src/components/CreateGameWrapper';
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import type { Address } from 'viem';
 import { formatEther, createPublicClient, http } from 'viem';
 import { baseSepolia } from 'viem/chains';
 import { contractABI, contractAddress } from '../../constants';
+import Link from 'next/link';
+import { useAccount } from 'wagmi';
 
 interface GameData {
   gameId: number;
@@ -21,10 +24,25 @@ interface GameCardProps {
   refreshing: boolean;
   refreshGame: (gameId: number) => void;
   getCountdown: (endTime: bigint) => { isOver: boolean; countdown: string; timeLeft: number };
+  userAddress?: Address;
 }
 
-const GameCard = React.memo(({ game, refreshing, refreshGame, getCountdown }: GameCardProps) => {
+const GameCard = React.memo(({ game, refreshing, refreshGame, getCountdown, userAddress }: GameCardProps) => {
   const { isOver, countdown, timeLeft } = getCountdown(game.endTime);
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopyAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(game.leader);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
+    } catch (error) {
+      console.error('Failed to copy address:', error);
+    }
+  };
+
+  // Check if the leader is the current user (case-insensitive comparison)
+  const isUserLeader = userAddress && game.leader.toLowerCase() === userAddress.toLowerCase();
 
   return (
     <div
@@ -70,9 +88,35 @@ const GameCard = React.memo(({ game, refreshing, refreshGame, getCountdown }: Ga
           <p className="text-gray-600">
             <span className="font-medium">High Score:</span> {game.highScore.toString()}
           </p>
-          <p className="text-gray-600">
-            <span className="font-medium">Leader:</span>{' '}
-            {game.leader.slice(0, 6)}...{game.leader.slice(-4)}
+          <p className="text-gray-600 relative group">
+            {isOver ? (
+              <span className="font-medium text-green-500">WINNER:</span>
+            ) : (
+              <span className="font-medium">Leader:</span>
+            )}{' '}
+            <Link
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleCopyAddress();
+              }}
+              className={`${
+                isUserLeader ? 'text-green-500' : 'text-blue-500'
+              } hover:underline cursor-pointer font-semibold`}
+              title="Click to copy address"
+            >
+              {isUserLeader ? 'YOU!' : `${game.leader.slice(0, 6)}...${game.leader.slice(-4)}`}
+            </Link>
+            {/* Tooltip */}
+            <span className="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2">
+              {game.leader}
+            </span>
+            {/* Copied Animation */}
+            {isCopied && (
+              <span className="absolute right-0 top-full mt-1 text-green-500 text-xs animate-fade-in-out">
+                Copied!
+              </span>
+            )}
           </p>
           <p className="text-gray-600">
             <span className="font-medium">Pot:</span> {formatEther(game.pot)} ETH
@@ -88,11 +132,13 @@ export default function Games() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<{ [key: number]: boolean }>({}); // Per-game loading state
   const [tick, setTick] = useState<number>(0); // Trigger re-render every 2 seconds
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0); // Force re-fetch
+  const { address } = useAccount(); // Get the user's address
 
   const handleGamesUpdate = useCallback((games: GameData[]) => {
+    console.log('handleGamesUpdate called with games:', games.length);
     setGames(games);
-    // Stop loading once we've fetched enough games or hit the end
-    if (games.length >= 7 || games.some(g => g.gameId === 1)) {
+    if (games.length > 0) {
       setIsLoading(false);
     }
   }, []);
@@ -164,10 +210,19 @@ export default function Games() {
     return [...games].sort((a, b) => Number(b.endTime - a.endTime));
   }, [games, tick]);
 
+  const handleGameCreated = useCallback(() => {
+    console.log('Game created, triggering refresh');
+    setIsLoading(true);
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
+
   return (
     <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px] rounded-xl">
       <Navbar />
       <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl bg-gray-100 px-2 py-4 md:grow">
+        <div className="flex justify-center w-full mb-4">
+          <CreateGameWrapper onSuccess={handleGameCreated} />
+        </div>
         {isLoading ? (
           <div className="flex items-center justify-center w-full h-64">
             <div className="text-gray-600 text-xl animate-pulse">Loading games...</div>
@@ -183,11 +238,12 @@ export default function Games() {
                 refreshing={refreshing[game.gameId] || false}
                 refreshGame={refreshGame}
                 getCountdown={getCountdown}
+                userAddress={address}
               />
             ))}
           </div>
         )}
-        <GetGamesWrapper onGamesUpdate={handleGamesUpdate} />
+        <GetGamesWrapper onGamesUpdate={handleGamesUpdate} refreshTrigger={refreshTrigger} />
       </section>
     </div>
   );

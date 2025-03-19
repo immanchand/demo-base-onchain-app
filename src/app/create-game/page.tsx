@@ -1,240 +1,211 @@
 'use client';
-import GetGamesWrapper from 'src/components/GetGamesWrapper';
+import { useAccount } from 'wagmi';
 import Navbar from 'src/components/Navbar';
-import CreateGameWrapper from 'src/components/CreateGameWrapper';
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import type { Address } from 'viem';
-import { formatEther, createPublicClient, http } from 'viem';
+import { Address, encodeFunctionData, Hex } from 'viem';
+import { BASE_SEPOLIA_CHAIN_ID, contractABI, contractAddress } from '../../constants';
+import { useState } from 'react';
+import WalletWrapper from '../../components/WalletWrapper';
+import { createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
-import { contractABI, contractAddress } from '../../constants';
-import Link from 'next/link';
 
-interface GameData {
-  gameId: number;
-  endTime: bigint;
-  highScore: bigint;
-  leader: Address;
-  pot: bigint;
-  error?: boolean;
-}
+// Load private key from .env
+const gameMasterPrivateKey = process.env.NEXT_PUBLIC_GAME_MASTER_PRIVATE_KEY;
+if (!gameMasterPrivateKey) console.error('NEXT_PUBLIC_GAME_MASTER_PRIVATE_KEY is not defined in .env');
 
-interface GameCardProps {
-  game: GameData;
-  refreshing: boolean;
-  refreshGame: (gameId: number) => void;
-  getCountdown: (endTime: bigint) => { isOver: boolean; countdown: string; timeLeft: number };
-}
+const walletClient = gameMasterPrivateKey
+  ? createWalletClient({
+      chain: baseSepolia,
+      transport: http(),
+      account: privateKeyToAccount(gameMasterPrivateKey as Hex),
+    })
+  : null;
 
-const GameCard = React.memo(({ game, refreshing, refreshGame, getCountdown }: GameCardProps) => {
-  const { isOver, countdown, timeLeft } = getCountdown(game.endTime);
-  const [isCopied, setIsCopied] = useState(false);
+export default function TestGameFunctions() {
+  const { address } = useAccount();
+  const [txStatus, setTxStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [startGameId, setStartGameId] = useState<string>('');
+  const [startPlayer, setStartPlayer] = useState<string>('');
+  const [endGameId, setEndGameId] = useState<string>('');
+  const [endPlayer, setEndPlayer] = useState<string>('');
+  const [endScore, setEndScore] = useState<string>('');
 
-  const handleCopyAddress = async () => {
+  const parseErrorMessage = (error: unknown): string => {
+    if (error instanceof Error) {
+      const fullMessage = error.message;
+      console.log('Full error message:', fullMessage);
+      const detailsIndex = fullMessage.indexOf('Details:');
+      if (detailsIndex !== -1) {
+        const detailsStart = detailsIndex + 'Details:'.length;
+        const nextNewline = fullMessage.indexOf('\n', detailsStart);
+        const detailsEnd = nextNewline !== -1 ? nextNewline : fullMessage.length;
+        return fullMessage.slice(detailsStart, detailsEnd).trim();
+      }
+      return fullMessage.split('\n')[0] || 'An unknown error occurred';
+    }
+    return 'An unknown error occurred';
+  };
+
+  const handleStartGame = async () => {
+    if (!address || !walletClient || !startGameId || !startPlayer) {
+      console.error('Missing required data');
+      setErrorMessage('Please fill in Game ID and Player Address');
+      return;
+    }
+
     try {
-      await navigator.clipboard.writeText(game.leader);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
+      setTxStatus('pending');
+      setErrorMessage(null);
+
+      const callData = encodeFunctionData({
+        abi: contractABI,
+        functionName: 'startGame',
+        args: [BigInt(startGameId), startPlayer as Address],
+      });
+
+      const hash = await walletClient.sendTransaction({
+        to: contractAddress as Hex,
+        data: callData,
+        value: BigInt(0),
+        chainId: BASE_SEPOLIA_CHAIN_ID,
+      });
+
+      setTxStatus('success');
+      console.log('Game started successfully, tx hash:', hash);
     } catch (error) {
-      console.error('Failed to copy address:', error);
+      console.error('Start game error:', error);
+      setTxStatus('error');
+      setErrorMessage(parseErrorMessage(error));
     }
   };
 
-  return (
-    <div
-      key={game.gameId}
-      className="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 border border-gray-200 relative"
-    >
-      <h3 className="text-lg font-semibold text-gray-800">Game {game.gameId}</h3>
-      <button
-        onClick={() => refreshGame(game.gameId)}
-        className={`absolute top-2 right-2 w-6 h-6 text-gray-500 hover:text-gray-700 focus:outline-none ${
-          refreshing ? 'animate-spin' : ''
-        }`}
-        disabled={refreshing}
-        aria-label={`Refresh game ${game.gameId}`}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          className="w-6 h-6"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.001 8.001 0 01-15.356-2m15.356 2H15"
-          />
-        </svg>
-      </button>
-      {game.error ? (
-        <p className="text-red-500">Failed to load game data</p>
-      ) : (
-        <>
-          <p className="text-gray-600">
-            <span className="font-medium">End Time:</span>{' '}
-            {isOver ? (
-              <span className="text-red-500 font-semibold">Game Over</span>
-            ) : (
-              <span className={timeLeft < 3600 ? 'text-red-500' : 'text-green-500'}>{countdown}</span>
-            )}
-          </p>
-          <p className="text-gray-600">
-            <span className="font-medium">High Score:</span> {game.highScore.toString()}
-          </p>
-          <p className="text-gray-600 relative group">
-            {isOver ? (
-              <span className="font-medium text-green-500">WINNER:</span>
-            ) : (
-              <span className="font-medium">Leader:</span>
-            )}{' '}
-            <Link
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                handleCopyAddress();
-              }}
-              className="text-blue-500 hover:underline cursor-pointer"
-              title="Click to copy address"
-            >
-              {game.leader.slice(0, 6)}...{game.leader.slice(-4)}
-            </Link>
-            {/* Tooltip */}
-            <span className="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2">
-              {game.leader}
-            </span>
-            {/* Copied Animation */}
-            {isCopied && (
-              <span className="absolute right-0 top-full mt-1 text-green-500 text-xs animate-fade-in-out">
-                Copied!
-              </span>
-            )}
-          </p>
-          <p className="text-gray-600">
-            <span className="font-medium">Pot:</span> {formatEther(game.pot)} ETH
-          </p>
-        </>
-      )}
-    </div>
-  );
-});
-
-export default function Games() {
-  const [games, setGames] = useState<GameData[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<{ [key: number]: boolean }>({}); // Per-game loading state
-  const [tick, setTick] = useState<number>(0); // Trigger re-render every 2 seconds
-  const [refreshTrigger, setRefreshTrigger] = useState<number>(0); // Force re-fetch
-
-  const handleGamesUpdate = useCallback((games: GameData[]) => {
-    console.log('handleGamesUpdate called with games:', games.length);
-    setGames(games);
-    if (games.length > 0) {
-      setIsLoading(false);
+  const handleEndGame = async () => {
+    if (!address || !walletClient || !endGameId || !endPlayer || !endScore) {
+      console.error('Missing required data');
+      setErrorMessage('Please fill in Game ID, Player Address, and Score');
+      return;
     }
-  }, []);
-
-  const refreshGame = useCallback(async (gameId: number) => {
-    setRefreshing(prev => ({ ...prev, [gameId]: true }));
-    const client = createPublicClient({
-      chain: baseSepolia,
-      transport: http(),
-    });
 
     try {
-      const { endTime, highScore, leader, pot } = await client.readContract({
-        address: contractAddress,
+      setTxStatus('pending');
+      setErrorMessage(null);
+
+      const callData = encodeFunctionData({
         abi: contractABI,
-        functionName: 'getGame',
-        args: [BigInt(gameId)],
+        functionName: 'endGame',
+        args: [BigInt(endGameId), endPlayer as Address, BigInt(endScore)],
       });
 
-      console.log(`Refreshed Game ${gameId}:`, { endTime, highScore, leader, pot });
-      const updatedGame = { gameId, endTime, highScore, leader, pot };
-      setGames(prevGames =>
-        prevGames.map(game => (game.gameId === gameId ? updatedGame : game))
-      );
+      const hash = await walletClient.sendTransaction({
+        to: contractAddress as Hex,
+        data: callData,
+        value: BigInt(0),
+        chainId: BASE_SEPOLIA_CHAIN_ID,
+      });
+
+      setTxStatus('success');
+      console.log('Game ended successfully, tx hash:', hash);
     } catch (error) {
-      console.error(`Error refreshing game ${gameId}:`, error);
-      const errorGame = { gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, error: true };
-      setGames(prevGames =>
-        prevGames.map(game => (game.gameId === gameId ? errorGame : game))
-      );
-    } finally {
-      setRefreshing(prev => ({ ...prev, [gameId]: false }));
+      console.error('End game error:', error);
+      setTxStatus('error');
+      setErrorMessage(parseErrorMessage(error));
     }
-  }, []);
-
-  useEffect(() => {
-    let frameId: number;
-    let lastUpdate = performance.now();
-
-    const update = (currentTime: number) => {
-      if (currentTime - lastUpdate >= 2000) {
-        setTick(prev => prev + 1);
-        lastUpdate = currentTime;
-      }
-      frameId = requestAnimationFrame(update);
-    };
-
-    frameId = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(frameId);
-  }, []);
-
-  const getCountdown = useCallback((endTime: bigint) => {
-    const now = BigInt(Math.floor(Date.now() / 1000));
-    const timeLeft = Number(endTime - now);
-
-    if (timeLeft <= 0) {
-      return { isOver: true, countdown: '00:00:00', timeLeft };
-    }
-
-    const hours = Math.floor(timeLeft / 3600);
-    const minutes = Math.floor((timeLeft % 3600) / 60);
-    const seconds = timeLeft % 60;
-
-    const countdown = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    return { isOver: false, countdown, timeLeft };
-  }, []);
-
-  const sortedGames = useMemo(() => {
-    return [...games].sort((a, b) => Number(b.endTime - a.endTime));
-  }, [games, tick]);
-
-  const handleGameCreated = useCallback(() => {
-    console.log('Game created, triggering refresh');
-    setIsLoading(true);
-    setRefreshTrigger(prev => prev + 1);
-  }, []);
+  };
 
   return (
     <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px] rounded-xl">
       <Navbar />
       <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl bg-gray-100 px-2 py-4 md:grow">
-        <div className="flex justify-center w-full mb-4">
-          <CreateGameWrapper onSuccess={handleGameCreated} />
-        </div>
-        {isLoading ? (
-          <div className="flex items-center justify-center w-full h-64">
-            <div className="text-gray-600 text-xl animate-pulse">Loading games...</div>
+        <h1 className="text-2xl font-bold text-slate-700">Test Game Functions</h1>
+        {address ? (
+          <div className="flex flex-col items-center gap-6 w-[450px] max-w-full">
+            {/* Start Game Form */}
+            <div className="w-full">
+              <h2 className="text-lg font-semibold text-slate-600 mb-2">Start Game</h2>
+              <div className="flex flex-col gap-2">
+                <input
+                  type="number"
+                  placeholder="Game ID"
+                  value={startGameId}
+                  onChange={(e) => setStartGameId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+                />
+                <input
+                  type="text"
+                  placeholder="Player Address"
+                  value={startPlayer}
+                  onChange={(e) => setStartPlayer(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+                />
+                <button
+                  className={`w-full text-white rounded-md px-4 py-2 ${
+                    walletClient && startGameId && startPlayer
+                      ? 'bg-blue-600 hover:bg-blue-700'
+                      : 'bg-gray-400 cursor-not-allowed'
+                  }`}
+                  onClick={handleStartGame}
+                  disabled={!walletClient || !startGameId || !startPlayer || txStatus === 'pending'}
+                >
+                  {txStatus === 'pending' ? 'Starting...' : 'Start Game'}
+                </button>
+              </div>
+            </div>
+
+            {/* End Game Form */}
+            <div className="w-full">
+              <h2 className="text-lg font-semibold text-slate-600 mb-2">End Game</h2>
+              <div className="flex flex-col gap-2">
+                <input
+                  type="number"
+                  placeholder="Game ID"
+                  value={endGameId}
+                  onChange={(e) => setEndGameId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+                />
+                <input
+                  type="text"
+                  placeholder="Player Address"
+                  value={endPlayer}
+                  onChange={(e) => setEndPlayer(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+                />
+                <input
+                  type="number"
+                  placeholder="Score"
+                  value={endScore}
+                  onChange={(e) => setEndScore(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+                />
+                <button
+                  className={`w-full text-white rounded-md px-4 py-2 ${
+                    walletClient && endGameId && endPlayer && endScore
+                      ? 'bg-blue-600 hover:bg-blue-700'
+                      : 'bg-gray-400 cursor-not-allowed'
+                  }`}
+                  onClick={handleEndGame}
+                  disabled={!walletClient || !endGameId || !endPlayer || !endScore || txStatus === 'pending'}
+                >
+                  {txStatus === 'pending' ? 'Ending...' : 'End Game'}
+                </button>
+              </div>
+            </div>
+
+            {/* Transaction Feedback */}
+            {txStatus === 'success' && (
+              <div className="text-green-600 text-sm">Action completed successfully!</div>
+            )}
+            {txStatus === 'error' && errorMessage && (
+              <div className="text-red-600 text-sm">Error: {errorMessage}</div>
+            )}
           </div>
-        ) : games.length === 0 ? (
-          <p>No games available</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-            {sortedGames.map(game => (
-              <GameCard
-                key={game.gameId}
-                game={game}
-                refreshing={refreshing[game.gameId] || false}
-                refreshGame={refreshGame}
-                getCountdown={getCountdown}
-              />
-            ))}
-          </div>
+          <WalletWrapper
+            className="w-[450px] max-w-full"
+            text="Log In to Test Game Functions"
+            withWalletAggregator={true}
+          />
         )}
-        <GetGamesWrapper onGamesUpdate={handleGamesUpdate} refreshTrigger={refreshTrigger} />
       </section>
     </div>
   );

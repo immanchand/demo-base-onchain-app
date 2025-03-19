@@ -1,4 +1,3 @@
-// Page.tsx
 'use client';
 import GetGamesWrapper from 'src/components/GetGamesWrapper';
 import Navbar from 'src/components/Navbar';
@@ -6,7 +5,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import type { Address } from 'viem';
 import { formatEther, createPublicClient, http } from 'viem';
 import { baseSepolia } from 'viem/chains';
-import { contractABI, contractAddress, GAME_COUNT } from '../../constants';
+import { contractABI, contractAddress } from '../../constants';
 
 interface GameData {
   gameId: number;
@@ -84,7 +83,7 @@ const GameCard = React.memo(({ game, refreshing, refreshGame, getCountdown }: Ga
   );
 });
 
-export default function Page() {
+export default function Games() {
   const [games, setGames] = useState<GameData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<{ [key: number]: boolean }>({}); // Per-game loading state
@@ -92,7 +91,10 @@ export default function Page() {
 
   const handleGamesUpdate = useCallback((games: GameData[]) => {
     setGames(games);
-    if (games.length === 1) setIsLoading(false); // Stop initial loading after first game
+    // Stop loading once we've fetched enough games or hit the end
+    if (games.length >= 7 || games.some(g => g.gameId === 1)) {
+      setIsLoading(false);
+    }
   }, []);
 
   const refreshGame = useCallback(async (gameId: number) => {
@@ -126,13 +128,12 @@ export default function Page() {
     }
   }, []);
 
-  // Timer to update countdowns every 2 seconds using requestAnimationFrame
   useEffect(() => {
     let frameId: number;
     let lastUpdate = performance.now();
 
     const update = (currentTime: number) => {
-      if (currentTime - lastUpdate >= 2000) { // Update every 2 seconds
+      if (currentTime - lastUpdate >= 2000) {
         setTick(prev => prev + 1);
         lastUpdate = currentTime;
       }
@@ -140,12 +141,11 @@ export default function Page() {
     };
 
     frameId = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(frameId); // Ensure cleanup
+    return () => cancelAnimationFrame(frameId);
   }, []);
 
-  // Memoized countdown calculation
   const getCountdown = useCallback((endTime: bigint) => {
-    const now = BigInt(Math.floor(Date.now() / 1000)); // Current time in seconds
+    const now = BigInt(Math.floor(Date.now() / 1000));
     const timeLeft = Number(endTime - now);
 
     if (timeLeft <= 0) {
@@ -160,9 +160,8 @@ export default function Page() {
     return { isOver: false, countdown, timeLeft };
   }, []);
 
-  // Sort games by endTime in descending order
   const sortedGames = useMemo(() => {
-    return [...games].sort((a, b) => Number(b.endTime - a.endTime)); // Descending order based on endTime
+    return [...games].sort((a, b) => Number(b.endTime - a.endTime));
   }, [games, tick]);
 
   return (

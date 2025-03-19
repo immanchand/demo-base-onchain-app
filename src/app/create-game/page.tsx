@@ -26,20 +26,27 @@ export default function CreateGame() {
   const { address } = useAccount();
   const [gameId, setGameId] = useState<string>(''); // Store gameId as string for input, convert to number later
 
-  // Encode the function data for createGame
-  const data = encodeFunctionData({
-    abi: contractABI,
-    functionName: 'createGame',
-    args: [BigInt(gameId || 0), address || '0x0'], // Default to 0 and 0x0 if not set
-  });
-
-  const calls = [
-    {
-      to: contractAddress as Hex,
-      data: data as Hex,
-      value: BigInt(0), // Nonpayable function, no ETH required
-    },
-  ];
+  // Only define transaction data if address is available
+  const transactionData = address && gameId
+    ? {
+        data: encodeFunctionData({
+          abi: contractABI,
+          functionName: 'createGame',
+          args: [BigInt(gameId), address], // Use address directly, no fallback needed
+        }),
+        calls: [
+          {
+            to: contractAddress as Hex,
+            data: encodeFunctionData({
+              abi: contractABI,
+              functionName: 'createGame',
+              args: [BigInt(gameId), address],
+            }) as Hex,
+            value: BigInt(0), // Nonpayable function, no ETH required
+          },
+        ],
+      }
+    : null;
 
   const handleError = (err: TransactionError) => {
     console.error('Transaction error:', err);
@@ -77,28 +84,36 @@ export default function CreateGame() {
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               />
             </div>
-            <Transaction
-              calls={calls}
-              className="w-full"
-              chainId={BASE_SEPOLIA_CHAIN_ID}
-              onError={handleError}
-              onSuccess={handleSuccess}
-            >
-              <TransactionButton
-                className="mt-0 mr-auto ml-auto w-full max-w-full text-[white]"
-                text="Create Game"
-                disabled={!gameId || !address}
-              />
-              <TransactionStatus>
-                <TransactionStatusLabel />
-                <TransactionStatusAction />
-              </TransactionStatus>
-              <TransactionToastAction />
-              <TransactionToast>
-                <TransactionToastIcon />
-                <TransactionToastLabel />
-              </TransactionToast>
-            </Transaction>
+            {transactionData ? (
+              <Transaction
+                calls={transactionData.calls}
+                className="w-full"
+                chainId={BASE_SEPOLIA_CHAIN_ID}
+                onError={handleError}
+                onSuccess={handleSuccess}
+              >
+                <TransactionButton
+                  className="mt-0 mr-auto ml-auto w-full max-w-full text-[white]"
+                  text="Create Game"
+                />
+                <TransactionStatus>
+                  <TransactionStatusLabel />
+                  <TransactionStatusAction />
+                </TransactionStatus>
+                <TransactionToastAction />
+                <TransactionToast>
+                  <TransactionToastIcon />
+                  <TransactionToastLabel />
+                </TransactionToast>
+              </Transaction>
+            ) : (
+              <button
+                className="mt-0 mr-auto ml-auto w-full max-w-full text-[white] bg-gray-400 rounded-md px-4 py-2 cursor-not-allowed"
+                disabled
+              >
+                Create Game
+              </button>
+            )}
           </div>
         ) : (
           <WalletWrapper

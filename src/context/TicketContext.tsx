@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 import { useAccount } from 'wagmi';
 import { createPublicClient, http } from 'viem';
 import { baseSepolia } from 'viem/chains';
-import { contractABI, contractAddress } from '../constants';
+import { publicClient, contractABI, contractAddress } from '../constants';
 
 interface TicketContextType {
   ticketCount: number;
@@ -25,13 +25,8 @@ export function TicketProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const client = createPublicClient({
-      chain: baseSepolia,
-      transport: http(),
-    });
-
     try {
-      const playerTicketsResult = await client.readContract({
+      const playerTicketsResult = await publicClient.readContract({
         address: contractAddress,
         abi: contractABI,
         functionName: 'getTickets',

@@ -1,13 +1,11 @@
 'use client';
-import GetGamesWrapper from 'src/components/GetGamesWrapper';
 import Navbar from 'src/components/Navbar';
 import CreateGameWrapper from 'src/components/CreateGameWrapper';
 import React, { useState, useCallback, useEffect } from 'react';
 import type { Address } from 'viem';
-import { formatEther, createPublicClient, http } from 'viem';
-import { baseSepolia } from 'viem/chains';
+import { formatEther } from 'viem';
 import { useAccount } from 'wagmi';
-import { contractABI, contractAddress } from '../../constants';
+import { publicClient, contractABI, contractAddress } from '../../constants';
 
 interface GameData {
   gameId: number;
@@ -28,16 +26,10 @@ const GameCard = React.memo(({ game, refreshing, refreshGame, userAddress }: {
   const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
-    console.log('Setting up interval in GameCard');
     const intervalId = setInterval(() => {
-      console.log('Tick triggered in GameCard at', new Date().toISOString());
       setTick(prev => prev + 1);
     }, 1000);
-
-    return () => {
-      console.log('Cleaning up interval in GameCard');
-      clearInterval(intervalId);
-    };
+    return () => clearInterval(intervalId);
   }, []);
 
   const getCountdown = (endTime: bigint) => {
@@ -102,7 +94,7 @@ const GameCard = React.memo(({ game, refreshing, refreshGame, userAddress }: {
             {isOver ? (
               <span className="font-medium text-green-500">WINNER:</span>
             ) : (
-              <span className="font-medium">Leader:</span>
+              <span className="font-medium text-green-500">Leader:</span>
             )}{' '}
             <a
               href="#"
@@ -122,7 +114,7 @@ const GameCard = React.memo(({ game, refreshing, refreshGame, userAddress }: {
             )}
           </p>
           <p className="text-gray-600">
-            <span className="font-medium">Prize:</span> {formatEther(game.pot)} ETH !!!
+            <span className="font-large">***Prize:</span> {formatEther(game.pot)} ETH ***
           </p>
         </>
       )}
@@ -135,46 +127,48 @@ export default function ActiveGame() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
-  const [latestGameId, setLatestGameId] = useState<number>(0);
   const { address } = useAccount();
 
-  useEffect(() => {
-    async function fetchLatestGameId() {
-      const client = createPublicClient({
-        chain: baseSepolia,
-        transport: http(),
-      });
-      const id = await client.readContract({
+  const fetchLatestGame = useCallback(async () => {
+    setIsLoading(true);
+
+    try {
+      const latestGameId = await publicClient.readContract({
         address: contractAddress,
         abi: contractABI,
         functionName: 'getLatestGameId',
       });
-      setLatestGameId(Number(id));
-    }
-    fetchLatestGameId();
-  }, [refreshTrigger]);
+      const gameId = Number(latestGameId);
 
-  const handleGamesUpdate = useCallback((games: GameData[]) => {
-    console.log('handleGamesUpdate called with games:', games.length);
-    setLatestGame(games[0] || null);
-    setIsLoading(false);
+      if (gameId > 0) {
+        const { endTime, highScore, leader, pot } = await publicClient.readContract({
+          address: contractAddress,
+          abi: contractABI,
+          functionName: 'getGame',
+          args: [BigInt(gameId)],
+        });
+        setLatestGame({ gameId, endTime, highScore, leader, pot });
+      } else {
+        setLatestGame(null);
+      }
+    } catch (error) {
+      console.error('Error fetching latest game:', error);
+      setLatestGame(null);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   const refreshGame = useCallback(async (gameId: number) => {
     setRefreshing(true);
-    const client = createPublicClient({
-      chain: baseSepolia,
-      transport: http(),
-    });
 
     try {
-      const { endTime, highScore, leader, pot } = await client.readContract({
+      const { endTime, highScore, leader, pot } = await publicClient.readContract({
         address: contractAddress,
         abi: contractABI,
         functionName: 'getGame',
         args: [BigInt(gameId)],
       });
-      console.log(`Refreshed Game ${gameId}:`, { endTime, highScore, leader, pot });
       setLatestGame({ gameId, endTime, highScore, leader, pot });
     } catch (error) {
       console.error(`Error refreshing game ${gameId}:`, error);
@@ -184,9 +178,12 @@ export default function ActiveGame() {
     }
   }, []);
 
+  useEffect(() => {
+    fetchLatestGame();
+  }, [fetchLatestGame, refreshTrigger]);
+
   const handleGameCreated = useCallback(() => {
     console.log('Game created, triggering refresh');
-    setIsLoading(true);
     setRefreshTrigger(prev => prev + 1);
   }, []);
 
@@ -212,14 +209,6 @@ export default function ActiveGame() {
               userAddress={address}
             />
           </div>
-        )}
-        {latestGameId > 0 && (
-          <GetGamesWrapper
-            onGamesUpdate={handleGamesUpdate}
-            refreshTrigger={refreshTrigger}
-            startGameId={latestGameId}
-            gameCount={1}
-          />
         )}
       </section>
     </div>

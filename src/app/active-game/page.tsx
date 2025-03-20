@@ -2,7 +2,7 @@
 import GetGamesWrapper from 'src/components/GetGamesWrapper';
 import Navbar from 'src/components/Navbar';
 import CreateGameWrapper from 'src/components/CreateGameWrapper';
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import type { Address } from 'viem';
 import { formatEther, createPublicClient, http } from 'viem';
 import { baseSepolia } from 'viem/chains';
@@ -18,15 +18,45 @@ interface GameData {
   error?: boolean;
 }
 
-const GameCard = React.memo(({ game, refreshing, refreshGame, getCountdown, userAddress }: {
+const GameCard = React.memo(({ game, refreshing, refreshGame, userAddress }: {
   game: GameData;
   refreshing: boolean;
   refreshGame: (gameId: number) => void;
-  getCountdown: (endTime: bigint) => { isOver: boolean; countdown: string; timeLeft: number };
   userAddress?: Address;
 }) => {
-  const { isOver, countdown, timeLeft } = getCountdown(game.endTime);
+  const [tick, setTick] = useState<number>(0);
   const [isCopied, setIsCopied] = useState(false);
+
+  useEffect(() => {
+    console.log('Setting up interval in GameCard');
+    const intervalId = setInterval(() => {
+      console.log('Tick triggered in GameCard at', new Date().toISOString());
+      setTick(prev => prev + 1);
+    }, 1000);
+
+    return () => {
+      console.log('Cleaning up interval in GameCard');
+      clearInterval(intervalId);
+    };
+  }, []);
+
+  const getCountdown = (endTime: bigint) => {
+    const now = BigInt(Math.floor(Date.now() / 1000));
+    const timeLeft = Number(endTime - now);
+
+    if (timeLeft <= 0) {
+      return { isOver: true, countdown: '00:00:00', timeLeft };
+    }
+
+    const hours = Math.floor(timeLeft / 3600);
+    const minutes = Math.floor((timeLeft % 3600) / 60);
+    const seconds = timeLeft % 60;
+
+    const countdown = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    return { isOver: false, countdown, timeLeft };
+  };
+
+  const { isOver, countdown, timeLeft } = getCountdown(game.endTime);
 
   const handleCopyAddress = async () => {
     try {
@@ -92,7 +122,7 @@ const GameCard = React.memo(({ game, refreshing, refreshGame, getCountdown, user
             )}
           </p>
           <p className="text-gray-600">
-            <span className="font-medium">Pot:</span> {formatEther(game.pot)} ETH
+            <span className="font-medium">Prize:</span> {formatEther(game.pot)} ETH !!!
           </p>
         </>
       )}
@@ -104,14 +134,29 @@ export default function ActiveGame() {
   const [latestGame, setLatestGame] = useState<GameData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [tick, setTick] = useState<number>(0);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [latestGameId, setLatestGameId] = useState<number>(0);
   const { address } = useAccount();
+
+  useEffect(() => {
+    async function fetchLatestGameId() {
+      const client = createPublicClient({
+        chain: baseSepolia,
+        transport: http(),
+      });
+      const id = await client.readContract({
+        address: contractAddress,
+        abi: contractABI,
+        functionName: 'getLatestGameId',
+      });
+      setLatestGameId(Number(id));
+    }
+    fetchLatestGameId();
+  }, [refreshTrigger]);
 
   const handleGamesUpdate = useCallback((games: GameData[]) => {
     console.log('handleGamesUpdate called with games:', games.length);
-    const latest = games[0]; // Since gameCount=1, we only get one game
-    setLatestGame(latest);
+    setLatestGame(games[0] || null);
     setIsLoading(false);
   }, []);
 
@@ -129,7 +174,6 @@ export default function ActiveGame() {
         functionName: 'getGame',
         args: [BigInt(gameId)],
       });
-
       console.log(`Refreshed Game ${gameId}:`, { endTime, highScore, leader, pot });
       setLatestGame({ gameId, endTime, highScore, leader, pot });
     } catch (error) {
@@ -138,38 +182,6 @@ export default function ActiveGame() {
     } finally {
       setRefreshing(false);
     }
-  }, []);
-
-  useEffect(() => {
-    let frameId: number;
-    let lastUpdate = performance.now();
-
-    const update = (currentTime: number) => {
-      if (currentTime - lastUpdate >= 2000) {
-        setTick(prev => prev + 1);
-        lastUpdate = currentTime;
-      }
-      frameId = requestAnimationFrame(update);
-    };
-
-    frameId = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(frameId);
-  }, []);
-
-  const getCountdown = useCallback((endTime: bigint) => {
-    const now = BigInt(Math.floor(Date.now() / 1000));
-    const timeLeft = Number(endTime - now);
-
-    if (timeLeft <= 0) {
-      return { isOver: true, countdown: '00:00:00', timeLeft };
-    }
-
-    const hours = Math.floor(timeLeft / 3600);
-    const minutes = Math.floor((timeLeft % 3600) / 60);
-    const seconds = timeLeft % 60;
-
-    const countdown = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    return { isOver: false, countdown, timeLeft };
   }, []);
 
   const handleGameCreated = useCallback(() => {
@@ -197,12 +209,18 @@ export default function ActiveGame() {
               game={latestGame}
               refreshing={refreshing}
               refreshGame={refreshGame}
-              getCountdown={getCountdown}
               userAddress={address}
             />
           </div>
         )}
-        <GetGamesWrapper onGamesUpdate={handleGamesUpdate} refreshTrigger={refreshTrigger} gameCount={1} />
+        {latestGameId > 0 && (
+          <GetGamesWrapper
+            onGamesUpdate={handleGamesUpdate}
+            refreshTrigger={refreshTrigger}
+            startGameId={latestGameId}
+            gameCount={1}
+          />
+        )}
       </section>
     </div>
   );

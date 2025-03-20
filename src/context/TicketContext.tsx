@@ -1,8 +1,6 @@
 'use client';
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useAccount } from 'wagmi';
-import { createPublicClient, http } from 'viem';
-import { baseSepolia } from 'viem/chains';
 import { publicClient, contractABI, contractAddress } from '../constants';
 
 interface TicketContextType {

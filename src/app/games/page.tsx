@@ -1,11 +1,11 @@
 'use client';
 import GetGamesWrapper from 'src/components/GetGamesWrapper';
 import Navbar from 'src/components/Navbar';
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import type { Address } from 'viem';
 import { formatEther, createPublicClient, http } from 'viem';
 import { baseSepolia } from 'viem/chains';
-import { contractABI, contractAddress } from '../../constants';
+import { contractABI, contractAddress, GAME_COUNT } from '../../constants';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
 
@@ -22,15 +22,13 @@ interface GameCardProps {
   game: GameData;
   refreshing: boolean;
   refreshGame: (gameId: number) => void;
-  getCountdown: (endTime: bigint) => { isOver: boolean; countdown: string; timeLeft: number };
   userAddress?: Address;
 }
 
-const GAME_COUNT = 7; // Define the number of games to fetch
-
-const GameCard = React.memo(({ game, refreshing, refreshGame, getCountdown, userAddress }: GameCardProps) => {
-  const { isOver, countdown, timeLeft } = getCountdown(game.endTime);
+const GameCard = React.memo(({ game, refreshing, refreshGame, userAddress }: GameCardProps) => {
   const [isCopied, setIsCopied] = useState(false);
+  const currentTime = BigInt(Math.floor(Date.now() / 1000));
+  const isOver = game.endTime <= currentTime;
 
   const handleCopyAddress = async () => {
     try {
@@ -66,14 +64,14 @@ const GameCard = React.memo(({ game, refreshing, refreshGame, getCountdown, user
             {isOver ? (
               <span className="text-red-500 font-semibold">Game Over</span>
             ) : (
-              <span className={timeLeft < 3600 ? 'text-red-500' : 'text-green-500'}>{countdown}</span>
+              <span className="text-green-500">{new Date(Number(game.endTime) * 1000).toLocaleString()}</span>
             )}
           </p>
           <p className="text-gray-600">
             <span className="font-medium">High Score:</span> {game.highScore.toString()}
           </p>
           <p className="text-gray-600 relative group">
-            {isOver ? (
+          {isOver ? (
               <span className="font-medium text-green-500">WINNER:</span>
             ) : (
               <span className="font-medium">Leader:</span>
@@ -96,7 +94,7 @@ const GameCard = React.memo(({ game, refreshing, refreshGame, getCountdown, user
             )}
           </p>
           <p className="text-gray-600">
-            <span className="font-medium">Pot:</span> {formatEther(game.pot)} ETH
+            <span className="font-medium">***Prize:</span> {formatEther(game.pot)} ETH ***
           </p>
         </>
       )}
@@ -107,17 +105,31 @@ const GameCard = React.memo(({ game, refreshing, refreshGame, getCountdown, user
 export default function Games() {
   const [games, setGames] = useState<GameData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<{ [key: number]: boolean }>({}); 
-  const [tick, setTick] = useState<number>(0); 
+  const [refreshing, setRefreshing] = useState<{ [key: number]: boolean }>({});
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [latestGameId, setLatestGameId] = useState<number>(0);
   const { address } = useAccount();
+
+  useEffect(() => {
+    async function fetchLatestGameId() {
+      const client = createPublicClient({
+        chain: baseSepolia,
+        transport: http(),
+      });
+      const id = await client.readContract({
+        address: contractAddress,
+        abi: contractABI,
+        functionName: 'getLatestGameId',
+      });
+      setLatestGameId(Number(id));
+    }
+    fetchLatestGameId();
+  }, [refreshTrigger]);
 
   const handleGamesUpdate = useCallback((games: GameData[]) => {
     console.log('handleGamesUpdate called with games:', games.length);
     setGames(games);
-    if (games.length > 0) {
-      setIsLoading(false);
-    }
+    setIsLoading(false);
   }, []);
 
   const refreshGame = useCallback(async (gameId: number) => {
@@ -134,7 +146,6 @@ export default function Games() {
         functionName: 'getGame',
         args: [BigInt(gameId)],
       });
-
       console.log(`Refreshed Game ${gameId}:`, { endTime, highScore, leader, pot });
       const updatedGame = { gameId, endTime, highScore, leader, pot };
       setGames(prevGames =>
@@ -151,42 +162,6 @@ export default function Games() {
     }
   }, []);
 
-  useEffect(() => {
-    let frameId: number;
-    let lastUpdate = performance.now();
-
-    const update = (currentTime: number) => {
-      if (currentTime - lastUpdate >= 2000) {
-        setTick(prev => prev + 1);
-        lastUpdate = currentTime;
-      }
-      frameId = requestAnimationFrame(update);
-    };
-
-    frameId = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(frameId);
-  }, []);
-
-  const getCountdown = useCallback((endTime: bigint) => {
-    const now = BigInt(Math.floor(Date.now() / 1000));
-    const timeLeft = Number(endTime - now);
-
-    if (timeLeft <= 0) {
-      return { isOver: true, countdown: '00:00:00', timeLeft };
-    }
-
-    const hours = Math.floor(timeLeft / 3600);
-    const minutes = Math.floor((timeLeft % 3600) / 60);
-    const seconds = timeLeft % 60;
-
-    const countdown = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    return { isOver: false, countdown, timeLeft };
-  }, []);
-
-  const sortedGames = useMemo(() => {
-    return [...games].sort((a, b) => Number(b.endTime - a.endTime));
-  }, [games, tick]);
-
   return (
     <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px] rounded-xl">
       <Navbar />
@@ -199,19 +174,25 @@ export default function Games() {
           <p>No games available</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-            {sortedGames.map(game => (
+            {games.map(game => (
               <GameCard
                 key={game.gameId}
                 game={game}
                 refreshing={refreshing[game.gameId] || false}
                 refreshGame={refreshGame}
-                getCountdown={getCountdown}
                 userAddress={address}
               />
             ))}
           </div>
         )}
-        <GetGamesWrapper onGamesUpdate={handleGamesUpdate} refreshTrigger={refreshTrigger} gameCount={GAME_COUNT} />
+        {latestGameId > 0 && (
+          <GetGamesWrapper
+            onGamesUpdate={handleGamesUpdate}
+            refreshTrigger={refreshTrigger}
+            startGameId={latestGameId - 1}
+            gameCount={GAME_COUNT}
+          />
+        )}
       </section>
     </div>
   );

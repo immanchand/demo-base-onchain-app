@@ -71,7 +71,7 @@ const GameCard = React.memo(({ game, refreshing, refreshGame, userAddress }: Gam
             <span className="font-medium">High Score:</span> {game.highScore.toString()}
           </p>
           <p className="text-gray-600 relative group">
-          {isOver ? (
+            {isOver ? (
               <span className="font-medium text-green-500">WINNER:</span>
             ) : (
               <span className="font-medium">Leader:</span>
@@ -108,6 +108,8 @@ export default function Games() {
   const [refreshing, setRefreshing] = useState<{ [key: number]: boolean }>({});
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const [latestGameId, setLatestGameId] = useState<number>(0);
+  const [gameIdInput, setGameIdInput] = useState<string>(''); // State for numeric input
+  const [showSpecificGame, setShowSpecificGame] = useState<boolean>(false); // Toggle between specific and recent games
   const { address } = useAccount();
 
   useEffect(() => {
@@ -148,24 +150,73 @@ export default function Games() {
       });
       console.log(`Refreshed Game ${gameId}:`, { endTime, highScore, leader, pot });
       const updatedGame = { gameId, endTime, highScore, leader, pot };
-      setGames(prevGames =>
-        prevGames.map(game => (game.gameId === gameId ? updatedGame : game))
-      );
+      setGames(prevGames => {
+        const gameExists = prevGames.some(g => g.gameId === gameId);
+        if (gameExists) {
+          return prevGames.map(game => (game.gameId === gameId ? updatedGame : game));
+        } else if (showSpecificGame) {
+          return [updatedGame]; // Replace list with specific game
+        } else {
+          return [updatedGame, ...prevGames];
+        }
+      });
     } catch (error) {
       console.error(`Error refreshing game ${gameId}:`, error);
       const errorGame = { gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, error: true };
-      setGames(prevGames =>
-        prevGames.map(game => (game.gameId === gameId ? errorGame : game))
-      );
+      setGames(prevGames => {
+        const gameExists = prevGames.some(g => g.gameId === gameId);
+        if (gameExists) {
+          return prevGames.map(game => (game.gameId === gameId ? errorGame : game));
+        } else if (showSpecificGame) {
+          return [errorGame]; // Replace list with specific game
+        } else {
+          return [errorGame, ...prevGames];
+        }
+      });
     } finally {
       setRefreshing(prev => ({ ...prev, [gameId]: false }));
     }
-  }, []);
+  }, [showSpecificGame]);
+
+  const handleFetchGame = () => {
+    const gameId = parseInt(gameIdInput, 10);
+    if (!isNaN(gameId) && gameId > 0) {
+      setShowSpecificGame(true); // Switch to specific game mode
+      setRefreshTrigger(prev => prev + 1); // Trigger GetGamesWrapper re-fetch
+    }
+  };
+
+  const handleShowRecentGames = () => {
+    setShowSpecificGame(false); // Switch back to recent games mode
+    setRefreshTrigger(prev => prev + 1); // Trigger GetGamesWrapper re-fetch
+  };
 
   return (
     <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px] rounded-xl">
       <Navbar />
       <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl bg-gray-100 px-2 py-4 md:grow">
+        <div className="flex justify-center w-full mb-4 gap-2">
+          <input
+            type="number"
+            value={gameIdInput}
+            onChange={(e) => setGameIdInput(e.target.value)}
+            placeholder="Enter Game ID"
+            className="border border-gray-300 rounded-l-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            min="1"
+          />
+          <button
+            onClick={handleFetchGame}
+            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Fetch Game
+          </button>
+          <button
+            onClick={handleShowRecentGames}
+            className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+          >
+            Recent Games
+          </button>
+        </div>
         {isLoading ? (
           <div className="flex items-center justify-center w-full h-64">
             <div className="text-gray-600 text-xl animate-pulse">Loading games...</div>
@@ -189,8 +240,8 @@ export default function Games() {
           <GetGamesWrapper
             onGamesUpdate={handleGamesUpdate}
             refreshTrigger={refreshTrigger}
-            startGameId={latestGameId - 1}
-            gameCount={GAME_COUNT}
+            startGameId={showSpecificGame ? parseInt(gameIdInput) || latestGameId - 1 : latestGameId - 1}
+            gameCount={showSpecificGame ? 1 : GAME_COUNT}
           />
         )}
       </section>

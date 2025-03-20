@@ -1,3 +1,6 @@
+import { createPublicClient, http } from "viem";
+import { baseSepolia } from "viem/chains";
+
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
 export const mintContractAddress = '0xA3e40bBe8E8579Cd2619Ef9C6fEA362b760dac9f';
 export const shortABI = [
@@ -36,8 +39,12 @@ export const mintABI = [
     type: 'function',
   },
 ] as const;
-export const GAME_COUNT = 9;
+export const GAME_COUNT = 6;
 export const GAME_PRICE_WEI = 100000000000000; 
+export const publicClient = createPublicClient({
+        chain: baseSepolia,
+        transport: http(),
+      });
 export const contractAddress = '0x523dEa604Bc4b4DC87e03e701FDA6F8a3bA3c9ad';
 export const contractABI = [
     {

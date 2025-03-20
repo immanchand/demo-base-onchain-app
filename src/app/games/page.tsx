@@ -1,11 +1,9 @@
 'use client';
-import GetGamesWrapper from 'src/components/GetGamesWrapper';
 import Navbar from 'src/components/Navbar';
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Address } from 'viem';
-import { formatEther, createPublicClient, http } from 'viem';
-import { baseSepolia } from 'viem/chains';
-import { contractABI, contractAddress, GAME_COUNT } from '../../constants';
+import { formatEther } from 'viem';
+import { publicClient, contractABI, contractAddress, GAME_COUNT } from '../../constants';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
 
@@ -18,17 +16,8 @@ interface GameData {
   error?: boolean;
 }
 
-interface GameCardProps {
-  game: GameData;
-  refreshing: boolean;
-  refreshGame: (gameId: number) => void;
-  userAddress?: Address;
-}
-
-const GameCard = React.memo(({ game, refreshing, refreshGame, userAddress }: GameCardProps) => {
+const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddress?: Address }) => {
   const [isCopied, setIsCopied] = useState(false);
-  const currentTime = BigInt(Math.floor(Date.now() / 1000));
-  const isOver = game.endTime <= currentTime;
 
   const handleCopyAddress = async () => {
     try {
@@ -41,44 +30,33 @@ const GameCard = React.memo(({ game, refreshing, refreshGame, userAddress }: Gam
   };
 
   const isUserLeader = userAddress && game.leader.toLowerCase() === userAddress.toLowerCase();
+  const currentTime = BigInt(Math.floor(Date.now() / 1000)); // Current time in seconds
+  const isGameOver = game.endTime <= currentTime; // Check if game is over
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 border border-gray-200 relative">
+    <div className="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 border border-gray-200">
       <h3 className="text-lg font-semibold text-gray-800">Game {game.gameId}</h3>
-      <button
-        onClick={() => refreshGame(game.gameId)}
-        className={`absolute top-2 right-2 w-6 h-6 text-gray-500 hover:text-gray-700 focus:outline-none ${refreshing ? 'animate-spin' : ''}`}
-        disabled={refreshing}
-        aria-label={`Refresh game ${game.gameId}`}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.001 8.001 0 01-15.356-2m15.356 2H15" />
-        </svg>
-      </button>
       {game.error ? (
         <p className="text-red-500">Failed to load game data</p>
       ) : (
         <>
           <p className="text-gray-600">
             <span className="font-medium">End Time:</span>{' '}
-            {isOver ? (
-              <span className="text-red-500 font-semibold">Game Over</span>
-            ) : (
-              <span className="text-green-500">{new Date(Number(game.endTime) * 1000).toLocaleString()}</span>
-            )}
+            <span className={isGameOver ? 'text-red-500' : 'text-green-500'}>
+              {new Date(Number(game.endTime) * 1000).toLocaleString()}
+            </span>
           </p>
           <p className="text-gray-600">
             <span className="font-medium">High Score:</span> {game.highScore.toString()}
           </p>
           <p className="text-gray-600 relative group">
-            {isOver ? (
-              <span className="font-medium text-green-500">WINNER:</span>
-            ) : (
-              <span className="font-medium">Leader:</span>
-            )}{' '}
+            <span className="font-medium text-green-500">WINNER:</span>{' '}
             <Link
               href="#"
-              onClick={(e) => { e.preventDefault(); handleCopyAddress(); }}
+              onClick={(e) => {
+                e.preventDefault();
+                handleCopyAddress();
+              }}
               className={`${isUserLeader ? 'text-green-500' : 'text-blue-500'} hover:underline cursor-pointer font-semibold`}
               title="Click to copy address"
             >
@@ -103,93 +81,94 @@ const GameCard = React.memo(({ game, refreshing, refreshGame, userAddress }: Gam
 });
 
 export default function Games() {
-  const [recentGames, setRecentGames] = useState<GameData[]>([]); // Cache for recent games
-  const [specificGame, setSpecificGame] = useState<GameData | null>(null); // Specific game state
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<{ [key: number]: boolean }>({});
-  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
-  const [latestGameId, setLatestGameId] = useState<number>(0);
-  const [gameIdInput, setGameIdInput] = useState<string>(''); // State for numeric input
-  const [showSpecificGame, setShowSpecificGame] = useState<boolean>(false); // Toggle display mode
+  const [games, setGames] = useState<GameData[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [gameIdInput, setGameIdInput] = useState<string>('');
+  const [showSpecificGame, setShowSpecificGame] = useState<boolean>(false);
   const { address } = useAccount();
+  const isFetching = useRef(false);
+  const hasMounted = useRef(false);
+
+  const fetchGames = async (startGameId: number, count: number) => {
+    if (isFetching.current) return;
+    isFetching.current = true;
+    setIsLoading(true);
+    setGames([]);
+
+    const endId = Math.max(1, startGameId - count + 1);
+
+    for (let gameId = startGameId; gameId >= endId && gameId >= 1; gameId--) {
+      try {
+        const { endTime, highScore, leader, pot } = await publicClient.readContract({
+          address: contractAddress,
+          abi: contractABI,
+          functionName: 'getGame',
+          args: [BigInt(gameId)],
+        });
+        const gameData = { gameId, endTime, highScore, leader, pot };
+        setGames(prev => {
+          if (prev.some(g => g.gameId === gameId)) return prev;
+          return [...prev, gameData];
+        });
+      } catch (error) {
+        console.error(`Error fetching game ${gameId}:`, error);
+        const errorGame = { gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, error: true };
+        setGames(prev => {
+          if (prev.some(g => g.gameId === gameId)) return prev;
+          return [...prev, errorGame];
+        });
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    setIsLoading(false);
+    isFetching.current = false;
+  };
 
   useEffect(() => {
-    async function fetchLatestGameId() {
-      const client = createPublicClient({
-        chain: baseSepolia,
-        transport: http(),
-      });
-      const id = await client.readContract({
+    if (hasMounted.current) return;
+    hasMounted.current = true;
+
+    const loadInitialGames = async () => {
+      const latestGameId = await publicClient.readContract({
         address: contractAddress,
         abi: contractABI,
         functionName: 'getLatestGameId',
       });
-      setLatestGameId(Number(id));
-    }
-    fetchLatestGameId();
-  }, [refreshTrigger]);
-
-  const handleGamesUpdate = useCallback((games: GameData[]) => {
-    console.log('handleGamesUpdate called with games:', games.length);
-    if (showSpecificGame) {
-      setSpecificGame(games[0] || null); // Set specific game (single game fetched)
-    } else {
-      setRecentGames(games); // Cache recent games
-    }
-    setIsLoading(false);
-  }, [showSpecificGame]);
-
-  const refreshGame = useCallback(async (gameId: number) => {
-    setRefreshing(prev => ({ ...prev, [gameId]: true }));
-    const client = createPublicClient({
-      chain: baseSepolia,
-      transport: http(),
-    });
-
-    try {
-      const { endTime, highScore, leader, pot } = await client.readContract({
-        address: contractAddress,
-        abi: contractABI,
-        functionName: 'getGame',
-        args: [BigInt(gameId)],
-      });
-      console.log(`Refreshed Game ${gameId}:`, { endTime, highScore, leader, pot });
-      const updatedGame = { gameId, endTime, highScore, leader, pot };
-      if (showSpecificGame) {
-        setSpecificGame(updatedGame); // Update specific game
+      const startId = Number(latestGameId) - 1;
+      if (startId >= 1) {
+        await fetchGames(startId, GAME_COUNT);
       } else {
-        setRecentGames(prev => prev.map(game => (game.gameId === gameId ? updatedGame : game)));
+        setGames([]);
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error(`Error refreshing game ${gameId}:`, error);
-      const errorGame = { gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, error: true };
-      if (showSpecificGame) {
-        setSpecificGame(errorGame); // Update specific game with error
-      } else {
-        setRecentGames(prev => prev.map(game => (game.gameId === gameId ? errorGame : game)));
-      }
-    } finally {
-      setRefreshing(prev => ({ ...prev, [gameId]: false }));
-    }
-  }, [showSpecificGame]);
+    };
+    loadInitialGames();
+  }, []);
 
-  const handleFetchGame = () => {
+  const handleFetchGame = async () => {
     const gameId = parseInt(gameIdInput, 10);
     if (!isNaN(gameId) && gameId > 0) {
-      setShowSpecificGame(true); // Switch to specific game mode
-      setRefreshTrigger(prev => prev + 1); // Trigger GetGamesWrapper re-fetch
+      setShowSpecificGame(true);
+      await fetchGames(gameId, 1);
     }
   };
 
-  const handleShowRecentGames = () => {
-    setShowSpecificGame(false); // Switch back to recent games mode
-    setSpecificGame(null); // Clear specific game
-    if (recentGames.length === 0) {
-      setRefreshTrigger(prev => prev + 1); // Fetch recent games only if not cached
+  const handleShowRecentGames = async () => {
+    setShowSpecificGame(false);
+    setGameIdInput('');
+    const latestGameId = await publicClient.readContract({
+      address: contractAddress,
+      abi: contractABI,
+      functionName: 'getLatestGameId',
+    });
+    const startId = Number(latestGameId) - 1;
+    if (startId >= 1) {
+      await fetchGames(startId, GAME_COUNT);
+    } else {
+      setGames([]);
     }
   };
-
-  const displayedGames = showSpecificGame && specificGame ? [specificGame] : recentGames;
 
   return (
     <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px] rounded-xl">
@@ -207,42 +186,33 @@ export default function Games() {
           <button
             onClick={handleFetchGame}
             className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isLoading}
           >
             Fetch Game
           </button>
           <button
             onClick={handleShowRecentGames}
             className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            disabled={isLoading}
           >
             Recent Games
           </button>
         </div>
-        {isLoading ? (
+        {games.length === 0 && isLoading ? (
           <div className="flex items-center justify-center w-full h-64">
             <div className="text-gray-600 text-xl animate-pulse">Loading games...</div>
           </div>
-        ) : displayedGames.length === 0 ? (
+        ) : games.length === 0 ? (
           <p>No games available</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-            {displayedGames.map(game => (
-              <GameCard
-                key={game.gameId}
-                game={game}
-                refreshing={refreshing[game.gameId] || false}
-                refreshGame={refreshGame}
-                userAddress={address}
-              />
+            {games.map(game => (
+              <GameCard key={game.gameId} game={game} userAddress={address} />
             ))}
           </div>
         )}
-        {latestGameId > 0 && (
-          <GetGamesWrapper
-            onGamesUpdate={handleGamesUpdate}
-            refreshTrigger={refreshTrigger}
-            startGameId={showSpecificGame ? parseInt(gameIdInput) || latestGameId - 1 : latestGameId - 1}
-            gameCount={showSpecificGame ? 1 : GAME_COUNT}
-          />
+        {isLoading && games.length > 0 && (
+          <div className="text-gray-600 text-sm mt-2">Loading more games...</div>
         )}
       </section>
     </div>

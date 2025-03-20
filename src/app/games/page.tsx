@@ -103,13 +103,14 @@ const GameCard = React.memo(({ game, refreshing, refreshGame, userAddress }: Gam
 });
 
 export default function Games() {
-  const [games, setGames] = useState<GameData[]>([]);
+  const [recentGames, setRecentGames] = useState<GameData[]>([]); // Cache for recent games
+  const [specificGame, setSpecificGame] = useState<GameData | null>(null); // Specific game state
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<{ [key: number]: boolean }>({});
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const [latestGameId, setLatestGameId] = useState<number>(0);
   const [gameIdInput, setGameIdInput] = useState<string>(''); // State for numeric input
-  const [showSpecificGame, setShowSpecificGame] = useState<boolean>(false); // Toggle between specific and recent games
+  const [showSpecificGame, setShowSpecificGame] = useState<boolean>(false); // Toggle display mode
   const { address } = useAccount();
 
   useEffect(() => {
@@ -130,9 +131,13 @@ export default function Games() {
 
   const handleGamesUpdate = useCallback((games: GameData[]) => {
     console.log('handleGamesUpdate called with games:', games.length);
-    setGames(games);
+    if (showSpecificGame) {
+      setSpecificGame(games[0] || null); // Set specific game (single game fetched)
+    } else {
+      setRecentGames(games); // Cache recent games
+    }
     setIsLoading(false);
-  }, []);
+  }, [showSpecificGame]);
 
   const refreshGame = useCallback(async (gameId: number) => {
     setRefreshing(prev => ({ ...prev, [gameId]: true }));
@@ -150,29 +155,19 @@ export default function Games() {
       });
       console.log(`Refreshed Game ${gameId}:`, { endTime, highScore, leader, pot });
       const updatedGame = { gameId, endTime, highScore, leader, pot };
-      setGames(prevGames => {
-        const gameExists = prevGames.some(g => g.gameId === gameId);
-        if (gameExists) {
-          return prevGames.map(game => (game.gameId === gameId ? updatedGame : game));
-        } else if (showSpecificGame) {
-          return [updatedGame]; // Replace list with specific game
-        } else {
-          return [updatedGame, ...prevGames];
-        }
-      });
+      if (showSpecificGame) {
+        setSpecificGame(updatedGame); // Update specific game
+      } else {
+        setRecentGames(prev => prev.map(game => (game.gameId === gameId ? updatedGame : game)));
+      }
     } catch (error) {
       console.error(`Error refreshing game ${gameId}:`, error);
       const errorGame = { gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, error: true };
-      setGames(prevGames => {
-        const gameExists = prevGames.some(g => g.gameId === gameId);
-        if (gameExists) {
-          return prevGames.map(game => (game.gameId === gameId ? errorGame : game));
-        } else if (showSpecificGame) {
-          return [errorGame]; // Replace list with specific game
-        } else {
-          return [errorGame, ...prevGames];
-        }
-      });
+      if (showSpecificGame) {
+        setSpecificGame(errorGame); // Update specific game with error
+      } else {
+        setRecentGames(prev => prev.map(game => (game.gameId === gameId ? errorGame : game)));
+      }
     } finally {
       setRefreshing(prev => ({ ...prev, [gameId]: false }));
     }
@@ -188,8 +183,13 @@ export default function Games() {
 
   const handleShowRecentGames = () => {
     setShowSpecificGame(false); // Switch back to recent games mode
-    setRefreshTrigger(prev => prev + 1); // Trigger GetGamesWrapper re-fetch
+    setSpecificGame(null); // Clear specific game
+    if (recentGames.length === 0) {
+      setRefreshTrigger(prev => prev + 1); // Fetch recent games only if not cached
+    }
   };
+
+  const displayedGames = showSpecificGame && specificGame ? [specificGame] : recentGames;
 
   return (
     <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px] rounded-xl">
@@ -221,11 +221,11 @@ export default function Games() {
           <div className="flex items-center justify-center w-full h-64">
             <div className="text-gray-600 text-xl animate-pulse">Loading games...</div>
           </div>
-        ) : games.length === 0 ? (
+        ) : displayedGames.length === 0 ? (
           <p>No games available</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-            {games.map(game => (
+            {displayedGames.map(game => (
               <GameCard
                 key={game.gameId}
                 game={game}

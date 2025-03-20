@@ -1,7 +1,6 @@
 'use client';
 import GetGamesWrapper from 'src/components/GetGamesWrapper';
 import Navbar from 'src/components/Navbar';
-import CreateGameWrapper from 'src/components/CreateGameWrapper';
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import type { Address } from 'viem';
 import { formatEther, createPublicClient, http } from 'viem';
@@ -27,6 +26,8 @@ interface GameCardProps {
   userAddress?: Address;
 }
 
+const GAME_COUNT = 7; // Define the number of games to fetch
+
 const GameCard = React.memo(({ game, refreshing, refreshGame, getCountdown, userAddress }: GameCardProps) => {
   const { isOver, countdown, timeLeft } = getCountdown(game.endTime);
   const [isCopied, setIsCopied] = useState(false);
@@ -35,42 +36,25 @@ const GameCard = React.memo(({ game, refreshing, refreshGame, getCountdown, user
     try {
       await navigator.clipboard.writeText(game.leader);
       setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
+      setTimeout(() => setIsCopied(false), 2000);
     } catch (error) {
       console.error('Failed to copy address:', error);
     }
   };
 
-  // Check if the leader is the current user (case-insensitive comparison)
   const isUserLeader = userAddress && game.leader.toLowerCase() === userAddress.toLowerCase();
 
   return (
-    <div
-      key={game.gameId}
-      className="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 border border-gray-200 relative"
-    >
+    <div className="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 border border-gray-200 relative">
       <h3 className="text-lg font-semibold text-gray-800">Game {game.gameId}</h3>
       <button
         onClick={() => refreshGame(game.gameId)}
-        className={`absolute top-2 right-2 w-6 h-6 text-gray-500 hover:text-gray-700 focus:outline-none ${
-          refreshing ? 'animate-spin' : ''
-        }`}
+        className={`absolute top-2 right-2 w-6 h-6 text-gray-500 hover:text-gray-700 focus:outline-none ${refreshing ? 'animate-spin' : ''}`}
         disabled={refreshing}
         aria-label={`Refresh game ${game.gameId}`}
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          className="w-6 h-6"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.001 8.001 0 01-15.356-2m15.356 2H15"
-          />
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.001 8.001 0 01-15.356-2m15.356 2H15" />
         </svg>
       </button>
       {game.error ? (
@@ -96,22 +80,15 @@ const GameCard = React.memo(({ game, refreshing, refreshGame, getCountdown, user
             )}{' '}
             <Link
               href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                handleCopyAddress();
-              }}
-              className={`${
-                isUserLeader ? 'text-green-500' : 'text-blue-500'
-              } hover:underline cursor-pointer font-semibold`}
+              onClick={(e) => { e.preventDefault(); handleCopyAddress(); }}
+              className={`${isUserLeader ? 'text-green-500' : 'text-blue-500'} hover:underline cursor-pointer font-semibold`}
               title="Click to copy address"
             >
               {isUserLeader ? 'YOU!' : `${game.leader.slice(0, 6)}...${game.leader.slice(-4)}`}
             </Link>
-            {/* Tooltip */}
             <span className="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2">
               {game.leader}
             </span>
-            {/* Copied Animation */}
             {isCopied && (
               <span className="absolute right-0 top-full mt-1 text-green-500 text-xs animate-fade-in-out">
                 Copied!
@@ -130,10 +107,10 @@ const GameCard = React.memo(({ game, refreshing, refreshGame, getCountdown, user
 export default function Games() {
   const [games, setGames] = useState<GameData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<{ [key: number]: boolean }>({}); // Per-game loading state
-  const [tick, setTick] = useState<number>(0); // Trigger re-render every 2 seconds
-  const [refreshTrigger, setRefreshTrigger] = useState<number>(0); // Force re-fetch
-  const { address } = useAccount(); // Get the user's address
+  const [refreshing, setRefreshing] = useState<{ [key: number]: boolean }>({}); 
+  const [tick, setTick] = useState<number>(0); 
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const { address } = useAccount();
 
   const handleGamesUpdate = useCallback((games: GameData[]) => {
     console.log('handleGamesUpdate called with games:', games.length);
@@ -210,19 +187,10 @@ export default function Games() {
     return [...games].sort((a, b) => Number(b.endTime - a.endTime));
   }, [games, tick]);
 
-  const handleGameCreated = useCallback(() => {
-    console.log('Game created, triggering refresh');
-    setIsLoading(true);
-    setRefreshTrigger(prev => prev + 1);
-  }, []);
-
   return (
     <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px] rounded-xl">
       <Navbar />
       <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl bg-gray-100 px-2 py-4 md:grow">
-        <div className="flex justify-center w-full mb-4">
-          <CreateGameWrapper onSuccess={handleGameCreated} />
-        </div>
         {isLoading ? (
           <div className="flex items-center justify-center w-full h-64">
             <div className="text-gray-600 text-xl animate-pulse">Loading games...</div>
@@ -243,7 +211,7 @@ export default function Games() {
             ))}
           </div>
         )}
-        <GetGamesWrapper onGamesUpdate={handleGamesUpdate} refreshTrigger={refreshTrigger} />
+        <GetGamesWrapper onGamesUpdate={handleGamesUpdate} refreshTrigger={refreshTrigger} gameCount={GAME_COUNT} />
       </section>
     </div>
   );

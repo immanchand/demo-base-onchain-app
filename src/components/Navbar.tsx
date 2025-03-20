@@ -22,12 +22,18 @@ const Navbar = React.memo(() => {
             </div>
             <div className="hidden sm:ml-6 sm:block">
               <div className="flex space-x-4">
-                <Link href={'/games'}>
+                <Link href={'/active-game'}>
                   <p className="rounded-md px-3 py-2 text-l font-large font-bold text-slate-700">Play & Win</p>
                 </Link>
                 {address && (
                   <Link href="/tickets">
                     <p className="rounded-md px-3 py-2 text-l font-large font-bold text-slate-700">Tickets</p>
+                  </Link>
+                  
+                )}
+                {address && (
+                  <Link href="/games">
+                    <p className="rounded-md px-3 py-2 text-l font-large font-bold text-slate-700">Old Games</p>
                   </Link>
                 )}
               </div>
@@ -36,9 +42,11 @@ const Navbar = React.memo(() => {
           <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
             <div className="flex items-center gap-3">
               {address && (
-                <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center text-xl font-bold text-white">
-                  {ticketCount}
-                </div>
+                <Link href="/tickets">
+                  <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center text-xl font-bold text-white hover:bg-gray-600 transition-colors">
+                    {ticketCount}
+                  </div>
+              </Link>
               )}
               <LoginButton />
             </div>

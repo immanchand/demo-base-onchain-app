@@ -127,10 +127,12 @@ export default function ActiveGame() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [fetchError, setFetchError] = useState<boolean>(false); // Track fetch errors
   const { address } = useAccount();
 
   const fetchLatestGame = useCallback(async () => {
     setIsLoading(true);
+    setFetchError(false); // Reset error state
 
     try {
       const latestGameId = await publicClient.readContract({
@@ -149,11 +151,12 @@ export default function ActiveGame() {
         });
         setLatestGame({ gameId, endTime, highScore, leader, pot });
       } else {
-        setLatestGame(null);
+        setLatestGame(null); // No game exists
       }
     } catch (error) {
       console.error('Error fetching latest game:', error);
-      setLatestGame(null);
+      setLatestGame(null); // Set to null on error
+      setFetchError(true); // Indicate an error occurred
     } finally {
       setIsLoading(false);
     }
@@ -161,6 +164,7 @@ export default function ActiveGame() {
 
   const refreshGame = useCallback(async (gameId: number) => {
     setRefreshing(true);
+    setFetchError(false); // Reset error state
 
     try {
       const { endTime, highScore, leader, pot } = await publicClient.readContract({
@@ -173,6 +177,7 @@ export default function ActiveGame() {
     } catch (error) {
       console.error(`Error refreshing game ${gameId}:`, error);
       setLatestGame({ gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, error: true });
+      setFetchError(true); // Indicate an error occurred
     } finally {
       setRefreshing(false);
     }
@@ -184,31 +189,45 @@ export default function ActiveGame() {
 
   const handleGameCreated = useCallback(() => {
     console.log('Game created, triggering refresh');
-    setRefreshTrigger(prev => prev + 1);
+    //setRefreshTrigger(prev => prev + 1);
+    fetchLatestGame();
   }, []);
+
+  const isLatestGameOver = latestGame && !latestGame.error ? latestGame.endTime <= BigInt(Math.floor(Date.now() / 1000)) : false;
 
   return (
     <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px] rounded-xl">
       <Navbar />
       <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl bg-gray-100 px-2 py-4 md:grow">
-        <div className="flex justify-center w-full mb-4">
-          <CreateGameWrapper onSuccess={handleGameCreated} />
-        </div>
         {isLoading ? (
           <div className="flex items-center justify-center w-full h-64">
             <div className="text-gray-600 text-xl animate-pulse">Loading active game...</div>
           </div>
-        ) : !latestGame ? (
-          <p>No active game available</p>
         ) : (
-          <div className="w-full max-w-md">
-            <GameCard
-              game={latestGame}
-              refreshing={refreshing}
-              refreshGame={refreshGame}
-              userAddress={address}
-            />
-          </div>
+          <>
+            {fetchError ? (
+              <p className="text-red-500 text-lg font-semibold">Error retrieving game. Try again later.</p>
+            ) : true ? (
+              <div className="flex flex-col items-center w-full mb-4">
+                <p className="text-gray-800 text-lg font-semibold mb-2">
+                  No Active Game Exists! Create one for FREE!
+                </p>
+                <CreateGameWrapper onSuccess={handleGameCreated} />
+              </div>
+            ) : null}
+            {!latestGame && !fetchError ? (
+              <p>No active game available</p>
+            ) : latestGame ? (
+              <div className="w-full max-w-md">
+                <GameCard
+                  game={latestGame}
+                  refreshing={refreshing}
+                  refreshGame={refreshGame}
+                  userAddress={address}
+                />
+              </div>
+            ) : null}
+          </>
         )}
       </section>
     </div>

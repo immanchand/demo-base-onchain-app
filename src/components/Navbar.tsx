@@ -31,11 +31,9 @@ const Navbar = React.memo(() => {
                   </Link>
                   
                 )}
-                {address && (
-                  <Link href="/games">
-                    <p className="rounded-md px-3 py-2 text-l font-large font-bold text-slate-700">Old Games</p>
-                  </Link>
-                )}
+                <Link href="/games">
+                   <p className="rounded-md px-3 py-2 text-l font-large font-bold text-slate-700">Game History</p>
+                 </Link>
               </div>
             </div>
           </div>

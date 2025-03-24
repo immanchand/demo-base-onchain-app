@@ -1,6 +1,6 @@
 'use client';
 import Navbar from 'src/components/Navbar';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import type { Address } from 'viem';
 import { formatEther } from 'viem';
 import { publicClient, contractABI, contractAddress, GAME_COUNT } from 'src/constants';
@@ -31,15 +31,16 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
   };
 
   const isUserLeader = userAddress && game.leader.toLowerCase() === userAddress.toLowerCase();
-  const currentTime = BigInt(Math.floor(Date.now() / 1000)); // Current time in seconds
-  const isGameOver = game.endTime <= currentTime; // Check if game is over
-  const isGameWithdrawn = game.potHistory < game.pot; // Check if game is withdrawn
+  const currentTime = BigInt(Math.floor(Date.now() / 1000));
+  const isGameOver = game.endTime <= currentTime;
+  const isGameNotExist = game.endTime === 0n;
+  const isGameWithdrawn = game.potHistory > game.pot;
 
   return (
     <div className="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 border border-gray-200">
-      <h3 className="text-lg font-semibold text-gray-800">Game {game.gameId}</h3>
-      {game.error ? (
-        <p className="text-red-500">Failed to load game data</p>
+      <h3 className="text-lg font-semibold text-gray-800">Game #{game.gameId}</h3>
+      {game.error || isGameNotExist ? (
+        <p className="text-red-500">Failed to load game data or game does not exist</p>
       ) : (
         <>
           <p className="text-gray-600">
@@ -54,8 +55,9 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
           <p className="text-gray-600 relative group">
             {isGameOver ? (
               <span className="font-medium text-green-500">WINNER:</span>
-            ) : (<span className="font-medium text-green-500">Leader:</span>)}
-            {' '}
+            ) : (
+              <span className="font-medium text-green-500">Leader:</span>
+            )}{' '}
             <Link
               href="#"
               onClick={(e) => {
@@ -77,7 +79,7 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
             )}
           </p>
           <p className={`${isGameWithdrawn ? 'text-red-500' : 'text-green-500'}`}>
-            <span className="font-medium">***Prize:</span>
+            <span className="font-medium">***Prize:</span>{' '}
             {isGameWithdrawn ? formatEther(game.pot) : formatEther(game.potHistory)} ETH ***
           </p>
         </>
@@ -91,90 +93,73 @@ export default function Games() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [gameIdInput, setGameIdInput] = useState<string>('');
   const [showSpecificGame, setShowSpecificGame] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const { address } = useAccount();
-  const isFetching = useRef(false);
-  const hasMounted = useRef(false);
 
-  const fetchGames = async (startGameId: number, count: number) => {
-    if (isFetching.current) return;
-    isFetching.current = true;
+
+  const fetchGames = useCallback(async (startGameId: number, count: number) => {
     setIsLoading(true);
-    setGames([]);
+    setError(null);
+    setGames([]); // Clear existing games
 
     const endId = Math.max(1, startGameId - count + 1);
 
-    for (let gameId = startGameId; gameId >= endId && gameId >= 1; gameId--) {
-      try {
-        const { endTime, highScore, leader, pot, potHistory } = await publicClient.readContract({
-          address: contractAddress,
-          abi: contractABI,
-          functionName: 'getGame',
-          args: [BigInt(gameId)],
-        });
-        const gameData = { gameId, endTime, highScore, leader, pot, potHistory };
-        setGames(prev => {
-          if (prev.some(g => g.gameId === gameId)) return prev;
-          return [...prev, gameData];
-        });
-      } catch (error) {
-        console.error(`Error fetching game ${gameId}:`, error);
-        const errorGame = { gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, potHistory: 0n, error: true };
-        setGames(prev => {
-          if (prev.some(g => g.gameId === gameId)) return prev;
-          return [...prev, errorGame];
-        });
+    try {
+      for (let gameId = startGameId; gameId >= endId && gameId >= 1; gameId--) {
+        try {
+          const { endTime, highScore, leader, pot, potHistory } = await publicClient.readContract({
+            address: contractAddress,
+            abi: contractABI,
+            functionName: 'getGame',
+            args: [BigInt(gameId)],
+          });
+          const gameData = { gameId, endTime, highScore, leader, pot, potHistory };
+          setGames(prev => [...prev, gameData]);
+          await new Promise(resolve => setTimeout(resolve, 500)); // Delay for UX
+        } catch (err) {
+          console.error(`Error fetching game ${gameId}:`, err);
+          const errorGame = { gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, potHistory: 0n, error: true };
+          setGames(prev => [...prev, errorGame]);
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
-      await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (err) {
+      setError('Failed to fetch games. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
-    isFetching.current = false;
-  };
-
-  useEffect(() => {
-    if (hasMounted.current) return;
-    hasMounted.current = true;
-
-    const loadInitialGames = async () => {
-      const latestGameId = await publicClient.readContract({
-        address: contractAddress,
-        abi: contractABI,
-        functionName: 'getLatestGameId',
-      });
-      const startId = Number(latestGameId) - 1;
-      if (startId >= 1) {
-        await fetchGames(startId, GAME_COUNT);
-      } else {
-        setGames([]);
-        setIsLoading(false);
-      }
-    };
-    loadInitialGames();
   }, []);
 
-  const handleFetchGame = async () => {
-    const gameId = parseInt(gameIdInput, 10);
-    if (!isNaN(gameId) && gameId > 0) {
-      setShowSpecificGame(true);
-      await fetchGames(gameId, 1);
-    }
-  };
-
-  const handleShowRecentGames = async () => {
-    setShowSpecificGame(false);
-    setGameIdInput('');
+  const getLatestGameId = useCallback(async () => {
     const latestGameId = await publicClient.readContract({
       address: contractAddress,
       abi: contractABI,
       functionName: 'getLatestGameId',
     });
-    const startId = Number(latestGameId) - 1;
+    return Number(latestGameId);
+  }, []);
+
+  const handleFetchGame = useCallback(async () => {
+    const gameId = parseInt(gameIdInput, 10);
+    if (!isNaN(gameId) && gameId > 0) {
+      setShowSpecificGame(true);
+      await fetchGames(gameId, 1);
+    }
+  }, [gameIdInput, fetchGames]);
+
+  const handleShowRecentGames = useCallback(async () => {
+    setShowSpecificGame(false);
+    setGameIdInput('');
+    const latestId = await getLatestGameId();
+    const startId = Math.max(1, latestId - 1);
     if (startId >= 1) {
       await fetchGames(startId, GAME_COUNT);
     } else {
       setGames([]);
     }
-  };
+  }, [fetchGames, getLatestGameId]);
+
+  // Removed useEffect to prevent initial load
 
   return (
     <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px] rounded-xl">
@@ -188,39 +173,42 @@ export default function Games() {
             placeholder="Enter Game ID"
             className="border border-gray-300 rounded-l-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             min="1"
+            disabled={isLoading}
           />
           <button
             onClick={handleFetchGame}
-            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-300"
             disabled={isLoading}
           >
             Fetch Game
           </button>
           <button
             onClick={handleShowRecentGames}
-            className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-300"
             disabled={isLoading}
           >
-            Recent Games
+            Show Recent Games
           </button>
         </div>
-        {games.length === 0 && isLoading ? (
+        {error ? (
+          <p className="text-red-500 text-lg">{error}</p>
+        ) : games.length === 0 && isLoading ? (
           <div className="flex items-center justify-center w-full h-64">
             <div className="text-gray-600 text-xl animate-pulse">Loading games...</div>
           </div>
-        ) : games.length === 0 ? (
-          <p>No games available</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
             {games.map(game => (
               <GameCard key={game.gameId} game={game} userAddress={address} />
             ))}
+            {isLoading && (
+              <div className="col-span-full text-gray-600 text-sm mt-2 text-center">
+                Loading more games...
+              </div>
+            )}
           </div>
-        )}
-        {isLoading && games.length > 0 && (
-          <div className="text-gray-600 text-sm mt-2">Loading more games...</div>
         )}
       </section>
     </div>
   );
-} 
+}

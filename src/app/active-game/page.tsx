@@ -3,19 +3,23 @@ import Navbar from 'src/components/Navbar';
 import CreateGameWrapper from 'src/components/CreateGameWrapper';
 import React, { useState, useCallback, useEffect } from 'react';
 import type { Address } from 'viem';
-import { formatEther } from 'viem';
+import { formatEther, decodeEventLog } from 'viem';
 import { useAccount } from 'wagmi';
-import { publicClient, contractABI, contractAddress } from '../../constants';
+import { publicClient, contractABI, contractAddress } from 'src/constants';
+import WalletWrapper from 'src/components/WalletWrapper';
 
+// GameData interface
 interface GameData {
   gameId: number;
   endTime: bigint;
   highScore: bigint;
   leader: Address;
   pot: bigint;
+  potHistory: bigint;
   error?: boolean;
 }
 
+// GameCard component (unchanged)
 const GameCard = React.memo(({ game, refreshing, refreshGame, userAddress }: {
   game: GameData;
   refreshing: boolean;
@@ -126,13 +130,12 @@ export default function ActiveGame() {
   const [latestGame, setLatestGame] = useState<GameData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
-  const [fetchError, setFetchError] = useState<boolean>(false); // Track fetch errors
+  const [fetchError, setFetchError] = useState<boolean>(false);
   const { address } = useAccount();
 
   const fetchLatestGame = useCallback(async () => {
     setIsLoading(true);
-    setFetchError(false); // Reset error state
+    setFetchError(false);
 
     try {
       const latestGameId = await publicClient.readContract({
@@ -143,20 +146,20 @@ export default function ActiveGame() {
       const gameId = Number(latestGameId);
 
       if (gameId > 0) {
-        const { endTime, highScore, leader, pot } = await publicClient.readContract({
+        const { endTime, highScore, leader, pot, potHistory } = await publicClient.readContract({
           address: contractAddress,
           abi: contractABI,
           functionName: 'getGame',
           args: [BigInt(gameId)],
         });
-        setLatestGame({ gameId, endTime, highScore, leader, pot });
+        setLatestGame({ gameId, endTime, highScore, leader, pot, potHistory });
       } else {
-        setLatestGame(null); // No game exists
+        setLatestGame(null);
       }
     } catch (error) {
       console.error('Error fetching latest game:', error);
-      setLatestGame(null); // Set to null on error
-      setFetchError(true); // Indicate an error occurred
+      setLatestGame(null);
+      setFetchError(true);
     } finally {
       setIsLoading(false);
     }
@@ -164,20 +167,20 @@ export default function ActiveGame() {
 
   const refreshGame = useCallback(async (gameId: number) => {
     setRefreshing(true);
-    setFetchError(false); // Reset error state
+    setFetchError(false);
 
     try {
-      const { endTime, highScore, leader, pot } = await publicClient.readContract({
+      const { endTime, highScore, leader, pot, potHistory } = await publicClient.readContract({
         address: contractAddress,
         abi: contractABI,
         functionName: 'getGame',
         args: [BigInt(gameId)],
       });
-      setLatestGame({ gameId, endTime, highScore, leader, pot });
+      setLatestGame({ gameId, endTime, highScore, leader, pot, potHistory });
     } catch (error) {
       console.error(`Error refreshing game ${gameId}:`, error);
-      setLatestGame({ gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, error: true });
-      setFetchError(true); // Indicate an error occurred
+      setLatestGame({ gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, potHistory: 0n, error: true });
+      setFetchError(true);
     } finally {
       setRefreshing(false);
     }
@@ -185,15 +188,52 @@ export default function ActiveGame() {
 
   useEffect(() => {
     fetchLatestGame();
-  }, [fetchLatestGame, refreshTrigger]);
+  }, [fetchLatestGame]);
 
-  const handleGameCreated = useCallback(() => {
-    console.log('Game created, triggering refresh');
-    //setRefreshTrigger(prev => prev + 1);
-    fetchLatestGame();
+  const handleGameCreated = useCallback(async (txHash: string) => {
+    console.log('Game created, waiting for transaction confirmation:', txHash);
+    try {
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
+      console.log('Transaction confirmed:', receipt);
+
+      // Find and decode the GameCreated event
+      const gameCreatedLog = receipt.logs.find(log => {
+        const event = decodeEventLog({
+          abi: contractABI,
+          data: log.data,
+          topics: log.topics,
+        });
+        return event.eventName === 'GameCreate';
+      });
+
+      if (!gameCreatedLog) {
+        throw new Error('GameCreated event not found in transaction logs');
+      }
+
+      const decodedLog = decodeEventLog({
+        abi: contractABI,
+        data: gameCreatedLog.data,
+        topics: gameCreatedLog.topics,
+      });
+
+      const gameId = Number(decodedLog.args.gameId); // Indexed, so it's in topics
+      //const endTime = BigInt(decodedLog.args.endTime); // Non-indexed, so it's in data
+
+      // Fetch the full game data
+      const { endTime, highScore, leader, pot, potHistory } = await publicClient.readContract({
+        address: contractAddress,
+        abi: contractABI,
+        functionName: 'getGame',
+        args: [BigInt(gameId)],
+      });
+
+      setLatestGame({ gameId, endTime, highScore, leader, pot, potHistory });
+    } catch (error) {
+      console.error('Error handling game creation:', error);
+      setFetchError(true);
+    }
   }, []);
 
-  const isLatestGameOver = latestGame && !latestGame.error ? latestGame.endTime <= BigInt(Math.floor(Date.now() / 1000)) : false;
 
   return (
     <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px] rounded-xl">
@@ -207,17 +247,24 @@ export default function ActiveGame() {
           <>
             {fetchError ? (
               <p className="text-red-500 text-lg font-semibold">Error retrieving game. Try again later.</p>
-            ) : true ? (
+            ) : !latestGame ? ( //*****CHANGED FOR TESTING!!! CHANGE BACK!!********
+              //<div>
               <div className="flex flex-col items-center w-full mb-4">
                 <p className="text-gray-800 text-lg font-semibold mb-2">
                   No Active Game Exists! Create one for FREE!
                 </p>
-                <CreateGameWrapper onSuccess={handleGameCreated} />
+                {address ? (
+                          <CreateGameWrapper onSuccess={handleGameCreated} />
+                        ) : (
+                          <WalletWrapper
+                            className="w-[450px] max-w-full"
+                            text="Log In to Create"
+                            withWalletAggregator={true}
+                          />
+                        )}
+                
               </div>
-            ) : null}
-            {!latestGame && !fetchError ? (
-              <p>No active game available</p>
-            ) : latestGame ? (
+            ) : (
               <div className="w-full max-w-md">
                 <GameCard
                   game={latestGame}
@@ -226,7 +273,8 @@ export default function ActiveGame() {
                   userAddress={address}
                 />
               </div>
-            ) : null}
+              //</div>
+            )}
           </>
         )}
       </section>

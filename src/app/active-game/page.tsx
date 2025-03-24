@@ -7,9 +7,7 @@ import { formatEther, decodeEventLog } from 'viem';
 import { useAccount } from 'wagmi';
 import { publicClient, contractABI, contractAddress } from 'src/constants';
 import WalletWrapper from 'src/components/WalletWrapper';
-import { error } from 'console';
 
-// GameData interface
 interface GameData {
   gameId: number;
   endTime: bigint;
@@ -20,37 +18,34 @@ interface GameData {
   error?: boolean;
 }
 
-// GameCard component (unchanged)
-const GameCard = React.memo(({ game, refreshing, refreshGame, userAddress }: {
+const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
   game: GameData;
-  refreshing: boolean;
-  refreshGame: (gameId: number) => void;
+  isLoading: boolean;
+  refreshGame: () => void;
   userAddress?: Address;
 }) => {
   const [tick, setTick] = useState<number>(0);
   const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      setTick(prev => prev + 1);
-    }, 1000);
+    const intervalId = setInterval(() => setTick(prev => prev + 1), 1000);
     return () => clearInterval(intervalId);
   }, []);
 
   const getCountdown = (endTime: bigint) => {
     const now = BigInt(Math.floor(Date.now() / 1000));
     const timeLeft = Number(endTime - now);
-
-    if (timeLeft <= 0) {
-      return { isOver: true, countdown: '00:00:00', timeLeft };
-    }
-
+    if (timeLeft <= 0) return { isOver: true, countdown: '00:00:00', timeLeft };
     const hours = Math.floor(timeLeft / 3600);
     const minutes = Math.floor((timeLeft % 3600) / 60);
     const seconds = timeLeft % 60;
-
-    const countdown = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    return { isOver: false, countdown, timeLeft };
+    return {
+      isOver: false,
+      countdown: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds
+        .toString()
+        .padStart(2, '0')}`,
+      timeLeft,
+    };
   };
 
   const { isOver, countdown, timeLeft } = getCountdown(game.endTime);
@@ -71,9 +66,9 @@ const GameCard = React.memo(({ game, refreshing, refreshGame, userAddress }: {
     <div className="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 border border-gray-200 relative">
       <h3 className="text-lg font-semibold text-gray-800">Game {game.gameId}</h3>
       <button
-        onClick={() => refreshGame(game.gameId)}
-        className={`absolute top-2 right-2 w-6 h-6 text-gray-500 hover:text-gray-700 focus:outline-none ${refreshing ? 'animate-spin' : ''}`}
-        disabled={refreshing}
+        onClick={refreshGame}
+        className={`absolute top-2 right-2 w-6 h-6 text-gray-500 hover:text-gray-700 focus:outline-none ${isLoading ? 'animate-spin' : ''}`}
+        disabled={isLoading}
         aria-label={`Refresh game ${game.gameId}`}
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
@@ -128,48 +123,13 @@ const GameCard = React.memo(({ game, refreshing, refreshGame, userAddress }: {
 });
 
 export default function ActiveGame() {
-  const [latestGame, setLatestGame] = useState<GameData | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [fetchError, setFetchError] = useState<boolean>(false);
+  const [state, setState] = useState<{
+    game: GameData | null;
+    status: 'idle' | 'loading' | 'success' | 'error';
+  }>({ game: null, status: 'idle' });
   const { address } = useAccount();
 
-  const fetchLatestGame = useCallback(async () => {
-    setIsLoading(true);
-    setFetchError(false);
-
-    try {
-      const latestGameId = await publicClient.readContract({
-        address: contractAddress,
-        abi: contractABI,
-        functionName: 'getLatestGameId',
-      });
-      const gameId = Number(latestGameId);
-
-      if (gameId > 0) {
-        const { endTime, highScore, leader, pot, potHistory } = await publicClient.readContract({
-          address: contractAddress,
-          abi: contractABI,
-          functionName: 'getGame',
-          args: [BigInt(gameId)],
-        });
-        setLatestGame({ gameId, endTime, highScore, leader, pot, potHistory });
-      } else {
-        setLatestGame(null);
-      }
-    } catch (error) {
-      console.error('Error fetching latest game:', error);
-      setLatestGame(null);
-      setFetchError(true);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const refreshGame = useCallback(async (gameId: number) => {
-    setRefreshing(true);
-    setFetchError(false);
-
+  const fetchGame = useCallback(async (gameId: number): Promise<GameData> => {
     try {
       const { endTime, highScore, leader, pot, potHistory } = await publicClient.readContract({
         address: contractAddress,
@@ -177,39 +137,53 @@ export default function ActiveGame() {
         functionName: 'getGame',
         args: [BigInt(gameId)],
       });
-      setLatestGame({ gameId, endTime, highScore, leader, pot, potHistory });
+      return { gameId, endTime, highScore, leader, pot, potHistory };
     } catch (error) {
-      console.error(`Error refreshing game ${gameId}:`, error);
-      setLatestGame({ gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, potHistory: 0n, error: true });
-      setFetchError(true);
-    } finally {
-      setRefreshing(false);
+      console.error(`Error fetching game ${gameId}:`, error);
+      return { gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, potHistory: 0n, error: true };
     }
   }, []);
 
-  useEffect(() => {
-    fetchLatestGame();
-  }, [fetchLatestGame]);
+  const fetchLatestGame = useCallback(async () => {
+    setState(prev => ({ ...prev, status: 'loading' }));
+    try {
+      const latestGameId = await publicClient.readContract({
+        address: contractAddress,
+        abi: contractABI,
+        functionName: 'getLatestGameId',
+      });
+      const gameId = Number(latestGameId);
+      if (gameId > 0) { 
+        const gameData = await fetchGame(gameId);
+        setState({ game: gameData, status: gameData.error ? 'error' : 'success' });
+      } else {
+        setState({ game: null, status: 'success' });
+      }
+    } catch (error) {
+      console.error('Error fetching latest game:', error);
+      setState({ game: null, status: 'error' });
+    }
+  }, [fetchGame]);
 
   const handleGameCreated = useCallback(async (txHash: string) => {
     console.log('Game created, waiting for transaction confirmation:', txHash);
+    setState(prev => ({ ...prev, status: 'loading' }));
     try {
       const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
-      console.log('Transaction confirmed:', receipt);
-
-      // Find and decode the GameCreated event
       const gameCreatedLog = receipt.logs.find(log => {
-        const event = decodeEventLog({
-          abi: contractABI,
-          data: log.data,
-          topics: log.topics,
-        });
-        return event.eventName === 'GameCreate';
+        try {
+          const event = decodeEventLog({
+            abi: contractABI,
+            data: log.data,
+            topics: log.topics,
+          });
+          return event.eventName === 'GameCreate';
+        } catch {
+          return false;
+        }
       });
 
-      if (!gameCreatedLog) {
-        throw new Error('GameCreated event not found in transaction logs');
-      }
+      if (!gameCreatedLog) throw new Error('GameCreated event not found');
 
       const decodedLog = decodeEventLog({
         abi: contractABI,
@@ -222,64 +196,61 @@ export default function ActiveGame() {
         gameId = Number(decodedLog.args.gameId); // Indexed, so it's in topics
       };
 
-      // Fetch the full game data
-      const { endTime, highScore, leader, pot, potHistory } = await publicClient.readContract({
-        address: contractAddress,
-        abi: contractABI,
-        functionName: 'getGame',
-        args: [BigInt(gameId)],
-      });
-
-      if(gameId == 0) {
-        throw 'Game Id did not increment';
-      }
-
-      setLatestGame({ gameId, endTime, highScore, leader, pot, potHistory });
+      const gameData = await fetchGame(gameId);
+      setState({ game: gameData, status: gameData.error ? 'error' : 'success' });
     } catch (error) {
       console.error('Error handling game creation:', error);
-      setFetchError(true);
+      setState({ game: null, status: 'error' });
     }
-  }, []);
+  }, [fetchGame]);
 
+  useEffect(() => {
+    fetchLatestGame();
+  }, [fetchLatestGame]);
+
+  if (state.status === 'loading') {
+    return (
+      <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px] rounded-xl">
+        <Navbar />
+        <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl bg-gray-100 px-2 py-4 md:grow">
+          <div className="flex items-center justify-center w-full h-64">
+            <div className="text-gray-600 text-xl animate-pulse">Loading active game...</div>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px] rounded-xl">
       <Navbar />
       <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl bg-gray-100 px-2 py-4 md:grow">
-        {isLoading ? (
-          <div className="flex items-center justify-center w-full h-64">
-            <div className="text-gray-600 text-xl animate-pulse">Loading active game...</div>
+        {state.status === 'error' ? (
+          <p className="text-red-500 text-lg font-semibold">Error retrieving game. Try again later.</p>
+        ) : !state.game ? (
+          <div className="flex flex-col items-center w-full mb-4">
+            <p className="text-gray-800 text-lg font-semibold mb-2">
+              No Active Game Exists! Create one for FREE!
+            </p>
+            {address ? (
+              <CreateGameWrapper onSuccess={handleGameCreated} />
+            ) : (
+              <WalletWrapper
+                className="w-[450px] max-w-full"
+                text="Log In to Create"
+                withWalletAggregator={true}
+              />
+            )}
           </div>
         ) : (
-          <>
-            {fetchError ? (
-              <p className="text-red-500 text-lg font-semibold">Error retrieving game. Try again later.</p>
-            ) : !latestGame ? ( //*****CHANGED FOR TESTING!!! CHANGE BACK!!********
-              <div className="flex flex-col items-center w-full mb-4">
-                <p className="text-gray-800 text-lg font-semibold mb-2">
-                  No Active Game Exists! Create one for FREE!
-                </p>
-                {address ? (
-                          <CreateGameWrapper onSuccess={handleGameCreated} />
-                        ) : (
-                          <WalletWrapper
-                            className="w-[450px] max-w-full"
-                            text="Log In to Create"
-                            withWalletAggregator={true}
-                          />
-                        )}
-              </div>
-             ) : (
-              <div className="w-full max-w-md">
-                <GameCard
-                  game={latestGame}
-                  refreshing={refreshing}
-                  refreshGame={refreshGame}
-                  userAddress={address}
-                />
-              </div>
-            )}
-          </>
+          <div className="w-full max-w-md">
+            <GameCard
+              game={state.game}
+              isLoading={state.status === 'loading'}
+              refreshGame={fetchLatestGame}
+              userAddress={address}
+            />
+          </div>
         )}
       </section>
     </div>

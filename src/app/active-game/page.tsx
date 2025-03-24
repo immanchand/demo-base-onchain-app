@@ -35,12 +35,13 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
   const getCountdown = (endTime: bigint) => {
     const now = BigInt(Math.floor(Date.now() / 1000));
     const timeLeft = Number(endTime - now);
-    if (timeLeft <= 0) return { isOver: true, countdown: '00:00:00', timeLeft };
+    if (timeLeft <= 0) return { isGameOver: true, countdown: '00:00:00', timeLeft };
     const hours = Math.floor(timeLeft / 3600);
     const minutes = Math.floor((timeLeft % 3600) / 60);
     const seconds = timeLeft % 60;
+    
     return {
-      isOver: false,
+      isGameOver: false,
       countdown: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds
         .toString()
         .padStart(2, '0')}`,
@@ -48,7 +49,7 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
     };
   };
 
-  const { isOver, countdown, timeLeft } = getCountdown(game.endTime);
+  const { isGameOver, countdown, timeLeft } = getCountdown(game.endTime);
 
   const handleCopyAddress = async () => {
     try {
@@ -61,10 +62,11 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
   };
 
   const isUserLeader = userAddress && game.leader.toLowerCase() === userAddress.toLowerCase();
+  const isGameWithdrawn = game.potHistory > game.pot;
 
   return (
     <div className="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 border border-gray-200 relative">
-      <h3 className="text-lg font-semibold text-gray-800">Game {game.gameId}</h3>
+      <h3 className="text-lg font-semibold text-gray-800">Game #{game.gameId}</h3>
       <button
         onClick={refreshGame}
         className={`absolute top-2 right-2 w-6 h-6 text-gray-500 hover:text-gray-700 focus:outline-none ${isLoading ? 'animate-spin' : ''}`}
@@ -81,7 +83,7 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
         <>
           <p className="text-gray-600">
             <span className="font-medium">End Time:</span>{' '}
-            {isOver ? (
+            {isGameOver ? (
               <span className="text-red-500 font-semibold">Game Over</span>
             ) : (
               <span className={timeLeft < 3600 ? 'text-red-500' : 'text-green-500'}>{countdown}</span>
@@ -91,7 +93,7 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
             <span className="font-medium">High Score:</span> {game.highScore.toString()}
           </p>
           <p className="text-gray-600 relative group">
-            {isOver ? (
+            {isGameOver ? (
               <span className="font-medium text-green-500">WINNER:</span>
             ) : (
               <span className="font-medium text-green-500">Leader:</span>
@@ -113,8 +115,9 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
               </span>
             )}
           </p>
-          <p className="text-gray-600">
-            <span className="font-large">***Prize:</span> {formatEther(game.pot)} ETH ***
+          <p className={`${isGameWithdrawn ? 'text-red-500' : 'text-green-500'}`}>
+            <span className="font-medium">***Prize:</span>{' '}
+              {isGameWithdrawn ? formatEther(game.pot) : formatEther(game.potHistory)} ETH ***
           </p>
         </>
       )}
@@ -246,7 +249,7 @@ export default function ActiveGame() {
           <div className="w-full max-w-md">
             <GameCard
               game={state.game}
-              isLoading={state.status === 'loading'}
+              isLoading={false}
               refreshGame={fetchLatestGame}
               userAddress={address}
             />

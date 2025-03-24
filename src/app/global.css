@@ -37,7 +37,9 @@ body {
   height: 100%;
   margin: 0;
   background-color: var(--palette-bg-black);
-  color: var(--palette-bg-white);
+  /* color: var(--palette-bg-white); */
+  /* background-color: #2F004F; /* Match the dark purple */
+  color: #FFD700; /* Default text to golden yellow */
   font-family: Inter, sans-serif;
   overflow-x: hidden;
   -webkit-text-size-adjust: 100%;
@@ -64,9 +66,15 @@ ul {
   z-index: 0;
 }
 
-.ockConnectWallet_Container span {
+ .ockConnectWallet_Container span {
   color: #030712;
-}
+} 
+
+/* Override Onchainkit defaults if needed
+.ockConnectWallet_Container span,
+.TransactionButton span {
+  color: #FFD700 !important; /* Ensure text matches theme 
+} */
 
 /* i believe this is necessary because 
 of a div added by rainbowkit provider */

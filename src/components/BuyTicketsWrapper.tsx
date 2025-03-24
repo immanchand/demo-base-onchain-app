@@ -1,3 +1,4 @@
+// components/BuyTicketsWrapper.tsx
 'use client';
 import {
   Transaction,
@@ -43,14 +44,25 @@ export default function BuyTicketsWrapper({ updateTickets }: { updateTickets: ()
 
   const handleSuccess = (response: TransactionResponse) => {
     console.log('Transaction successful', response);
-    updateTickets(); // Notify Tickets component of success
+    updateTickets();
   };
 
   return (
     <div className="flex w-[450px]" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <style>
+        {`
+          .quantity-selector, .transaction-button {
+            transition: all 0.3s ease;
+          }
+          .quantity-selector:hover, .transaction-button:hover {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+          }
+        `}
+      </style>
       <div>
         <QuantitySelector
-          className="mt-0 mr-auto ml-auto w-[450px] max-w-full text-[white]"
+          className="quantity-selector mt-0 mr-auto ml-auto w-[450px] max-w-full"
           onChange={(value: string) => setQuantity(Number(value))}
           minQuantity={1}
           maxQuantity={100}
@@ -65,7 +77,7 @@ export default function BuyTicketsWrapper({ updateTickets }: { updateTickets: ()
         onSuccess={handleSuccess}
       >
         <TransactionButton
-          className="mt-0 mr-auto ml-auto w-[450px] max-w-full text-[white]"
+          className="transaction-button mt-0 mr-auto ml-auto w-[450px] max-w-full"
           text="Buy Tickets"
         />
         <TransactionStatus>

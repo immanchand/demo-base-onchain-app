@@ -3,7 +3,7 @@ import Navbar from 'src/components/Navbar';
 import React, { useState, useEffect, useRef } from 'react';
 import type { Address } from 'viem';
 import { formatEther } from 'viem';
-import { publicClient, contractABI, contractAddress, GAME_COUNT } from '../../constants';
+import { publicClient, contractABI, contractAddress, GAME_COUNT } from 'src/constants';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
 
@@ -13,6 +13,7 @@ interface GameData {
   highScore: bigint;
   leader: Address;
   pot: bigint;
+  potHistory: bigint;
   error?: boolean;
 }
 
@@ -32,6 +33,7 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
   const isUserLeader = userAddress && game.leader.toLowerCase() === userAddress.toLowerCase();
   const currentTime = BigInt(Math.floor(Date.now() / 1000)); // Current time in seconds
   const isGameOver = game.endTime <= currentTime; // Check if game is over
+  const isGameWithdrawn = game.potHistory < game.pot; // Check if game is withdrawn
 
   return (
     <div className="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 border border-gray-200">
@@ -72,7 +74,8 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
             )}
           </p>
           <p className="text-gray-600">
-            <span className="font-medium">***Prize:</span> {formatEther(game.pot)} ETH ***
+            <span className="font-medium">***Prize:</span>
+            {isGameWithdrawn ? formatEther(game.pot) : formatEther(game.potHistory)} ETH ***
           </p>
         </>
       )}
@@ -99,20 +102,20 @@ export default function Games() {
 
     for (let gameId = startGameId; gameId >= endId && gameId >= 1; gameId--) {
       try {
-        const { endTime, highScore, leader, pot } = await publicClient.readContract({
+        const { endTime, highScore, leader, pot, potHistory } = await publicClient.readContract({
           address: contractAddress,
           abi: contractABI,
           functionName: 'getGame',
           args: [BigInt(gameId)],
         });
-        const gameData = { gameId, endTime, highScore, leader, pot };
+        const gameData = { gameId, endTime, highScore, leader, pot, potHistory };
         setGames(prev => {
           if (prev.some(g => g.gameId === gameId)) return prev;
           return [...prev, gameData];
         });
       } catch (error) {
         console.error(`Error fetching game ${gameId}:`, error);
-        const errorGame = { gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, error: true };
+        const errorGame = { gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, potHistory: 0n, error: true };
         setGames(prev => {
           if (prev.some(g => g.gameId === gameId)) return prev;
           return [...prev, errorGame];
@@ -217,4 +220,4 @@ export default function Games() {
       </section>
     </div>
   );
-}
+} 

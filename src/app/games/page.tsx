@@ -6,6 +6,7 @@ import { formatEther } from 'viem';
 import { publicClient, contractABI, contractAddress, GAME_COUNT } from 'src/constants';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
+import WinnerWithdrawWrapper from 'src/components/WinnerWithdrawWrapper';
 
 interface GameData {
   gameId: number;
@@ -28,6 +29,11 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
     } catch (error) {
       console.error('Failed to copy address:', error);
     }
+  };
+
+  const handleWithdrawSuccess = () => {
+    // Optional: Add logic to refresh game data after successful withdrawal
+    console.log('Prize claimed successfully');
   };
 
   const isUserLeader = userAddress && game.leader.toLowerCase() === userAddress.toLowerCase();
@@ -54,9 +60,9 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
           </p>
           <p className="text-gray-600 relative group">
             {isGameOver ? (
-              <span className="font-medium text-green-500">WINNER:</span>
+              <span className="font-medium">WINNER:</span>
             ) : (
-              <span className="font-medium text-green-500">Leader:</span>
+              <span className="font-medium">Leader:</span>
             )}{' '}
             <Link
               href="#"
@@ -78,10 +84,22 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
               </span>
             )}
           </p>
-          <p className={`${isGameWithdrawn ? 'text-red-500' : 'text-green-500'}`}>
-            <span className="font-medium">***Prize:</span>{' '}
-            {isGameWithdrawn ? formatEther(game.pot) : formatEther(game.potHistory)} ETH ***
+          <p className="font-semibold">
+            Prize:{' '}{isGameWithdrawn ? formatEther(game.pot) : formatEther(game.potHistory)} ETH
           </p>
+          {isGameOver && !isGameWithdrawn ? (
+            <div className="mt-2">
+              <WinnerWithdrawWrapper
+                gameId={game.gameId}
+                onSuccess={handleWithdrawSuccess}
+                userAddress={userAddress}
+              />
+            </div>
+          ) : (
+            <Link href={'/active-game'}>
+              <p className="rounded-md w-full items-center justify-center text-white bg-green-500 hover:bg-green-600">Play & Win</p>
+            </Link>
+          )}
         </>
       )}
     </div>

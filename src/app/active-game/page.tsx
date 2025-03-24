@@ -7,6 +7,7 @@ import { formatEther, decodeEventLog } from 'viem';
 import { useAccount } from 'wagmi';
 import { publicClient, contractABI, contractAddress } from 'src/constants';
 import WalletWrapper from 'src/components/WalletWrapper';
+import { error } from 'console';
 
 // GameData interface
 interface GameData {
@@ -216,8 +217,10 @@ export default function ActiveGame() {
         topics: gameCreatedLog.topics,
       });
 
-      const gameId = Number(decodedLog.args.gameId); // Indexed, so it's in topics
-      //const endTime = BigInt(decodedLog.args.endTime); // Non-indexed, so it's in data
+      let gameId = 0;
+      if ('gameId' in decodedLog.args) {
+        gameId = Number(decodedLog.args.gameId); // Indexed, so it's in topics
+      };
 
       // Fetch the full game data
       const { endTime, highScore, leader, pot, potHistory } = await publicClient.readContract({
@@ -226,6 +229,10 @@ export default function ActiveGame() {
         functionName: 'getGame',
         args: [BigInt(gameId)],
       });
+
+      if(gameId == 0) {
+        throw 'Game Id did not increment';
+      }
 
       setLatestGame({ gameId, endTime, highScore, leader, pot, potHistory });
     } catch (error) {
@@ -248,7 +255,6 @@ export default function ActiveGame() {
             {fetchError ? (
               <p className="text-red-500 text-lg font-semibold">Error retrieving game. Try again later.</p>
             ) : !latestGame ? ( //*****CHANGED FOR TESTING!!! CHANGE BACK!!********
-              //<div>
               <div className="flex flex-col items-center w-full mb-4">
                 <p className="text-gray-800 text-lg font-semibold mb-2">
                   No Active Game Exists! Create one for FREE!
@@ -262,9 +268,8 @@ export default function ActiveGame() {
                             withWalletAggregator={true}
                           />
                         )}
-                
               </div>
-            ) : (
+             ) : (
               <div className="w-full max-w-md">
                 <GameCard
                   game={latestGame}
@@ -273,7 +278,6 @@ export default function ActiveGame() {
                   userAddress={address}
                 />
               </div>
-              //</div>
             )}
           </>
         )}

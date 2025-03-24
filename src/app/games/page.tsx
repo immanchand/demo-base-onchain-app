@@ -52,7 +52,10 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
             <span className="font-medium">High Score:</span> {game.highScore.toString()}
           </p>
           <p className="text-gray-600 relative group">
-            <span className="font-medium text-green-500">WINNER:</span>{' '}
+            {isGameOver ? (
+              <span className="font-medium text-green-500">WINNER:</span>
+            ) : (<span className="font-medium text-green-500">Leader:</span>)}
+            {' '}
             <Link
               href="#"
               onClick={(e) => {
@@ -73,7 +76,7 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
               </span>
             )}
           </p>
-          <p className="text-gray-600">
+          <p className={`${isGameWithdrawn ? 'text-red-500' : 'text-green-500'}`}>
             <span className="font-medium">***Prize:</span>
             {isGameWithdrawn ? formatEther(game.pot) : formatEther(game.potHistory)} ETH ***
           </p>

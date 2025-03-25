@@ -60,7 +60,7 @@ export default function Tickets() {
               className="font-normal text-white text-xl"
               style={{ fontFamily: "'Courier New', Courier, monospace" }}
             >
-              Tickets: {address ? ticketCount : 0}
+              YOU HAVE {''}<span className='text-3xl'>{address ? ticketCount : 0}</span>{''} TICKETS
             </p>
           </div>
         </div>
@@ -68,8 +68,8 @@ export default function Tickets() {
           <BuyTicketsWrapper updateTickets={handlePurchaseSuccess} />
         ) : (
           <WalletWrapper
-            className="w-[450px] max-w-full"
-            text="Log In to Buy"
+            className="w-[450px] max-w-full button bg-yellow-500 text-white rounded-xl hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
+            text="LOG IN TO BUY"
             withWalletAggregator={true}
           />
         )}

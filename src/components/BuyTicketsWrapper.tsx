@@ -1,4 +1,3 @@
-// components/BuyTicketsWrapper.tsx
 'use client';
 import {
   Transaction,
@@ -51,12 +50,58 @@ export default function BuyTicketsWrapper({ updateTickets }: { updateTickets: ()
     <div className="flex w-[450px]" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <style>
         {`
-          .quantity-selector, .transaction-button {
+          .quantity-selector {
             transition: all 0.3s ease;
+            background: black !important;
+            border: 2px solid #FFFF00 !important;
+            color: white !important;
+            font-family: 'Courier New', Courier, monospace !important;
           }
-          .quantity-selector:hover, .transaction-button:hover {
-            filter: brightness(1.1);
-            transform: translateY(-2px);
+          .quantity-selector:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 8px rgba(255, 196, 0, 0.94) !important;
+          }
+          .quantity-selector input {
+            background: black !important;
+            color: #FFFF00 !important;
+            font-weight: bold !important;
+            font-family: 'Courier New', Courier, monospace !important;
+          }
+          .quantity-selector input:focus {
+            background: black !important;
+            color: #FFFF00 !important;
+            outline: none !important;
+          }
+          .quantity-selector input::placeholder {
+            color: white !important;
+          }
+          .quantity-selector button {
+            color: white !important;
+            background: black !important;
+            border: 1px solid #FFFF00 !important;
+            font-family: 'Courier New', Courier, monospace !important;
+          }
+          .quantity-selector button:hover {
+            color: #FFFF00 !important;
+            box-shadow: 0 0 8px rgba(255, 255, 0, 0.5) !important;
+          }
+          .transaction-button {
+            transition: all 0.2s ease;
+            background: rgba(255, 200, 0, 0.92) !important; /* Darker, duller yellow to match Games page */
+            color: white !important;
+            border: 2px solid #FFFF00 !important;
+            font-family: 'Courier New', Courier, monospace !important;
+          }
+          .transaction-button:hover {
+            background: black !important;
+            color: #FFFF00 !important;
+            box-shadow: 0 0 8px rgba(255, 255, 0, 0.5) !important;
+          }
+          .transaction-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: rgba(255, 255, 0, 0.5) !important; /* Darker, duller yellow to match Games page */
+            color: white !important;
           }
         `}
       </style>
@@ -78,7 +123,7 @@ export default function BuyTicketsWrapper({ updateTickets }: { updateTickets: ()
       >
         <TransactionButton
           className="transaction-button mt-0 mr-auto ml-auto w-[450px] max-w-full"
-          text="Buy Tickets"
+          text="BUY TICKETS"
         />
         <TransactionStatus>
           <TransactionStatusLabel />

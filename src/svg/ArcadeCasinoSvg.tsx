@@ -1,4 +1,3 @@
-// components/ArcadeCasinoSvg.tsx
 export default function ArcadeCasinoSvg() {
   return (
     <svg
@@ -14,8 +13,8 @@ export default function ArcadeCasinoSvg() {
         y="0"
         width="250"
         height="40"
-        fill="#800080" // Purple background
-        opacity="0.2"
+        fill="#000000" // Black background
+        opacity="0.3"
         rx="5"
       />
       <text
@@ -23,12 +22,12 @@ export default function ArcadeCasinoSvg() {
         y="50%"
         dominantBaseline="middle"
         textAnchor="middle"
-        fontFamily="'Comic Sans MS', cursive"
+        fontFamily="'Courier New', Courier, monospace"
         fontSize="28"
-        fill="#FFD700" // Golden yellow text
-        style={{ textShadow: '0 0 4px rgba(255, 215, 0, 0.5)' }} // Subtle glow
+        fill="#FFFF00" // Yellow text
+        style={{ textShadow: '0 0 4px rgba(255, 255, 0, 0.5)' }} // Yellow glow
       >
-        Arcade Casino
+        ARCADE CASINO
       </text>
     </svg>
   );

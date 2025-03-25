@@ -42,23 +42,23 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
   const isGameWithdrawn = game.potHistory > game.pot;
 
   return (
-    <div className="bg-[#2F004F] rounded-xl p-4 flex flex-col gap-2 border-2 border-[#FFD700] transition-all duration-300 ease-in-out hover:scale-102 hover:brightness-110 hover:shadow-[0_0_8px_rgba(255,215,0,0.5)]">
+    <div className="bg-black rounded-xl p-4 flex flex-col gap-2 border-2 border-[#FFFF00] transition-all duration-300 ease-in-out hover:scale-102 hover:brightness-110 hover:shadow-[0_0_8px_rgba(255,255,0,0.5)]">
       {game.error || isGameNotExist ? (
-        <p className="text-red-500 text-center" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+        <p className="text-red-500 text-center" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
           Failed to load game data or game does not exist
         </p>
       ) : (
         <div className="grid grid-cols-3 gap-2">
           {/* Game # (left) */}
           <div className="col-span-1 text-left">
-            <h3 className="text-lg font-bold text-[#FFD700]" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+            <h3 className="text-lg font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
               Game #{game.gameId}
             </h3>
             <div className="mt-4">
-              <p className="text-[#FFD700] font-bold" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+              <p className="text-white font-bold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                 END TIME
               </p>
-              <p className="text-[#FFD700]" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+              <p className="text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                 <span className={isGameOver ? 'text-red-500' : 'text-green-500'}>
                   {new Date(Number(game.endTime) * 1000).toLocaleString()}
                 </span>
@@ -68,13 +68,13 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
 
           {/* High Score and Buttons (center) */}
           <div className="col-span-1 text-center">
-            <p className="text-[#FFD700] font-bold text-xl" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+            <p className="text-white font-bold text-xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
               HIGH SCORE{' '}{game.highScore.toString()}
             </p>
             <div className="mt-4 flex justify-center">
               {!isGameOver ? (
                 <Link href={'/active-game'}>
-                  <p className="rounded-md w-full max-w-xs text-center text-[#FFD700] bg-[#800080] hover:bg-[#FFD700] hover:text-[#800080] transition-all duration-300 ease-in-out py-2" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+                  <p className="rounded-md w-full max-w-xs text-center text-white bg-yellow-500 hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 transition-all duration-300 ease-in-out py-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                     PLAY TO WIN
                   </p>
                 </Link>
@@ -90,7 +90,7 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
 
           {/* Leader and WIN/WON (right) */}
           <div className="col-span-1 text-right">
-            <p className="text-[#FFD700] relative group" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+            <p className="text-white relative group" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
               {isGameOver ? (
                 <span className="font-bold">WINNER</span>
               ) : (
@@ -102,16 +102,16 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
                   e.preventDefault();
                   handleCopyAddress();
                 }}
-                className={`${isUserLeader ? 'text-green-500' : 'text-[#FFD700]'} hover:underline cursor-pointer font-bold`}
+                className={`${isUserLeader ? 'text-yellow-500' : 'text-white'} hover:underline cursor-pointer font-bold`}
                 title="Click to copy address"
               >
                 {isUserLeader ? 'YOU!' : `${game.leader.slice(0, 6)}...${game.leader.slice(-4)}`}
               </Link>
-              <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-[#800080] text-[#FFD700] text-xs rounded py-1 px-2" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+              <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-black text-yellow-500 text-xs rounded py-1 px-2 border border-yellow-500" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                 {game.leader}
               </span>
               {isCopied && (
-                <span className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 text-green-500 text-xs animate-fade-in-out" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+                <span className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 text-yellow-500 text-xs animate-fade-in-out" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                   Copied!
                 </span>
               )}
@@ -119,28 +119,28 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
             <div className="mt-4">
               {isGameOver && isGameWithdrawn ? (
                 <>
-                  <p className="font-bold text-[#FFD700]" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+                  <p className="font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                     WON
                   </p>
-                  <p className="text-[#FFD700] text-2xl" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+                  <p className="text-yellow-500 text-2xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                     {formatEther(game.potHistory)} ETH
                   </p>
                 </>
               ) : isGameOver && !isGameWithdrawn ? (
                 <>
-                  <p className="font-bold text-[#FFD700]" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+                  <p className="font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                     WON
                   </p>
-                  <p className="text-[#FFD700] text-2xl" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+                  <p className="text-yellow-500 text-2xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                     {formatEther(game.pot)} ETH
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="font-bold text-[#FFD700]" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+                  <p className="font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                     WIN
                   </p>
-                  <p className="text-[#FFD700] text-2xl" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+                  <p className="text-yellow-500 text-2xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                     {formatEther(game.pot)} ETH
                   </p>
                 </>
@@ -226,23 +226,26 @@ export default function Games() {
   return (
     <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px] rounded-xl">
       <Navbar />
-      <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl bg-gradient-to-br from-[#2F004F] to-[#800080] px-2 py-4 md:grow">
+      <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl bg-black px-2 py-4 md:grow">
         <style>
           {`
             .input-field {
               transition: all 0.3s ease;
-              background: rgba(255, 215, 0, 0.1);
-              border: 2px solid #FFD700;
+              background: rgba(255, 255, 255, 0.1);
+              border: 2px solid #FFFF00;
             }
             .input-field:focus {
-              box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+              box-shadow: 0 0 8px rgba(255, 255, 0, 0.5);
+            }
+            .input-field::placeholder {
+              color: #FFFF00;
             }
             .button {
               transition: all 0.3s ease;
             }
             .button:hover {
               transform: scale(1.05);
-              box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+              box-shadow: 0 0 8px rgba(255, 255, 0, 0.5);
             }
             .button:disabled {
               opacity: 0.6;
@@ -271,35 +274,35 @@ export default function Games() {
             value={gameIdInput}
             onChange={(e) => setGameIdInput(e.target.value)}
             placeholder="Enter Game ID"
-            className="input-field rounded-xl px-3 py-2 text-[#FFD700] placeholder-[#FFD700] focus:outline-none"
-            style={{ fontFamily: "'Comic Sans MS', cursive" }}
+            className="input-field rounded-xl px-3 py-2 text-white placeholder-[#FFFF00] focus:outline-none"
+            style={{ fontFamily: "'Courier New', Courier, monospace" }}
             min="1"
             disabled={isLoading}
           />
           <button
             onClick={handleFetchGame}
-            className="button bg-[#800080] text-[#FFD700] px-4 py-2 rounded-xl hover:bg-[#FFD700] hover:text-[#800080] disabled:bg-[#800080]"
+            className="button bg-yellow-500 text-white px-4 py-2 rounded-xl hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
             disabled={isLoading}
-            style={{ fontFamily: "'Comic Sans MS', cursive" }}
+            style={{ fontFamily: "'Courier New', Courier, monospace" }}
           >
             Fetch Game
           </button>
           <button
             onClick={handleShowRecentGames}
-            className="button bg-[#800080] text-[#FFD700] px-4 py-2 rounded-xl hover:bg-[#FFD700] hover:text-[#800080] disabled:bg-[#800080]"
+            className="button bg-yellow-500 text-white px-4 py-2 rounded-xl hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
             disabled={isLoading}
-            style={{ fontFamily: "'Comic Sans MS', cursive" }}
+            style={{ fontFamily: "'Courier New', Courier, monospace" }}
           >
             Show Recent Games
           </button>
         </div>
         {error ? (
-          <p className="text-red-500 text-lg fade-in" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+          <p className="text-red-500 text-lg fade-in" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
             {error}
           </p>
         ) : games.length === 0 && isLoading ? (
           <div className="flex items-center justify-center w-full h-64">
-            <div className="text-[#FFD700] text-xl pulse" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+            <div className="text-white text-xl pulse" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
               Loading games...
             </div>
           </div>
@@ -309,7 +312,7 @@ export default function Games() {
               <GameCard key={game.gameId} game={game} userAddress={address} />
             ))}
             {isLoading && (
-              <div className="col-span-full text-[#FFD700] text-sm mt-2 text-center" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+              <div className="col-span-full text-white text-sm mt-2 text-center" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                 Loading more games...
               </div>
             )}

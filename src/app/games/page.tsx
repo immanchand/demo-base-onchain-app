@@ -281,7 +281,7 @@ export default function Games() {
           />
           <button
             onClick={handleFetchGame}
-            className="button bg-yellow-500 text-white px-4 py-2 rounded-xl hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
+            className="button bg-yellow-500 font-bold text-white px-4 py-2 rounded-xl hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
             disabled={isLoading}
             style={{ fontFamily: "'Courier New', Courier, monospace" }}
           >
@@ -289,7 +289,7 @@ export default function Games() {
           </button>
           <button
             onClick={handleShowRecentGames}
-            className="button bg-yellow-500 text-white px-4 py-2 rounded-xl hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
+            className="button bg-yellow-500 font-bold text-white px-4 py-2 rounded-xl hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
             disabled={isLoading}
             style={{ fontFamily: "'Courier New', Courier, monospace" }}
           >

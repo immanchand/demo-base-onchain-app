@@ -32,7 +32,6 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
   };
 
   const handleWithdrawSuccess = () => {
-    // Optional: Add logic to refresh game data after successful withdrawal
     console.log('Prize claimed successfully');
   };
 
@@ -43,70 +42,112 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
   const isGameWithdrawn = game.potHistory > game.pot;
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 border border-gray-200">
-      <h3 className="text-lg font-semibold text-gray-800">Game #{game.gameId}</h3>
+    <div className="bg-black rounded-xl p-4 flex flex-col gap-2 border-2 border-[#FFFF00] transition-all duration-300 ease-in-out hover:scale-102 hover:brightness-110 hover:shadow-[0_0_8px_rgba(255,255,0,0.5)]">
       {game.error || isGameNotExist ? (
-        <p className="text-red-500">Failed to load game data or game does not exist</p>
+        <p className="text-red-500 text-center" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+          FAILED TO LOAD GAME DATA OR GAME DOES NOT EXIST
+        </p>
       ) : (
-        <>
-          <p className="text-gray-600">
-            <span className="font-medium">End Time:</span>{' '}
-            <span className={isGameOver ? 'text-red-500' : 'text-green-500'}>
-              {new Date(Number(game.endTime) * 1000).toLocaleString()}
-            </span>
-          </p>
-          <p className="text-gray-600">
-            <span className="font-medium">High Score:</span> {game.highScore.toString()}
-          </p>
-          <p className="text-gray-600 relative group">
-            {isGameOver ? (
-              <span className="font-medium">WINNER:</span>
-            ) : (
-              <span className="font-medium">Leader:</span>
-            )}{' '}
-            <Link
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                handleCopyAddress();
-              }}
-              className={`${isUserLeader ? 'text-green-500' : 'text-blue-500'} hover:underline cursor-pointer font-semibold`}
-              title="Click to copy address"
-            >
-              {isUserLeader ? 'YOU!' : `${game.leader.slice(0, 6)}...${game.leader.slice(-4)}`}
-            </Link>
-            <span className="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2">
-              {game.leader}
-            </span>
-            {isCopied && (
-              <span className="absolute right-0 top-full mt-1 text-green-500 text-xs animate-fade-in-out">
-                Copied!
-              </span>
-            )}
-          </p>
-          {isGameWithdrawn ? (
-            <p className="font-bold">
-            Prize Won:{' '}{formatEther(game.potHistory)} ETH
-          </p>
-            ) : (
-            <p className="font-bold">
-              Prize To Win:{' '}{formatEther(game.pot)} ETH
-            </p>
-            )}
-          {isGameOver && !isGameWithdrawn ? (
-            <div className="mt-2">
-              <WinnerWithdrawWrapper
-                gameId={game.gameId}
-                onSuccess={handleWithdrawSuccess}
-                userAddress={userAddress}
-              />
+        <div className="grid grid-cols-3 gap-2">
+          {/* Game # (left) */}
+          <div className="col-span-1 text-left">
+            <h3 className="text-lg font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+              GAME #{game.gameId}
+            </h3>
+            <div className="mt-4">
+              <p className="text-white font-bold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                END TIME
+              </p>
+              <p className="text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                <span className={isGameOver ? 'text-red-500' : 'text-green-500'}>
+                  {new Date(Number(game.endTime) * 1000).toLocaleString()}
+                </span>
+              </p>
             </div>
-          ) : (
-            <Link href={'/active-game'}>
-              <p className="rounded-md w-full items-center text-center justify-center text-white bg-green-500 hover:bg-green-600">Play & Win</p>
-            </Link>
-          )}
-        </>
+          </div>
+
+          {/* High Score and Buttons (center) */}
+          <div className="col-span-1 text-center">
+            <p className="text-white font-bold text-xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+              HIGH SCORE{' '}{game.highScore.toString()}
+            </p>
+            <div className="mt-4 flex justify-center">
+              {!isGameOver ? (
+                <Link href={'/active-game'}>
+                  <p className="rounded-md w-full max-w-xs text-center text-white bg-yellow-500 hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 transition-all duration-300 ease-in-out py-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                    PLAY TO WIN
+                  </p>
+                </Link>
+              ) : isGameOver && !isGameWithdrawn ? (
+                <WinnerWithdrawWrapper
+                  gameId={game.gameId}
+                  onSuccess={handleWithdrawSuccess}
+                  userAddress={userAddress}
+                />
+              ) : null}
+            </div>
+          </div>
+
+          {/* Leader and WIN/WON (right) */}
+          <div className="col-span-1 text-right">
+            <p className="text-white relative group" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+              {isGameOver ? (
+                <span className="font-bold">WINNER</span>
+              ) : (
+                <span className="font-bold">LEADER</span>
+              )}{' '}
+              <Link
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleCopyAddress();
+                }}
+                className={`${isUserLeader ? 'text-yellow-500' : 'text-white'} hover:underline cursor-pointer font-bold`}
+                title="Click to copy address"
+              >
+                {isUserLeader ? 'YOU!' : `${game.leader.slice(0, 6)}...${game.leader.slice(-4)}`}
+              </Link>
+              <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-black text-yellow-500 text-xs rounded py-1 px-2 border border-yellow-500" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                {game.leader}
+              </span>
+              {isCopied && (
+                <span className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 text-yellow-500 text-xs animate-fade-in-out" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                  COPIED!
+                </span>
+              )}
+            </p>
+            <div className="mt-4">
+              {isGameOver && isGameWithdrawn ? (
+                <>
+                  <p className="font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                    WON
+                  </p>
+                  <p className="text-yellow-500 text-2xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                    {formatEther(game.potHistory)} ETH
+                  </p>
+                </>
+              ) : isGameOver && !isGameWithdrawn ? (
+                <>
+                  <p className="font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                    WON
+                  </p>
+                  <p className="text-yellow-500 text-2xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                    {formatEther(game.pot)} ETH
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                    WIN
+                  </p>
+                  <p className="text-yellow-500 text-2xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                    {formatEther(game.pot)} ETH
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -120,11 +161,10 @@ export default function Games() {
   const [error, setError] = useState<string | null>(null);
   const { address } = useAccount();
 
-
   const fetchGames = useCallback(async (startGameId: number, count: number) => {
     setIsLoading(true);
     setError(null);
-    setGames([]); // Clear existing games
+    setGames([]);
 
     const endId = Math.max(1, startGameId - count + 1);
 
@@ -139,7 +179,7 @@ export default function Games() {
           });
           const gameData = { gameId, endTime, highScore, leader, pot, potHistory };
           setGames(prev => [...prev, gameData]);
-          await new Promise(resolve => setTimeout(resolve, 500)); // Delay for UX
+          await new Promise(resolve => setTimeout(resolve, 500));
         } catch (err) {
           console.error(`Error fetching game ${gameId}:`, err);
           const errorGame = { gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, potHistory: 0n, error: true };
@@ -183,51 +223,97 @@ export default function Games() {
     }
   }, [fetchGames, getLatestGameId]);
 
-  // Removed useEffect to prevent initial load
-
   return (
     <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px] rounded-xl">
       <Navbar />
-      <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl bg-gray-100 px-2 py-4 md:grow">
-        <div className="flex justify-center w-full mb-4 gap-2">
+      <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl bg-black px-2 py-4 md:grow">
+        <style>
+          {`
+            .input-field {
+              transition: all 0.3s ease;
+              background: rgba(255, 255, 255, 0.1);
+              border: 2px solid #FFFF00;
+            }
+            .input-field:focus {
+              box-shadow: 0 0 8px rgba(255, 255, 0, 0.5);
+            }
+            .input-field::placeholder {
+              color: #FFFF00;
+            }
+            .button {
+              transition: all 0.3s ease;
+            }
+            .button:hover {
+              transform: scale(1.05);
+              box-shadow: 0 0 8px rgba(255, 255, 0, 0.5);
+            }
+            .button:disabled {
+              opacity: 0.6;
+              cursor: not-allowed;
+            }
+            .pulse {
+              animation: pulse 1.5s infinite ease-in-out;
+            }
+            @keyframes pulse {
+              0% { opacity: 0.6; }
+              50% { opacity: 1; }
+              100% { opacity: 0.6; }
+            }
+            .fade-in {
+              animation: fadeIn 0.5s ease-in forwards;
+            }
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+          `}
+        </style>
+        <div className="flex justify-center w-full mb-4 gap-2 fade-in">
           <input
             type="number"
             value={gameIdInput}
             onChange={(e) => setGameIdInput(e.target.value)}
-            placeholder="Enter Game ID"
-            className="border border-gray-300 rounded-l-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="enter game #"
+            className="input-field rounded-xl px-3 py-2 text-white placeholder-[#FFFF00] focus:outline-none"
+            style={{ fontFamily: "'Courier New', Courier, monospace" }}
             min="1"
             disabled={isLoading}
           />
           <button
             onClick={handleFetchGame}
-            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-300"
+            className="button bg-yellow-500 text-white px-4 py-2 rounded-xl hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
             disabled={isLoading}
+            style={{ fontFamily: "'Courier New', Courier, monospace" }}
           >
-            Fetch Game
+            FETCH GAME
           </button>
           <button
             onClick={handleShowRecentGames}
-            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-300"
+            className="button bg-yellow-500 text-white px-4 py-2 rounded-xl hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
             disabled={isLoading}
+            style={{ fontFamily: "'Courier New', Courier, monospace" }}
           >
-            Show Recent Games
+            RECENT GAMES
           </button>
         </div>
         {error ? (
-          <p className="text-red-500 text-lg">{error}</p>
+          <p className="text-red-500 text-lg fade-in" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+            {error}
+          </p>
         ) : games.length === 0 && isLoading ? (
           <div className="flex items-center justify-center w-full h-64">
-            <div className="text-gray-600 text-xl animate-pulse">Loading games...</div>
+            <div className="text-white text-xl pulse" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+              LOADING GAME...
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+          <div className="grid grid-cols-1 gap-4 w-full fade-in">
             {games.map(game => (
               <GameCard key={game.gameId} game={game} userAddress={address} />
             ))}
             {isLoading && (
-              <div className="col-span-full text-gray-600 text-sm mt-2 text-center">
-                Loading more games...
+              <div className="col-span-full text-white text-sm mt-2 text-center" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                LOADING MORE GAMES...
               </div>
             )}
           </div>

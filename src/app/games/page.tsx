@@ -84,9 +84,15 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
               </span>
             )}
           </p>
-          <p className="font-semibold">
-            Prize:{' '}{isGameWithdrawn ? formatEther(game.pot) : formatEther(game.potHistory)} ETH
+          {isGameWithdrawn ? (
+            <p className="font-bold">
+            Prize Won:{' '}{formatEther(game.potHistory)} ETH
           </p>
+            ) : (
+            <p className="font-bold">
+              Prize To Win:{' '}{formatEther(game.pot)} ETH
+            </p>
+            )}
           {isGameOver && !isGameWithdrawn ? (
             <div className="mt-2">
               <WinnerWithdrawWrapper
@@ -97,7 +103,7 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
             </div>
           ) : (
             <Link href={'/active-game'}>
-              <p className="rounded-md w-full items-center justify-center text-white bg-green-500 hover:bg-green-600">Play & Win</p>
+              <p className="rounded-md w-full items-center text-center justify-center text-white bg-green-500 hover:bg-green-600">Play & Win</p>
             </Link>
           )}
         </>

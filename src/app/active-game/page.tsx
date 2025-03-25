@@ -115,10 +115,21 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
               </span>
             )}
           </p>
-          <p className={`${isGameWithdrawn ? 'text-red-500' : 'text-green-500'}`}>
-            <span className="font-medium">***Prize:</span>{' '}
-              {isGameWithdrawn ? formatEther(game.pot) : formatEther(game.potHistory)} ETH ***
+          {isGameOver && isGameWithdrawn ? (
+            <p className="font-bold">
+            Prize Won:{' '}{formatEther(game.potHistory)} ETH
           </p>
+            ) : (null)}
+          {isGameOver && !isGameWithdrawn ? (
+            <p className="font-bold">
+            Prize Won:{' '}{formatEther(game.pot)} ETH
+          </p>
+            ) : (null)}
+          {!isGameOver ? (
+            <p className="font-bold">
+              Prize To Win:{' '}{formatEther(game.pot)} ETH
+            </p>
+            ) : (null)}
         </>
       )}
     </div>

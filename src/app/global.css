@@ -5,8 +5,9 @@
 
 :root {
   /* Palette */
-  --palette-bg-black: #fff;
-  --palette-bg-white: rgb(21, 26, 38);
+  --palette-bg-white: #fff;
+  --palette-bg-black: #000;
+  --palette-bg-space: rgb(34, 0, 49);
 
   /* Indicates that the element can be rendered using 
    * the operating system dark color scheme. 
@@ -36,6 +37,7 @@ html .font-inter {
 body {
   height: 100%;
   margin: 0;
+  /* background-color: var(--palette-bg-space); */
   background-color: var(--palette-bg-black);
   /* color: var(--palette-bg-white); */
   /* background-color: #2F004F; /* Match the dark purple */

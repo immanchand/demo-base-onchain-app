@@ -1,4 +1,3 @@
-// components/Navbar.tsx
 'use client';
 import ArcadeCasinoSvg from '../svg/ArcadeCasinoSvg';
 import { useAccount } from 'wagmi';
@@ -12,7 +11,7 @@ const Navbar = React.memo(() => {
   const { ticketCount } = useTicketContext();
 
   return (
-    <nav className="bg-[#2F004F] border-b-2 border-[#800080] rounded-xl">
+    <nav className="bg-black border-b-2 border-[#FFFF00] rounded-xl">
       <style>
         {`
           .nav-container {
@@ -22,7 +21,7 @@ const Navbar = React.memo(() => {
             transition: color 0.3s ease, transform 0.3s ease;
           }
           .link:hover {
-            color: #FFD700;
+            color: #FFFF00;
             transform: translateY(-2px);
           }
           .ticket {
@@ -30,7 +29,7 @@ const Navbar = React.memo(() => {
           }
           .ticket:hover {
             transform: scale(1.05);
-            box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+            box-shadow: 0 0 8px rgba(255, 255, 0, 0.5);
           }
           .logo {
             transition: filter 0.3s ease;
@@ -56,27 +55,27 @@ const Navbar = React.memo(() => {
               <div className="flex space-x-4">
                 <div className="link">
                   <Link href="/active-game">
-                    <p className="rounded-md px-3 py-2 text-lg font-bold text-white hover:text-[#FFD700]" 
-                       style={{ fontFamily: "'Comic Sans MS', cursive" }}>
-                      Play & Win
+                    <p className="rounded-md px-3 py-2 text-lg font-bold text-white hover:text-[#FFFF00]" 
+                       style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                      PLAY
                     </p>
                   </Link>
                 </div>
                 {address && (
                   <div className="link">
                     <Link href="/tickets">
-                      <p className="rounded-md px-3 py-2 text-lg font-bold text-white hover:text-[#FFD700]"
-                         style={{ fontFamily: "'Comic Sans MS', cursive" }}>
-                        Tickets
+                      <p className="rounded-md px-3 py-2 text-lg font-bold text-white hover:text-[#FFFF00]"
+                         style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                        TICKETS
                       </p>
                     </Link>
                   </div>
                 )}
                 <div className="link">
                   <Link href="/games">
-                    <p className="rounded-md px-3 py-2 text-lg font-bold text-white hover:text-[#FFD700]"
-                       style={{ fontFamily: "'Comic Sans MS', cursive" }}>
-                      Game History
+                    <p className="rounded-md px-3 py-2 text-lg font-bold text-white hover:text-[#FFFF00]"
+                       style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                      HISTORY
                     </p>
                   </Link>
                 </div>
@@ -88,8 +87,8 @@ const Navbar = React.memo(() => {
               {address && (
                 <Link href="/tickets">
                   <div
-                    className="w-10 h-10 bg-[#800080] rounded-full flex items-center justify-center text-lg font-bold text-[#FFD700] border-2 border-[#FFD700] ticket"
-                    style={{ fontFamily: "'Comic Sans MS', cursive" }}
+                    className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-lg font-bold text-white border-2 border-[#FFFF00] ticket"
+                    style={{ fontFamily: "'Courier New', Courier, monospace" }}
                   >
                     {ticketCount}
                   </div>

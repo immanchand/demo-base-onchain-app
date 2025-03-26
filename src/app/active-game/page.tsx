@@ -143,6 +143,9 @@ export default function ActiveGame() {
   }>({ game: null, status: 'idle' });
   const { address } = useAccount();
 
+  const currentTime = BigInt(Math.floor(Date.now() / 1000));
+  const isGameOver = state.game ? state.game.endTime <= currentTime : false;
+
   const fetchGame = useCallback(async (gameId: number): Promise<GameData> => {
     try {
       const { endTime, highScore, leader, pot, potHistory } = await publicClient.readContract({
@@ -241,7 +244,8 @@ export default function ActiveGame() {
       <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl bg-gray-100 px-2 py-4 md:grow">
         {state.status === 'error' ? (
           <p className="text-red-500 text-lg font-semibold">Error retrieving game. Try again later.</p>
-        ) : !state.game ? (
+        // ) : !state.game ? (**COMMENTED LEAVE FOR TESTING PURPOSES
+         ) : !state.game || isGameOver ? ( 
           <div className="flex flex-col items-center w-full mb-4">
             <p className="text-gray-800 text-lg font-semibold mb-2">
               No Active Game Exists! Create one for FREE!

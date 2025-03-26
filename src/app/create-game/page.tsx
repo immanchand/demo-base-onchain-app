@@ -13,13 +13,15 @@ import { baseSepolia } from 'viem/chains';
 const gameMasterPrivateKey = process.env.NEXT_PUBLIC_GAME_MASTER_PRIVATE_KEY;
 if (!gameMasterPrivateKey) console.error('NEXT_PUBLIC_GAME_MASTER_PRIVATE_KEY is not defined in .env');
 
-const walletClient = gameMasterPrivateKey
+const gameMasterClient = gameMasterPrivateKey
   ? createWalletClient({
       chain: baseSepolia,
       transport: http(),
       account: privateKeyToAccount(gameMasterPrivateKey as Hex),
     })
   : null;
+
+
 
 export default function TestGameFunctions() {
   const { address } = useAccount();
@@ -48,7 +50,7 @@ export default function TestGameFunctions() {
   };
 
   const handleStartGame = async () => {
-    if (!address || !walletClient || !startGameId || !startPlayer) {
+    if (!address || !gameMasterClient || !startGameId || !startPlayer) {
       console.error('Missing required data');
       setErrorMessage('Please fill in Game ID and Player Address');
       return;
@@ -64,7 +66,7 @@ export default function TestGameFunctions() {
         args: [BigInt(startGameId), startPlayer as Address],
       });
 
-      const hash = await walletClient.sendTransaction({
+      const hash = await gameMasterClient.sendTransaction({
         to: contractAddress as Hex,
         data: callData,
         value: BigInt(0),
@@ -81,7 +83,7 @@ export default function TestGameFunctions() {
   };
 
   const handleEndGame = async () => {
-    if (!address || !walletClient || !endGameId || !endPlayer || !endScore) {
+    if (!address || !gameMasterClient || !endGameId || !endPlayer || !endScore) {
       console.error('Missing required data');
       setErrorMessage('Please fill in Game ID, Player Address, and Score');
       return;
@@ -97,7 +99,7 @@ export default function TestGameFunctions() {
         args: [BigInt(endGameId), endPlayer as Address, BigInt(endScore)],
       });
 
-      const hash = await walletClient.sendTransaction({
+      const hash = await gameMasterClient.sendTransaction({
         to: contractAddress as Hex,
         data: callData,
         value: BigInt(0),
@@ -140,12 +142,12 @@ export default function TestGameFunctions() {
                 />
                 <button
                   className={`w-full text-white rounded-md px-4 py-2 ${
-                    walletClient && startGameId && startPlayer
+                    gameMasterClient && startGameId && startPlayer
                       ? 'bg-blue-600 hover:bg-blue-700'
                       : 'bg-gray-400 cursor-not-allowed'
                   }`}
                   onClick={handleStartGame}
-                  disabled={!walletClient || !startGameId || !startPlayer || txStatus === 'pending'}
+                  disabled={!gameMasterClient || !startGameId || !startPlayer || txStatus === 'pending'}
                 >
                   {txStatus === 'pending' ? 'Starting...' : 'Start Game'}
                 </button>
@@ -179,12 +181,12 @@ export default function TestGameFunctions() {
                 />
                 <button
                   className={`w-full text-white rounded-md px-4 py-2 ${
-                    walletClient && endGameId && endPlayer && endScore
+                    gameMasterClient && endGameId && endPlayer && endScore
                       ? 'bg-blue-600 hover:bg-blue-700'
                       : 'bg-gray-400 cursor-not-allowed'
                   }`}
                   onClick={handleEndGame}
-                  disabled={!walletClient || !endGameId || !endPlayer || !endScore || txStatus === 'pending'}
+                  disabled={!gameMasterClient || !endGameId || !endPlayer || !endScore || txStatus === 'pending'}
                 >
                   {txStatus === 'pending' ? 'Ending...' : 'End Game'}
                 </button>

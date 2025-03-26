@@ -42,7 +42,7 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
   const isGameWithdrawn = game.potHistory > game.pot;
 
   return (
-    <div className="bg-black rounded-xl p-4 flex flex-col gap-2 border-2 border-[#FFFF00] transition-all duration-300 ease-in-out hover:scale-102 hover:brightness-110 hover:shadow-[0_0_8px_rgba(255,255,0,0.5)]">
+    <div className="bg-black p-4 flex flex-col gap-2 border-2 border-[#FFFF00] transition-all duration-300 ease-in-out hover:scale-102 hover:brightness-110 hover:shadow-[0_0_8px_rgba(255,255,0,0.5)]">
       {game.error || isGameNotExist ? (
         <p className="text-red-500 text-center" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
           FAILED TO LOAD GAME DATA OR GAME DOES NOT EXIST
@@ -74,11 +74,11 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
             <div className="mt-4 flex justify-center">
               {!isGameOver ? (
                 <Link href={'/active-game'}>
-                  <p className="rounded-md w-full max-w-xs text-center text-white bg-yellow-500 hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 transition-all duration-300 ease-in-out py-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                  <p className="w-full max-w-xs text-center text-white bg-yellow-500 hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 transition-all duration-300 ease-in-out py-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                     PLAY TO WIN
                   </p>
                 </Link>
-              ) : isGameOver && !isGameWithdrawn ? (
+              ) : isGameOver && !isGameWithdrawn && isUserLeader ? (
                 <WinnerWithdrawWrapper
                   gameId={game.gameId}
                   onSuccess={handleWithdrawSuccess}
@@ -102,12 +102,12 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
                   e.preventDefault();
                   handleCopyAddress();
                 }}
-                className={`${isUserLeader ? 'text-yellow-500' : 'text-white'} hover:underline cursor-pointer font-bold`}
+                className={`${isUserLeader ? 'text-green-500 text-2xl' : 'text-yelow-500'} hover:underline cursor-pointer font-bold`}
                 title="Click to copy address"
               >
-                {isUserLeader ? 'YOU!' : `${game.leader.slice(0, 6)}...${game.leader.slice(-4)}`}
+                {isUserLeader ? 'YOU!' : `${game.leader.slice(0, 5)}...${game.leader.slice(-3)}`}
               </Link>
-              <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-black text-yellow-500 text-xs rounded py-1 px-2 border border-yellow-500" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+              <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-black text-yellow-500 text-xs py-1 px-2 border border-yellow-500" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                 {game.leader}
               </span>
               {isCopied && (
@@ -179,12 +179,12 @@ export default function Games() {
           });
           const gameData = { gameId, endTime, highScore, leader, pot, potHistory };
           setGames(prev => [...prev, gameData]);
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 200));
         } catch (err) {
           console.error(`Error fetching game ${gameId}:`, err);
           const errorGame = { gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, potHistory: 0n, error: true };
           setGames(prev => [...prev, errorGame]);
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 200));
         }
       }
     } catch (err) {
@@ -224,9 +224,9 @@ export default function Games() {
   }, [fetchGames, getLatestGameId]);
 
   return (
-    <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px] rounded-xl">
+    <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px]">
       <Navbar />
-      <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl bg-black px-2 py-4 md:grow">
+      <section className="templateSection flex w-full flex-col items-center justify-center gap-4 bg-black px-2 py-4 md:grow">
         <style>
           {`
             .input-field {
@@ -274,14 +274,14 @@ export default function Games() {
             value={gameIdInput}
             onChange={(e) => setGameIdInput(e.target.value)}
             placeholder="enter game #"
-            className="input-field rounded-xl px-3 py-2 text-white placeholder-[#FFFF00] focus:outline-none"
+            className="input-field px-3 py-2 text-white placeholder-[#FFFF00] focus:outline-none"
             style={{ fontFamily: "'Courier New', Courier, monospace" }}
             min="1"
             disabled={isLoading}
           />
           <button
             onClick={handleFetchGame}
-            className="button bg-yellow-500 font-bold text-white px-4 py-2 rounded-xl hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
+            className="button bg-yellow-500 font-bold text-white px-4 py-2 hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
             disabled={isLoading}
             style={{ fontFamily: "'Courier New', Courier, monospace" }}
           >
@@ -289,12 +289,17 @@ export default function Games() {
           </button>
           <button
             onClick={handleShowRecentGames}
-            className="button bg-yellow-500 font-bold text-white px-4 py-2 rounded-xl hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
+            className="button bg-yellow-500 font-bold text-white px-4 py-2 hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
             disabled={isLoading}
             style={{ fontFamily: "'Courier New', Courier, monospace" }}
           >
             RECENT GAMES
           </button>
+          <Link href={'/active-game'}>
+            <p className="bg-yellow-500 font-bold text-white px-4 py-2 hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white">
+              LATEST GAME
+            </p>
+          </Link>
         </div>
         {error ? (
           <p className="text-red-500 text-lg fade-in" style={{ fontFamily: "'Courier New', Courier, monospace" }}>

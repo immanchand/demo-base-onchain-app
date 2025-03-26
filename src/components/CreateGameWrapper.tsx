@@ -19,7 +19,7 @@ if (!gameMasterPrivateKey) console.error('NEXT_PUBLIC_GAME_MASTER_PRIVATE_KEY is
 const walletClient = gameMasterPrivateKey
   ? createWalletClient({
       chain: baseSepolia,
-      transport: http(),
+      transport: http('https://base-sepolia.g.alchemy.com/v2/F7h0CQMEGWf9Ek2PVP77Uhovr7z_nRaP'),
       account: privateKeyToAccount(gameMasterPrivateKey as Hex),
     })
   : null;
@@ -97,19 +97,24 @@ export default function CreateGameWrapper({ onSuccess, onError }: CreateGameWrap
   return (
     <div className="flex flex-col items-center gap-4 w-[450px] max-w-full">
       <button
-        className={`mt-0 mr-auto ml-auto w-full max-w-full text-[white] rounded-md px-4 py-2 ${
-          walletClient ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
-        }`}
+        className={`mt-0 mr-auto ml-auto w-full max-w-full font-bold text-white px-4 py-2 border-2 border-[#FFFF00] ${
+          walletClient ? 'bg-yellow-500 hover:bg-black hover:text-yellow-500' : 'bg-gray-400 cursor-not-allowed'
+        } transition-all duration-300 ease-in-out`}
         onClick={handleCreateGame}
         disabled={!walletClient || txStatus === 'pending'}
+        style={{ fontFamily: "'Courier New', Courier, monospace" }}
       >
-        {txStatus === 'pending' ? 'Creating...' : 'Create Game'}
+        {txStatus === 'pending' ? 'CREATING...' : 'CREATE GAME'}
       </button>
       {txStatus === 'success' && (
-        <div className="text-green-600 text-sm">Game created successfully!</div>
+        <div className="text-green-500 text-sm" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+          GAME CREATED SUCCESSFULLY!
+        </div>
       )}
       {txStatus === 'error' && errorMessage && (
-        <div className="text-red-600 text-sm">Error: {errorMessage}</div>
+        <div className="text-red-500 text-sm" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+          ERROR: {errorMessage}
+        </div>
       )}
     </div>
   );

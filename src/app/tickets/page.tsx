@@ -52,7 +52,7 @@ export default function Tickets() {
           </style>
           <div className="flex flex-col items-center justify-center gap-4">
             <div
-              className="ticket-container flex h-[100px] w-[450px] max-w-full items-center justify-center bg-black"
+              className="ticket-container flex h-[200px] w-[450px] max-w-full items-center justify-center bg-black"
               style={{ border: '2px solid #FFFF00' }}
             >
               <div 

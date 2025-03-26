@@ -58,7 +58,7 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
               <p className="text-white font-bold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                 END TIME
               </p>
-              <p className="text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+              <p className="text-white text-xl " style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                 <span className={isGameOver ? 'text-red-500' : 'text-green-500'}>
                   {new Date(Number(game.endTime) * 1000).toLocaleString()}
                 </span>
@@ -74,7 +74,7 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
             <div className="mt-4 flex justify-center">
               {!isGameOver ? (
                 <Link href={'/active-game'}>
-                  <p className="w-full max-w-xs text-center text-white bg-yellow-500 hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 transition-all duration-300 ease-in-out py-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                  <p className="w-full max-w-xs font-bold text-center text-white bg-yellow-500 hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 transition-all duration-300 ease-in-out py-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                     PLAY TO WIN
                   </p>
                 </Link>
@@ -102,7 +102,7 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
                   e.preventDefault();
                   handleCopyAddress();
                 }}
-                className={`${isUserLeader ? 'text-green-500 text-2xl' : 'text-yelow-500'} hover:underline cursor-pointer font-bold`}
+                className={`${isUserLeader ? 'text-green-500 text-2xl' : 'text-yellow-500'} hover:underline cursor-pointer font-bold`}
                 title="Click to copy address"
               >
                 {isUserLeader ? 'YOU!' : `${game.leader.slice(0, 5)}...${game.leader.slice(-3)}`}
@@ -120,27 +120,27 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
               {isGameOver && isGameWithdrawn ? (
                 <>
                   <p className="font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                    WON
+                    PRIZE
                   </p>
-                  <p className="text-yellow-500 text-2xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                  <p className="text-yellow-500 text-2xl text-bold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                     {formatEther(game.potHistory)} ETH
                   </p>
                 </>
               ) : isGameOver && !isGameWithdrawn ? (
                 <>
                   <p className="font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                    WON
+                    PRIZE
                   </p>
-                  <p className="text-yellow-500 text-2xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                  <p className="text-yellow-500 text-2xl text-bold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                     {formatEther(game.pot)} ETH
                   </p>
                 </>
               ) : (
                 <>
                   <p className="font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                    WIN
+                    PRIZE
                   </p>
-                  <p className="text-yellow-500 text-2xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                  <p className="text-yellow-500 text-2xl text-bold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                     {formatEther(game.pot)} ETH
                   </p>
                 </>
@@ -224,9 +224,10 @@ export default function Games() {
   }, [fetchGames, getLatestGameId]);
 
   return (
-    <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px]">
+    <div className="flex flex-col min-h-screen w-96 max-w-full px-1 md:w-[1008px]">
       <Navbar />
-      <section className="templateSection flex w-full flex-col items-center justify-center gap-4 bg-black px-2 py-4 md:grow">
+      <div className="h-[10px]" />
+      <section className="templateSection flex w-full flex-col items-center justify-center gap-4 bg-black px-2 py-4 md:grow border-4 border-[#FFFF00]">
         <style>
           {`
             .input-field {

@@ -46,41 +46,41 @@ const Navbar = React.memo(() => {
       <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8 nav-container">
         <div className="relative flex h-16 items-center justify-between">
           <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
-            <div className="flex flex-shrink-0 items-center logo">
-              <a title="Arcade Casino" target="_blank" rel="noreferrer">
-                <ArcadeCasinoSvg />
-              </a>
-            </div>
-            <div className="hidden sm:ml-6 sm:block">
-              <div className="flex space-x-4">
+          <div className="flex flex-shrink-0 items-center logo">
+            <Link href="/" title="Arcade Casino">
+              <ArcadeCasinoSvg />
+            </Link>
+          </div>
+          <div className="hidden sm:ml-6 sm:block">
+            <div className="flex space-x-4">
+              <div className="link">
+                <Link href="/active-game">
+                  <p className="px-3 py-2 text-lg font-bold text-white hover:text-[#FFFF00]" 
+                      style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                    PLAY
+                  </p>
+                </Link>
+              </div>
+              {address && (
                 <div className="link">
-                  <Link href="/active-game">
-                    <p className="px-3 py-2 text-lg font-bold text-white hover:text-[#FFFF00]" 
-                       style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                      PLAY
-                    </p>
-                  </Link>
-                </div>
-                {address && (
-                  <div className="link">
-                    <Link href="/tickets">
-                      <p className="px-3 py-2 text-lg font-bold text-white hover:text-[#FFFF00]"
-                         style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                        TICKETS
-                      </p>
-                    </Link>
-                  </div>
-                )}
-                <div className="link">
-                  <Link href="/games">
+                  <Link href="/tickets">
                     <p className="px-3 py-2 text-lg font-bold text-white hover:text-[#FFFF00]"
-                       style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                      HISTORY
+                        style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                      TICKETS
                     </p>
                   </Link>
                 </div>
+              )}
+              <div className="link">
+                <Link href="/games">
+                  <p className="px-3 py-2 text-lg font-bold text-white hover:text-[#FFFF00]"
+                      style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                    HISTORY
+                  </p>
+                </Link>
               </div>
             </div>
+          </div>
           </div>
           <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
             <div className="flex items-center gap-3">

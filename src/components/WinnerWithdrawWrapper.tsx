@@ -72,7 +72,7 @@ export default function WinnerWithdrawWrapper({ gameId, onSuccess, userAddress }
       ) : (
         <WalletWrapper
           className="w-full"
-          text="Log In to Withdraw"
+          text="LOG IN TO WITHDRAW"
           withWalletAggregator={true}
         />
       )}

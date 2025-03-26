@@ -117,34 +117,12 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
               )}
             </p>
             <div className="mt-4">
-              {isGameOver && isGameWithdrawn ? (
-                <>
-                  <p className="font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                    PRIZE
-                  </p>
-                  <p className="text-yellow-500 text-2xl text-bold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                    {formatEther(game.potHistory)} ETH
-                  </p>
-                </>
-              ) : isGameOver && !isGameWithdrawn ? (
-                <>
-                  <p className="font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                    PRIZE
-                  </p>
-                  <p className="text-yellow-500 text-2xl text-bold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                    {formatEther(game.pot)} ETH
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                    PRIZE
-                  </p>
-                  <p className="text-yellow-500 text-2xl text-bold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                    {formatEther(game.pot)} ETH
-                  </p>
-                </>
-              )}
+            <p className="font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+              PRIZE
+            </p>
+            <p className="text-yellow-500 text-2xl text-bold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+              {formatEther(game.pot > game.potHistory ? game.pot : game.potHistory)} ETH
+            </p>
             </div>
           </div>
         </div>

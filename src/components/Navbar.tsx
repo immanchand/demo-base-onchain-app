@@ -11,7 +11,7 @@ const Navbar = React.memo(() => {
   const { ticketCount } = useTicketContext();
 
   return (
-    <nav className="bg-black border-b-2 border-[#FFFF00] rounded-xl">
+    <nav className="bg-black border-4 border-[#FFFF00]" style={{ position: 'relative', zIndex: 500 }}>
       <style>
         {`
           .nav-container {
@@ -55,7 +55,7 @@ const Navbar = React.memo(() => {
               <div className="flex space-x-4">
                 <div className="link">
                   <Link href="/active-game">
-                    <p className="rounded-md px-3 py-2 text-lg font-bold text-white hover:text-[#FFFF00]" 
+                    <p className="px-3 py-2 text-lg font-bold text-white hover:text-[#FFFF00]" 
                        style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                       PLAY
                     </p>
@@ -64,7 +64,7 @@ const Navbar = React.memo(() => {
                 {address && (
                   <div className="link">
                     <Link href="/tickets">
-                      <p className="rounded-md px-3 py-2 text-lg font-bold text-white hover:text-[#FFFF00]"
+                      <p className="px-3 py-2 text-lg font-bold text-white hover:text-[#FFFF00]"
                          style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                         TICKETS
                       </p>
@@ -73,7 +73,7 @@ const Navbar = React.memo(() => {
                 )}
                 <div className="link">
                   <Link href="/games">
-                    <p className="rounded-md px-3 py-2 text-lg font-bold text-white hover:text-[#FFFF00]"
+                    <p className="px-3 py-2 text-lg font-bold text-white hover:text-[#FFFF00]"
                        style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                       HISTORY
                     </p>
@@ -87,7 +87,7 @@ const Navbar = React.memo(() => {
               {address && (
                 <Link href="/tickets">
                   <div
-                    className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-lg font-bold text-white border-2 border-[#FFFF00] ticket"
+                    className="w-10 h-10 bg-black flex items-center justify-center text-lg font-bold text-white border-2 border-[#FFFF00] ticket"
                     style={{ fontFamily: "'Courier New', Courier, monospace" }}
                   >
                     {ticketCount}

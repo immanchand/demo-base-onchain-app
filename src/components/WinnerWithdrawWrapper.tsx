@@ -46,19 +46,22 @@ export default function WinnerWithdrawWrapper({ gameId, onSuccess, userAddress }
   };
 
   return (
-    <div className="w-full">
+    <div className="flex justify-center">
       <style>
         {`
           .transaction-button {
-            transition: all 0.3s ease;
-            background: #22C55E !important; /* Green-500 */
+            transition: all 0.2s ease;
+            background: rgb(255, 179, 0) !important; /* Yellow-500 */
             color: white !important;
             border: 2px solid #FFFF00 !important;
             font-family: 'Courier New', Courier, monospace !important;
             border-radius: 0 !important;
+            padding: 0.25rem 0.5rem !important;
+            display: inline-block !important; /* Fit to content width */
           }
           .transaction-button:hover {
-            background: #16A34A !important; /* Green-600 */
+            background: black !important;
+            color: #FFFF00 !important;
             box-shadow: 0 0 8px rgba(255, 255, 0, 0.5) !important;
           }
         `}
@@ -71,8 +74,8 @@ export default function WinnerWithdrawWrapper({ gameId, onSuccess, userAddress }
           onSuccess={handleSuccess}
         >
           <TransactionButton
-            className="transaction-button w-full"
-            text="Claim Prize"
+            className="transaction-button"
+            text="WITHDRAW PRIZE"
           />
           <TransactionStatus>
             <TransactionStatusLabel />
@@ -87,7 +90,6 @@ export default function WinnerWithdrawWrapper({ gameId, onSuccess, userAddress }
       ) : (
         <WalletWrapper
           className="w-full text-white bg-yellow-500 hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
-          // style={{ fontFamily: "'Courier New', Courier, monospace", borderRadius: 0 }}
           text="LOG IN TO WITHDRAW"
           withWalletAggregator={true}
         />

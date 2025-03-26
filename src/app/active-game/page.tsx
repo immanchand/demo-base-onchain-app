@@ -7,6 +7,7 @@ import { formatEther, decodeEventLog } from 'viem';
 import { useAccount } from 'wagmi';
 import { publicClient, contractABI, contractAddress } from 'src/constants';
 import WalletWrapper from 'src/components/WalletWrapper';
+import WinnerWithdrawWrapper from 'src/components/WinnerWithdrawWrapper';
 
 interface GameData {
   gameId: number;
@@ -61,37 +62,32 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
     }
   };
 
+  const handleWithdrawSuccess = () => {
+    console.log('Prize claimed successfully');
+    refreshGame(); // Refresh game data after withdrawal
+  };
+
   const isUserLeader = userAddress && game.leader.toLowerCase() === userAddress.toLowerCase();
   const isGameWithdrawn = game.potHistory > game.pot;
 
   return (
     <div className="bg-black p-4 flex flex-col gap-2 border-2 border-[#FFFF00] transition-all duration-300 ease-in-out hover:scale-102 hover:brightness-110 hover:shadow-[0_0_8px_rgba(255,255,0,0.5)]">
-      <h3 className="text-lg font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-        GAME #{game.gameId}
-      </h3>
-      <button
-        onClick={refreshGame}
-        className={`absolute top-2 right-2 w-6 h-6 text-white hover:text-yellow-500 focus:outline-none ${isLoading ? 'animate-spin' : ''}`}
-        disabled={isLoading}
-        aria-label={`Refresh game ${game.gameId}`}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.001 8.001 0 01-15.356-2m15.356 2H15" />
-        </svg>
-      </button>
       {game.error ? (
         <p className="text-red-500 text-center" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
           FAILED TO LOAD GAME DATA
         </p>
       ) : (
         <div className="grid grid-cols-3 gap-2">
+          {/* Game # and End Time (left) */}
           <div className="col-span-1 text-left flex flex-col justify-between">
-            <div>{/* Empty div to push content down */}</div>
+            <h3 className="text-lg font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+              GAME #{game.gameId}
+            </h3>
             <div>
               <p className="text-white font-bold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                 END TIME
               </p>
-              <p className="text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+              <p className="text-white text-xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                 {isGameOver ? (
                   <span className="text-red-500 font-semibold">GAME OVER</span>
                 ) : (
@@ -100,11 +96,35 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
               </p>
             </div>
           </div>
-          <div className="col-span-1 text-center">
+
+          {/* High Score and Buttons (center) */}
+          <div className="col-span-1 text-center relative">
             <p className="text-white font-bold text-xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
               HIGH SCORE {game.highScore.toString()}
             </p>
+            <div className="mt-4 flex justify-center items-center">
+              {!isGameOver ? (
+                <button
+                  onClick={refreshGame}
+                  className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 text-white hover:text-yellow-500 focus:outline-none ${isLoading ? 'animate-spin' : ''}`}
+                  disabled={isLoading}
+                  aria-label={`Refresh game ${game.gameId}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.001 8.001 0 01-15.356-2m15.356 2H15" />
+                  </svg>
+                </button>
+              ) : isGameOver && !isGameWithdrawn && isUserLeader ? (
+                <WinnerWithdrawWrapper 
+                  gameId={game.gameId}
+                  onSuccess={handleWithdrawSuccess}
+                  userAddress={userAddress}
+                />
+              ) : null}
+            </div>
           </div>
+
+          {/* Leader and Prize (right) */}
           <div className="col-span-1 text-right">
             <p className="text-white relative group" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
               {isGameOver ? (
@@ -231,7 +251,7 @@ export default function ActiveGame() {
 
   useEffect(() => {
     fetchLatestGame();
-  }, [fetchLatestGame]);
+  }, [fetchGame]);
 
   if (state.status === 'loading') {
     return (
@@ -258,8 +278,7 @@ export default function ActiveGame() {
           <p className="text-red-500 text-lg font-semibold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
             ERROR RETRIEVING GAME. TRY AGAIN LATER.
           </p>
-        // ) : true ? (//**COMMENTED LEAVE FOR TESTING PURPOSES
-         ) : !state.game || isGameOver ? (
+        ) : !state.game || isGameOver ? (
           <div className="flex flex-col items-center w-full mb-4">
             <p className="text-white text-lg font-semibold mb-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
               NO ACTIVE GAME EXISTS! CREATE ONE FOR FREE!

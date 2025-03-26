@@ -56,6 +56,7 @@ export default function BuyTicketsWrapper({ updateTickets }: { updateTickets: ()
             border: 2px solid #FFFF00 !important;
             color: white !important;
             font-family: 'Courier New', Courier, monospace !important;
+            border-radius: 0 !important;
           }
           .quantity-selector:hover {
             transform: scale(1.02);
@@ -66,6 +67,7 @@ export default function BuyTicketsWrapper({ updateTickets }: { updateTickets: ()
             color: #FFFF00 !important;
             font-weight: bold !important;
             font-family: 'Courier New', Courier, monospace !important;
+            border-radius: 0 !important;
           }
           .quantity-selector input:focus {
             background: black !important;
@@ -80,6 +82,7 @@ export default function BuyTicketsWrapper({ updateTickets }: { updateTickets: ()
             background: black !important;
             border: 1px solid #FFFF00 !important;
             font-family: 'Courier New', Courier, monospace !important;
+            border-radius: 0 !important;
           }
           .quantity-selector button:hover {
             color: #FFFF00 !important;
@@ -87,10 +90,11 @@ export default function BuyTicketsWrapper({ updateTickets }: { updateTickets: ()
           }
           .transaction-button {
             transition: all 0.2s ease;
-            background: rgba(255, 200, 0, 0.92) !important; /* Darker, duller yellow to match Games page */
+            background: rgba(255, 200, 0, 0.92) !important;
             color: white !important;
             border: 2px solid #FFFF00 !important;
             font-family: 'Courier New', Courier, monospace !important;
+            border-radius: 0 !important;
           }
           .transaction-button:hover {
             background: black !important;
@@ -100,7 +104,7 @@ export default function BuyTicketsWrapper({ updateTickets }: { updateTickets: ()
           .transaction-button:disabled {
             opacity: 0.6;
             cursor: not-allowed;
-            background: rgba(255, 255, 0, 0.5) !important; /* Darker, duller yellow to match Games page */
+            background: rgba(255, 255, 0, 0.5) !important;
             color: white !important;
           }
         `}

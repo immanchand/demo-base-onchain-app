@@ -65,11 +65,13 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
   const isGameWithdrawn = game.potHistory > game.pot;
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 border border-gray-200 relative">
-      <h3 className="text-lg font-semibold text-gray-800">Game #{game.gameId}</h3>
+    <div className="bg-black p-4 flex flex-col gap-2 border-2 border-[#FFFF00] transition-all duration-300 ease-in-out hover:scale-102 hover:brightness-110 hover:shadow-[0_0_8px_rgba(255,255,0,0.5)]">
+      <h3 className="text-lg font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+        GAME #{game.gameId}
+      </h3>
       <button
         onClick={refreshGame}
-        className={`absolute top-2 right-2 w-6 h-6 text-gray-500 hover:text-gray-700 focus:outline-none ${isLoading ? 'animate-spin' : ''}`}
+        className={`absolute top-2 right-2 w-6 h-6 text-white hover:text-yellow-500 focus:outline-none ${isLoading ? 'animate-spin' : ''}`}
         disabled={isLoading}
         aria-label={`Refresh game ${game.gameId}`}
       >
@@ -78,59 +80,65 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
         </svg>
       </button>
       {game.error ? (
-        <p className="text-red-500">Failed to load game data</p>
+        <p className="text-red-500 text-center" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+          FAILED TO LOAD GAME DATA
+        </p>
       ) : (
-        <>
-          <p className="text-gray-600">
-            <span className="font-medium">End Time:</span>{' '}
-            {isGameOver ? (
-              <span className="text-red-500 font-semibold">Game Over</span>
-            ) : (
-              <span className={timeLeft < 3600 ? 'text-red-500' : 'text-green-500'}>{countdown}</span>
-            )}
-          </p>
-          <p className="text-gray-600">
-            <span className="font-medium">High Score:</span> {game.highScore.toString()}
-          </p>
-          <p className="text-gray-600 relative group">
-            {isGameOver ? (
-              <span className="font-medium text-green-500">WINNER:</span>
-            ) : (
-              <span className="font-medium text-green-500">Leader:</span>
-            )}{' '}
-            <a
-              href="#"
-              onClick={(e) => { e.preventDefault(); handleCopyAddress(); }}
-              className={`${isUserLeader ? 'text-green-500' : 'text-blue-500'} hover:underline cursor-pointer font-semibold`}
-              title="Click to copy address"
-            >
-              {isUserLeader ? 'YOU!' : `${game.leader.slice(0, 6)}...${game.leader.slice(-4)}`}
-            </a>
-            <span className="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2">
-              {game.leader}
-            </span>
-            {isCopied && (
-              <span className="absolute right-0 top-full mt-1 text-green-500 text-xs animate-fade-in-out">
-                Copied!
-              </span>
-            )}
-          </p>
-          {isGameOver && isGameWithdrawn ? (
-            <p className="font-bold">
-            Prize Won:{' '}{formatEther(game.potHistory)} ETH
-          </p>
-            ) : (null)}
-          {isGameOver && !isGameWithdrawn ? (
-            <p className="font-bold">
-            Prize Won:{' '}{formatEther(game.pot)} ETH
-          </p>
-            ) : (null)}
-          {!isGameOver ? (
-            <p className="font-bold">
-              Prize To Win:{' '}{formatEther(game.pot)} ETH
+        <div className="grid grid-cols-3 gap-2">
+          <div className="col-span-1 text-left flex flex-col justify-between">
+            <div>{/* Empty div to push content down */}</div>
+            <div>
+              <p className="text-white font-bold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                END TIME
+              </p>
+              <p className="text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                {isGameOver ? (
+                  <span className="text-red-500 font-semibold">GAME OVER</span>
+                ) : (
+                  <span className={timeLeft < 3600 ? 'text-red-500' : 'text-green-500'}>{countdown}</span>
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="col-span-1 text-center">
+            <p className="text-white font-bold text-xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+              HIGH SCORE {game.highScore.toString()}
             </p>
-            ) : (null)}
-        </>
+          </div>
+          <div className="col-span-1 text-right">
+            <p className="text-white relative group" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+              {isGameOver ? (
+                <span className="font-bold">WINNER</span>
+              ) : (
+                <span className="font-bold">LEADER</span>
+              )}{' '}
+              <a
+                href="#"
+                onClick={(e) => { e.preventDefault(); handleCopyAddress(); }}
+                className={`${isUserLeader ? 'text-green-500 text-2xl' : 'text-yellow-500'} hover:underline cursor-pointer font-bold`}
+                title="Click to copy address"
+              >
+                {isUserLeader ? 'YOU!' : `${game.leader.slice(0, 5)}...${game.leader.slice(-3)}`}
+              </a>
+              <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-black text-yellow-500 text-xs py-1 px-2 border border-yellow-500">
+                {game.leader}
+              </span>
+              {isCopied && (
+                <span className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 text-yellow-500 text-xs animate-fade-in-out">
+                  COPIED!
+                </span>
+              )}
+            </p>
+            <div className="mt-4">
+              <p className="font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                PRIZE
+              </p>
+              <p className="text-yellow-500 text-2xl text-bold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                {formatEther(game.pot > game.potHistory ? game.pot : game.potHistory)} ETH
+              </p>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -227,11 +235,14 @@ export default function ActiveGame() {
 
   if (state.status === 'loading') {
     return (
-      <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px] rounded-xl">
+      <div className="flex flex-col min-h-screen w-96 max-w-full px-1 md:w-[1008px]">
         <Navbar />
-        <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl bg-gray-100 px-2 py-4 md:grow">
+        <div className="h-[10px]" />
+        <section className="templateSection flex w-full flex-col items-center justify-center gap-4 bg-black px-2 py-4 md:grow border-4 border-[#FFFF00]">
           <div className="flex items-center justify-center w-full h-64">
-            <div className="text-gray-600 text-xl animate-pulse">Loading active game...</div>
+            <div className="text-white text-xl animate-pulse" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+              LOADING ACTIVE GAME...
+            </div>
           </div>
         </section>
       </div>
@@ -239,23 +250,26 @@ export default function ActiveGame() {
   }
 
   return (
-    <div className="flex h-full w-96 max-w-full flex-col px-1 md:w-[1008px] rounded-xl">
+    <div className="flex flex-col min-h-screen w-96 max-w-full px-1 md:w-[1008px]">
       <Navbar />
-      <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl bg-gray-100 px-2 py-4 md:grow">
+      <div className="h-[10px]" />
+      <section className="templateSection flex w-full flex-col items-center justify-center gap-4 bg-black px-2 py-4 md:grow border-4 border-[#FFFF00]">
         {state.status === 'error' ? (
-          <p className="text-red-500 text-lg font-semibold">Error retrieving game. Try again later.</p>
-        // ) : !state.game ? (**COMMENTED LEAVE FOR TESTING PURPOSES
-         ) : !state.game || isGameOver ? ( 
+          <p className="text-red-500 text-lg font-semibold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+            ERROR RETRIEVING GAME. TRY AGAIN LATER.
+          </p>
+        // ) : true ? (//**COMMENTED LEAVE FOR TESTING PURPOSES
+         ) : !state.game || isGameOver ? (
           <div className="flex flex-col items-center w-full mb-4">
-            <p className="text-gray-800 text-lg font-semibold mb-2">
-              No Active Game Exists! Create one for FREE!
+            <p className="text-white text-lg font-semibold mb-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+              NO ACTIVE GAME EXISTS! CREATE ONE FOR FREE!
             </p>
             {address ? (
               <CreateGameWrapper onSuccess={handleGameCreated} />
             ) : (
               <WalletWrapper
-                className="w-[450px] max-w-full"
-                text="Log In to Create"
+                className="w-[450px] max-w-full button bg-yellow-500 text-white hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
+                text="LOG IN TO CREATE"
                 withWalletAggregator={true}
               />
             )}

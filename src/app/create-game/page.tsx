@@ -1,27 +1,11 @@
 'use client';
 import { useAccount } from 'wagmi';
 import Navbar from 'src/components/Navbar';
-import { Address, encodeFunctionData, Hex } from 'viem';
-import { BASE_SEPOLIA_CHAIN_ID, contractABI, contractAddress } from '../../constants';
-import { useState } from 'react';
+import { Address } from 'viem';
+import { useState, useRef } from 'react';
 import WalletWrapper from '../../components/WalletWrapper';
-import { createWalletClient, http } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { baseSepolia } from 'viem/chains';
-
-// Load private key from .env
-const gameMasterPrivateKey = process.env.NEXT_PUBLIC_GAME_MASTER_PRIVATE_KEY;
-if (!gameMasterPrivateKey) console.error('NEXT_PUBLIC_GAME_MASTER_PRIVATE_KEY is not defined in .env');
-
-const gameMasterClient = gameMasterPrivateKey
-  ? createWalletClient({
-      chain: baseSepolia,
-      transport: http(),
-      account: privateKeyToAccount(gameMasterPrivateKey as Hex),
-    })
-  : null;
-
-
+import StartGameWrapper from '../../components/StartGameWrapper';
+import EndGameWrapper from '../../components/EndGameWrapper';
 
 export default function TestGameFunctions() {
   const { address } = useAccount();
@@ -33,85 +17,23 @@ export default function TestGameFunctions() {
   const [endPlayer, setEndPlayer] = useState<string>('');
   const [endScore, setEndScore] = useState<string>('');
 
-  const parseErrorMessage = (error: unknown): string => {
-    if (error instanceof Error) {
-      const fullMessage = error.message;
-      console.log('Full error message:', fullMessage);
-      const detailsIndex = fullMessage.indexOf('Details:');
-      if (detailsIndex !== -1) {
-        const detailsStart = detailsIndex + 'Details:'.length;
-        const nextNewline = fullMessage.indexOf('\n', detailsStart);
-        const detailsEnd = nextNewline !== -1 ? nextNewline : fullMessage.length;
-        return fullMessage.slice(detailsStart, detailsEnd).trim();
-      }
-      return fullMessage.split('\n')[0] || 'An unknown error occurred';
-    }
-    return 'An unknown error occurred';
+  const startGameRef = useRef<{ startGame: () => Promise<void> }>(null);
+  const endGameRef = useRef<{ endGame: () => Promise<void> }>(null);
+
+  const handleStatusChange = (status: 'idle' | 'pending' | 'success' | 'error', errorMessage?: string) => {
+    setTxStatus(status);
+    setErrorMessage(errorMessage || null);
   };
 
   const handleStartGame = async () => {
-    if (!address || !gameMasterClient || !startGameId || !startPlayer) {
-      console.error('Missing required data');
-      setErrorMessage('Please fill in Game ID and Player Address');
-      return;
-    }
-
-    try {
-      setTxStatus('pending');
-      setErrorMessage(null);
-
-      const callData = encodeFunctionData({
-        abi: contractABI,
-        functionName: 'startGame',
-        args: [BigInt(startGameId), startPlayer as Address],
-      });
-
-      const hash = await gameMasterClient.sendTransaction({
-        to: contractAddress as Hex,
-        data: callData,
-        value: BigInt(0),
-        chainId: BASE_SEPOLIA_CHAIN_ID,
-      });
-
-      setTxStatus('success');
-      console.log('Game started successfully, tx hash:', hash);
-    } catch (error) {
-      console.error('Start game error:', error);
-      setTxStatus('error');
-      setErrorMessage(parseErrorMessage(error));
+    if (startGameRef.current) {
+      await startGameRef.current.startGame();
     }
   };
 
   const handleEndGame = async () => {
-    if (!address || !gameMasterClient || !endGameId || !endPlayer || !endScore) {
-      console.error('Missing required data');
-      setErrorMessage('Please fill in Game ID, Player Address, and Score');
-      return;
-    }
-
-    try {
-      setTxStatus('pending');
-      setErrorMessage(null);
-
-      const callData = encodeFunctionData({
-        abi: contractABI,
-        functionName: 'endGame',
-        args: [BigInt(endGameId), endPlayer as Address, BigInt(endScore)],
-      });
-
-      const hash = await gameMasterClient.sendTransaction({
-        to: contractAddress as Hex,
-        data: callData,
-        value: BigInt(0),
-        chainId: BASE_SEPOLIA_CHAIN_ID,
-      });
-
-      setTxStatus('success');
-      console.log('Game ended successfully, tx hash:', hash);
-    } catch (error) {
-      console.error('End game error:', error);
-      setTxStatus('error');
-      setErrorMessage(parseErrorMessage(error));
+    if (endGameRef.current) {
+      await endGameRef.current.endGame();
     }
   };
 
@@ -142,15 +64,19 @@ export default function TestGameFunctions() {
                 />
                 <button
                   className={`w-full text-white rounded-md px-4 py-2 ${
-                    gameMasterClient && startGameId && startPlayer
-                      ? 'bg-blue-600 hover:bg-blue-700'
-                      : 'bg-gray-400 cursor-not-allowed'
+                    startGameId && startPlayer ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
                   }`}
                   onClick={handleStartGame}
-                  disabled={!gameMasterClient || !startGameId || !startPlayer || txStatus === 'pending'}
+                  disabled={!startGameId || !startPlayer || txStatus === 'pending'}
                 >
                   {txStatus === 'pending' ? 'Starting...' : 'Start Game'}
                 </button>
+                <StartGameWrapper
+                  ref={startGameRef}
+                  gameId={startGameId}
+                  playerAddress={startPlayer}
+                  onStatusChange={handleStatusChange}
+                />
               </div>
             </div>
 
@@ -181,15 +107,22 @@ export default function TestGameFunctions() {
                 />
                 <button
                   className={`w-full text-white rounded-md px-4 py-2 ${
-                    gameMasterClient && endGameId && endPlayer && endScore
+                    endGameId && endPlayer && endScore
                       ? 'bg-blue-600 hover:bg-blue-700'
                       : 'bg-gray-400 cursor-not-allowed'
                   }`}
                   onClick={handleEndGame}
-                  disabled={!gameMasterClient || !endGameId || !endPlayer || !endScore || txStatus === 'pending'}
+                  disabled={!endGameId || !endPlayer || !endScore || txStatus === 'pending'}
                 >
                   {txStatus === 'pending' ? 'Ending...' : 'End Game'}
                 </button>
+                <EndGameWrapper
+                  ref={endGameRef}
+                  gameId={endGameId}
+                  playerAddress={endPlayer}
+                  score={endScore}
+                  onStatusChange={handleStatusChange}
+                />
               </div>
             </div>
 

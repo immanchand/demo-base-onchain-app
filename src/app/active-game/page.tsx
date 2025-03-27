@@ -8,6 +8,9 @@ import { useAccount } from 'wagmi';
 import { publicClient, contractABI, contractAddress } from 'src/constants';
 import WalletWrapper from 'src/components/WalletWrapper';
 import WinnerWithdrawWrapper from 'src/components/WinnerWithdrawWrapper';
+import SpaceInvaders from 'src/components/SpaceInvaders';
+import Asteroids from 'src/components/Asteroids';
+import { useTicketContext } from 'src/context/TicketContext';
 
 interface GameData {
   gameId: number;
@@ -174,9 +177,21 @@ export default function ActiveGame() {
     status: 'idle' | 'loading' | 'success' | 'error';
   }>({ game: null, status: 'idle' });
   const { address } = useAccount();
+  const { ticketCount, refreshTickets } = useTicketContext();
 
   const currentTime = BigInt(Math.floor(Date.now() / 1000));
   const isGameOver = state.game ? state.game.endTime <= currentTime : false;
+
+  const [selectedGame, setSelectedGame] = useState<'space-invaders' | 'asteroids' | null>(null);
+  
+  const handleGameSelect = (game: 'space-invaders' | 'asteroids') => {
+      setSelectedGame(game);
+   };
+
+  const updateTickets = useCallback(() => {
+    refreshTickets();
+    
+  }, [refreshTickets]); 
 
   const fetchGame = useCallback(async (gameId: number): Promise<GameData> => {
     try {
@@ -298,6 +313,7 @@ export default function ActiveGame() {
             )}
           </div>
         ) : (
+          <>
           <div className="w-full max-w-md">
             <GameCard
               game={state.game}
@@ -306,8 +322,58 @@ export default function ActiveGame() {
               userAddress={address}
             />
           </div>
+          {address ? (
+              <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl px-2 py-4 md:grow">
+              {/* Horizontal Menu */}
+              <div className="flex w-full justify-center gap-4 mb-4">
+                <button
+                  onClick={() => handleGameSelect('space-invaders')}
+                  className={`px-4 py-2 text-lg font-mono transition-all ${
+                    selectedGame === 'space-invaders'
+                      ? 'bg-yellow-500 text-black px-4 py-2 border-2 border-[#FFFF00] hover:bg-black hover:text-yellow-500 transition-all'
+                      : 'bg-black text-yellow-500 hover:bg-yellow-500 hover:text-black'
+                  }`}
+                >
+                  SPACE INVADERS
+                </button>
+                <button
+                  onClick={() => handleGameSelect('asteroids')}
+                  className={`px-4 py-2 text-lg font-mono transition-all ${
+                    selectedGame === 'asteroids'
+                      ? 'bg-yellow-500 text-black px-4 py-2 border-2 border-[#FFFF00] hover:bg-black hover:text-yellow-500 transition-all'
+                      : 'bg-black text-yellow-500 hover:bg-yellow-500 hover:text-black'
+                  }`}
+                >
+                  ASTEROIDS
+                </button>
+              </div>            
+
+              {/* Game Display */}
+              {!selectedGame && (
+                <p className="font-mono text-white">select a game to play!</p>
+              )}
+              {selectedGame === 'space-invaders' && (
+                <div className="w-full">
+                  <SpaceInvaders gameId={Number(state.game.gameId)} existingHighScore={Number(state.game.highScore)} />
+                </div>
+              )}
+              {selectedGame === 'asteroids' && (
+                <div className="w-full">
+                  <Asteroids gameId={Number(state.game.gameId)} existingHighScore={Number(state.game.highScore)} updateTickets={updateTickets} />
+                </div>
+              )}
+            </section>
+            ) : (
+              <WalletWrapper
+                className="w-[450px] max-w-full button bg-yellow-500 text-white hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
+                text="LOG IN TO PLAY"
+                withWalletAggregator={true}
+              />
+            )}
+        </>
         )}
       </section>
+      
     </div>
   );
 }

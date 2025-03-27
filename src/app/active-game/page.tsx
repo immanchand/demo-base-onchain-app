@@ -120,6 +120,10 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
                   onSuccess={handleWithdrawSuccess}
                   userAddress={userAddress}
                 />
+              ) : isGameOver && isGameWithdrawn && isUserLeader ? (
+                <p className="font-bold text-yellow-500" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                    PRIZE WITHDRAWN!
+                </p>
               ) : null}
             </div>
           </div>

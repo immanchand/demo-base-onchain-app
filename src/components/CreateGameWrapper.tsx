@@ -10,7 +10,6 @@ interface CreateGameWrapperProps {
   onStatusChange: (status: 'idle' | 'pending' | 'success' | 'error', errorMessage?: string) => void;
 }
 
-// Load private key from .env
 const gameMasterPrivateKey = process.env.NEXT_PUBLIC_GAME_MASTER_PRIVATE_KEY;
 const gameMasterClient = gameMasterPrivateKey
   ? createWalletClient({
@@ -39,21 +38,17 @@ const CreateGameWrapper = forwardRef<{ createGame: () => Promise<void> }, Create
 
     const createGame = useCallback(async () => {
       if (!gameMasterClient) {
-        console.error('Game master client not initialized');
         onStatusChange('error', 'Missing game master configuration');
         return;
       }
 
       if (!contractAddress || !contractABI) {
-        console.error('Contract configuration missing');
         onStatusChange('error', 'Invalid contract configuration');
         return;
       }
 
       try {
-        console.log('Initiating game creation transaction');
         onStatusChange('pending');
-
         const callData = encodeFunctionData({
           abi: contractABI,
           functionName: 'createGame',
@@ -69,7 +64,6 @@ const CreateGameWrapper = forwardRef<{ createGame: () => Promise<void> }, Create
         onStatusChange('success', `Transaction hash: ${hash}`);
       } catch (error) {
         const errorMsg = parseErrorMessage(error);
-        console.error('Error creating game:', error);
         onStatusChange('error', errorMsg);
       }
     }, [onStatusChange]);
@@ -78,7 +72,7 @@ const CreateGameWrapper = forwardRef<{ createGame: () => Promise<void> }, Create
       createGame,
     }));
 
-    return null; // No UI elements
+    return null;
   }
 );
 

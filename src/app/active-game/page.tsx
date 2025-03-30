@@ -5,7 +5,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { Address } from 'viem';
 import { formatEther } from 'viem';
 import { useAccount } from 'wagmi';
-import { publicClient, contractABI, contractAddress } from 'src/constants';
+import { publicClient, contractABI, contractAddress, gameMasterAddress} from 'src/constants';
 import WalletWrapper from 'src/components/WalletWrapper';
 import WinnerWithdrawWrapper from 'src/components/WinnerWithdrawWrapper';
 import SpaceInvaders from 'src/components/SpaceInvaders';
@@ -73,6 +73,7 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
   };
 
   const isUserLeader = userAddress && game.leader.toLowerCase() === userAddress.toLowerCase();
+  const isGMLeader = gameMasterAddress && game.leader.toLowerCase() === gameMasterAddress.toLowerCase();
   const isGameWithdrawn = game.potHistory > game.pot;
 
   return (
@@ -142,7 +143,7 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
                 className={`${isUserLeader ? 'text-green-500 text-2xl' : 'text-yellow-500'} hover:underline cursor-pointer font-bold`}
                 title="Click to copy address"
               >
-                {isUserLeader ? 'YOU!' : `${game.leader.slice(0, 5)}...${game.leader.slice(-3)}`}
+                {isUserLeader ? 'YOU!' : (isGMLeader ? 'NO ONE YET' : `${game.leader.slice(0, 5)}...${game.leader.slice(-3)}`)}
               </a>
               <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-black text-yellow-500 text-xs py-1 px-2 border border-yellow-500">
                 {game.leader}

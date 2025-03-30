@@ -22,38 +22,41 @@ interface GameData {
   error?: boolean;
 }
 
+const useCountdown = (endTime: bigint) => {
+  const [countdown, setCountdown] = useState<string>('00:00:00');
+  const [isGameOver, setIsGameOver] = useState<boolean>(false);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      const now = BigInt(Math.floor(Date.now() / 1000));
+      const timeLeft = Number(endTime - now);
+      if (timeLeft <= 0) {
+        setIsGameOver(true);
+        setCountdown('00:00:00');
+      } else {
+        const hours = Math.floor(timeLeft / 3600);
+        const minutes = Math.floor((timeLeft % 3600) / 60);
+        const seconds = timeLeft % 60;
+        setCountdown(
+          `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+        );
+        setIsGameOver(false);
+      }
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [endTime]);
+
+  return { isGameOver, countdown, timeLeft: Number(endTime - BigInt(Math.floor(Date.now() / 1000))) };
+};
+
 const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
   game: GameData;
   isLoading: boolean;
   refreshGame: () => void;
   userAddress?: Address;
 }) => {
-  const [tick, setTick] = useState<number>(0);
   const [isCopied, setIsCopied] = useState(false);
-
-  useEffect(() => {
-    const intervalId = setInterval(() => setTick(prev => prev + 1), 1000);
-    return () => clearInterval(intervalId);
-  }, []);
-
-  const getCountdown = (endTime: bigint) => {
-    const now = BigInt(Math.floor(Date.now() / 1000));
-    const timeLeft = Number(endTime - now);
-    if (timeLeft <= 0) return { isGameOver: true, countdown: '00:00:00', timeLeft };
-    const hours = Math.floor(timeLeft / 3600);
-    const minutes = Math.floor((timeLeft % 3600) / 60);
-    const seconds = timeLeft % 60;
-    
-    return {
-      isGameOver: false,
-      countdown: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds
-        .toString()
-        .padStart(2, '0')}`,
-      timeLeft,
-    };
-  };
-
-  const { isGameOver, countdown, timeLeft } = getCountdown(game.endTime);
+  const { isGameOver, countdown, timeLeft } = useCountdown(game.endTime);
 
   const handleCopyAddress = async () => {
     try {
@@ -166,19 +169,24 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
 });
 
 export default function ActiveGame() {
-  const [state, setState] = useState<{
+  const [gameState, setGameState] = useState<{
     game: GameData | null;
     status: 'idle' | 'loading' | 'success' | 'error';
-  }>({ game: null, status: 'idle' });
-  const [createGameStatus, setCreateGameStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState<string>('');
+    createStatus: 'idle' | 'pending' | 'success' | 'error';
+    errorMessage: string;
+  }>({
+    game: null,
+    status: 'idle',
+    createStatus: 'idle',
+    errorMessage: '',
+  });
   const { address } = useAccount();
   const { refreshTickets } = useTicketContext();
   const currentTime = BigInt(Math.floor(Date.now() / 1000));
-  const isGameOver = state.game ? state.game.endTime <= currentTime : false;
+  const isGameOver = gameState.game ? gameState.game.endTime <= currentTime : false;
   const createGameRef = useRef<{ createGame: () => Promise<void> }>(null);
   const [selectedGame, setSelectedGame] = useState<'space-invaders' | 'asteroids' | null>(null);
-  
+
   const handleGameSelect = (game: 'space-invaders' | 'asteroids') => {
     setSelectedGame(game);
   };
@@ -202,7 +210,7 @@ export default function ActiveGame() {
   }, []);
 
   const fetchLatestGame = useCallback(async () => {
-    setState(prev => ({ ...prev, status: 'loading' }));
+    setGameState(prev => ({ ...prev, status: 'loading' }));
     try {
       const latestGameId = await publicClient.readContract({
         address: contractAddress,
@@ -210,75 +218,90 @@ export default function ActiveGame() {
         functionName: 'getLatestGameId',
       });
       const gameId = Number(latestGameId);
-      if (gameId > 0) { 
+      if (gameId > 0) {
         const gameData = await fetchGame(gameId);
-        setState({ game: gameData, status: gameData.error ? 'error' : 'success' });
+        setGameState(prev => ({
+          ...prev,
+          game: gameData,
+          status: gameData.error ? 'error' : 'success',
+        }));
       } else {
-        setState({ game: null, status: 'success' });
+        setGameState(prev => ({ ...prev, game: null, status: 'success' }));
       }
     } catch (error) {
-      setState({ game: null, status: 'error' });
+      setGameState(prev => ({ ...prev, game: null, status: 'error' }));
     }
   }, [fetchGame]);
 
   const handleCreateGame = useCallback(async () => {
-    if (!createGameRef.current || createGameStatus === 'pending') return;
-    
-    setCreateGameStatus('pending');
-    setErrorMessage('');
-    
+    if (!createGameRef.current || gameState.createStatus === 'pending') return;
+
+    setGameState(prev => ({ ...prev, createStatus: 'pending', errorMessage: '' }));
     try {
       await createGameRef.current.createGame();
     } catch (error) {
-      setCreateGameStatus('error');
-      setErrorMessage(error instanceof Error ? error.message : 'Unknown error during game creation');
+      setGameState(prev => ({
+        ...prev,
+        createStatus: 'error',
+        errorMessage: error instanceof Error ? error.message : 'Unknown error during game creation',
+      }));
     }
-  }, [createGameStatus]);
+  }, [gameState.createStatus]);
 
-  const handleCreateGameStatusChange = useCallback(async (status: 'idle' | 'pending' | 'success' | 'error', message?: string) => {
-    setCreateGameStatus(status);
-    
-    if (status === 'error' && message) {
-      setErrorMessage(message);
-    } else if (status === 'success' && message?.startsWith('Transaction hash:')) {
-      setErrorMessage('');
-      const txHash = message.split('Transaction hash: ')[1];
-      console.log('Waiting for transaction confirmation:', txHash);
-      try {
-        const receipt = await publicClient.waitForTransactionReceipt({
-          hash: txHash as `0x${string}`,
-        });
-        console.log('Transaction confirmed, hash:', txHash);
-        await fetchLatestGame();
-      } catch (error) {
-        setCreateGameStatus('error');
-        setErrorMessage('Failed to confirm transaction: ' + (error instanceof Error ? error.message : 'Unknown error'));
+  const handleCreateGameStatusChange = useCallback(
+    async (status: 'idle' | 'pending' | 'success' | 'error', message?: string) => {
+      setGameState(prev => ({ ...prev, createStatus: status }));
+      if (status === 'error' && message) {
+        setGameState(prev => ({ ...prev, errorMessage: message }));
+      } else if (status === 'success' && message?.startsWith('Transaction hash:')) {
+        setGameState(prev => ({ ...prev, errorMessage: '' }));
+        const txHash = message.split('Transaction hash: ')[1];
+        console.log('Waiting for transaction confirmation:', txHash);
+        try {
+          const receipt = await publicClient.waitForTransactionReceipt({
+            hash: txHash as `0x${string}`,
+          });
+          console.log('Transaction confirmed, hash:', txHash);
+          await fetchLatestGame();
+        } catch (error) {
+          setGameState(prev => ({
+            ...prev,
+            createStatus: 'error',
+            errorMessage: 'Failed to confirm transaction: ' + (error instanceof Error ? error.message : 'Unknown error'),
+          }));
+        }
       }
+    },
+    [fetchLatestGame]
+  );
+
+  useEffect(() => {
+    if (!gameState.game || isGameOver) {
+      fetchLatestGame();
     }
-  }, [fetchLatestGame]);
+  }, [fetchLatestGame, gameState.game, isGameOver]);
 
   useEffect(() => {
-    fetchLatestGame();
-  }, [fetchLatestGame]);
-
-  useEffect(() => {
-    if (state.status === 'success' && (!state.game || isGameOver) && createGameStatus === 'idle') {
+    if (gameState.status === 'success' && (!gameState.game || isGameOver) && gameState.createStatus === 'idle') {
       handleCreateGame();
     }
-  }, [state.status, state.game, isGameOver, createGameStatus, handleCreateGame]);
+  }, [gameState.status, gameState.game, isGameOver, gameState.createStatus, handleCreateGame]);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
-    if (createGameStatus === 'pending') {
+    if (gameState.createStatus === 'pending') {
       timeout = setTimeout(() => {
-        setCreateGameStatus('error');
-        setErrorMessage('Game creation timed out after 30 seconds');
+        setGameState(prev => ({
+          ...prev,
+          createStatus: 'error',
+          errorMessage: 'Game creation timed out after 30 seconds',
+        }));
       }, 30000);
     }
     return () => clearTimeout(timeout);
-  }, [createGameStatus]);
+  }, [gameState.createStatus]);
 
-  if (state.status === 'loading') {
+  if (gameState.status === 'loading') {
     return (
       <div className="flex flex-col min-h-screen w-96 max-w-full px-1 md:w-[1008px]">
         <Navbar />
@@ -299,41 +322,33 @@ export default function ActiveGame() {
       <Navbar />
       <div className="h-[10px]" />
       <section className="templateSection flex w-full flex-col items-center justify-center gap-4 bg-black px-2 py-4 md:grow border-4 border-[#FFFF00]">
-        {state.status === 'error' ? (
+        {gameState.status === 'error' ? (
           <div className="flex flex-col items-center">
             <p className="text-red-500 text-lg font-semibold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
               ERROR RETRIEVING GAME. TRY AGAIN LATER.
             </p>
-            {errorMessage && (
+            {gameState.errorMessage && (
               <p className="text-red-500 text-sm mt-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                {errorMessage}
+                {gameState.errorMessage}
               </p>
             )}
           </div>
-        ) : !state.game || isGameOver ? (
+        ) : !gameState.game || isGameOver ? (
           <div className="flex flex-col items-center w-full mb-4">
             <p className="text-white text-lg font-semibold mb-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-              {createGameStatus === 'pending' ? 'CREATING A NEW GAME...' : 'INITIALIZING NEW GAME...'}
+              {gameState.createStatus === 'pending' ? 'CREATING A NEW GAME...' : 'INITIALIZING NEW GAME...'}
             </p>
-            {errorMessage && (
+            {gameState.errorMessage && (
               <p className="text-red-500 text-sm mt-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                Error: {errorMessage}
+                Error: {gameState.errorMessage}
               </p>
             )}
-            <CreateGameWrapper 
-              ref={createGameRef} 
-              onStatusChange={handleCreateGameStatusChange}
-            />
+            <CreateGameWrapper ref={createGameRef} onStatusChange={handleCreateGameStatusChange} />
           </div>
         ) : (
           <>
             <div className="w-full max-w-md">
-              <GameCard
-                game={state.game}
-                isLoading={false}
-                refreshGame={fetchLatestGame}
-                userAddress={address}
-              />
+              <GameCard game={gameState.game} isLoading={false} refreshGame={fetchLatestGame} userAddress={address} />
             </div>
             {address ? (
               <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl px-2 py-4 md:grow">
@@ -358,18 +373,20 @@ export default function ActiveGame() {
                   >
                     ASTEROIDS
                   </button>
-                </div>            
-                {!selectedGame && (
-                  <p className="font-mono text-white">select a game to play!</p>
-                )}
+                </div>
+                {!selectedGame && <p className="font-mono text-white">select a game to play!</p>}
                 {selectedGame === 'space-invaders' && (
                   <div className="w-full">
-                    <SpaceInvaders gameId={Number(state.game.gameId)} existingHighScore={Number(state.game.highScore)} />
+                    <SpaceInvaders gameId={Number(gameState.game.gameId)} existingHighScore={Number(gameState.game.highScore)} />
                   </div>
                 )}
                 {selectedGame === 'asteroids' && (
                   <div className="w-full">
-                    <Asteroids gameId={Number(state.game.gameId)} existingHighScore={Number(state.game.highScore)} updateTickets={updateTickets} />
+                    <Asteroids
+                      gameId={Number(gameState.game.gameId)}
+                      existingHighScore={Number(gameState.game.highScore)}
+                      updateTickets={updateTickets}
+                    />
                   </div>
                 )}
               </section>

@@ -3,7 +3,7 @@ import Navbar from 'src/components/Navbar';
 import CreateGameWrapper from 'src/components/CreateGameWrapper';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { Address } from 'viem';
-import { formatEther, decodeEventLog } from 'viem';
+import { formatEther } from 'viem';
 import { useAccount } from 'wagmi';
 import { publicClient, contractABI, contractAddress } from 'src/constants';
 import WalletWrapper from 'src/components/WalletWrapper';
@@ -66,7 +66,6 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
   };
 
   const handleWithdrawSuccess = () => {
-    console.log('Prize claimed successfully');
     refreshGame();
   };
 
@@ -174,7 +173,7 @@ export default function ActiveGame() {
   const [createGameStatus, setCreateGameStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const { address } = useAccount();
-  const { ticketCount, refreshTickets } = useTicketContext();
+  const { refreshTickets } = useTicketContext();
   const currentTime = BigInt(Math.floor(Date.now() / 1000));
   const isGameOver = state.game ? state.game.endTime <= currentTime : false;
   const createGameRef = useRef<{ createGame: () => Promise<void> }>(null);
@@ -186,7 +185,7 @@ export default function ActiveGame() {
 
   const updateTickets = useCallback(() => {
     refreshTickets();
-  }, [refreshTickets]); 
+  }, [refreshTickets]);
 
   const fetchGame = useCallback(async (gameId: number): Promise<GameData> => {
     try {
@@ -198,7 +197,6 @@ export default function ActiveGame() {
       });
       return { gameId, endTime, highScore, leader, pot, potHistory };
     } catch (error) {
-      console.error(`Error fetching game ${gameId}:`, error);
       return { gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, potHistory: 0n, error: true };
     }
   }, []);
@@ -212,124 +210,67 @@ export default function ActiveGame() {
         functionName: 'getLatestGameId',
       });
       const gameId = Number(latestGameId);
-      console.log('Latest game ID:', gameId);
       if (gameId > 0) { 
         const gameData = await fetchGame(gameId);
-        console.log('Fetched game data:', gameData);
         setState({ game: gameData, status: gameData.error ? 'error' : 'success' });
       } else {
         setState({ game: null, status: 'success' });
       }
     } catch (error) {
-      console.error('Error fetching latest game:', error);
       setState({ game: null, status: 'error' });
     }
   }, [fetchGame]);
 
   const handleCreateGame = useCallback(async () => {
-    if (!createGameRef.current || createGameStatus === 'pending') {
-      console.log('Create game skipped: ref missing or already pending');
-      return;
-    }
+    if (!createGameRef.current || createGameStatus === 'pending') return;
     
-    console.log('Starting game creation...');
     setCreateGameStatus('pending');
     setErrorMessage('');
     
     try {
       await createGameRef.current.createGame();
     } catch (error) {
-      console.error('Create game failed:', error);
       setCreateGameStatus('error');
       setErrorMessage(error instanceof Error ? error.message : 'Unknown error during game creation');
     }
   }, [createGameStatus]);
 
   const handleCreateGameStatusChange = useCallback(async (status: 'idle' | 'pending' | 'success' | 'error', message?: string) => {
-    console.log('Create game status changed:', status, message);
     setCreateGameStatus(status);
     
     if (status === 'error' && message) {
       setErrorMessage(message);
     } else if (status === 'success' && message?.startsWith('Transaction hash:')) {
-      setErrorMessage(''); // Clear any previous errors
+      setErrorMessage('');
       const txHash = message.split('Transaction hash: ')[1];
       console.log('Waiting for transaction confirmation:', txHash);
       try {
         const receipt = await publicClient.waitForTransactionReceipt({
           hash: txHash as `0x${string}`,
         });
-        console.log('Transaction confirmed, receipt:', receipt);
-        // Optionally, decode logs to verify game creation if needed
+        console.log('Transaction confirmed, hash:', txHash);
         await fetchLatestGame();
       } catch (error) {
-        console.error('Transaction confirmation failed:', error);
         setCreateGameStatus('error');
         setErrorMessage('Failed to confirm transaction: ' + (error instanceof Error ? error.message : 'Unknown error'));
       }
     }
   }, [fetchLatestGame]);
 
-  const handleGameCreated = useCallback(async (txHash: string) => {
-    console.log('Game created, waiting for transaction confirmation:', txHash);
-    setState(prev => ({ ...prev, status: 'loading' }));
-    try {
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
-      console.log('Transaction receipt:', receipt);
-      const gameCreatedLog = receipt.logs.find(log => {
-        try {
-          const event = decodeEventLog({
-            abi: contractABI,
-            data: log.data,
-            topics: log.topics,
-          });
-          return event.eventName === 'GameCreate';
-        } catch {
-          return false;
-        }
-      });
-
-      if (!gameCreatedLog) throw new Error('GameCreated event not found');
-
-      const decodedLog = decodeEventLog({
-        abi: contractABI,
-        data: gameCreatedLog.data,
-        topics: gameCreatedLog.topics,
-      });
-
-      let gameId = 0;
-      if ('gameId' in decodedLog.args) {
-        gameId = Number(decodedLog.args.gameId);
-      };
-
-      console.log('New game ID from event:', gameId);
-      const gameData = await fetchGame(gameId);
-      setState({ game: gameData, status: gameData.error ? 'error' : 'success' });
-    } catch (error) {
-      console.error('Error handling game creation:', error);
-      setState({ game: null, status: 'error' });
-      setErrorMessage(error instanceof Error ? error.message : 'Unknown error processing transaction');
-    }
-  }, [fetchGame]);
-
   useEffect(() => {
-    console.log('Initial fetch of latest game');
     fetchLatestGame();
   }, [fetchLatestGame]);
 
   useEffect(() => {
     if (state.status === 'success' && (!state.game || isGameOver) && createGameStatus === 'idle') {
-      console.log('Triggering automatic game creation');
       handleCreateGame();
     }
   }, [state.status, state.game, isGameOver, createGameStatus, handleCreateGame]);
 
-  // Timeout for game creation
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (createGameStatus === 'pending') {
       timeout = setTimeout(() => {
-        console.log('Game creation timeout after 30 seconds');
         setCreateGameStatus('error');
         setErrorMessage('Game creation timed out after 30 seconds');
       }, 30000);

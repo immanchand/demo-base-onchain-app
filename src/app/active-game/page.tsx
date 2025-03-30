@@ -186,6 +186,7 @@ export default function ActiveGame() {
   const isGameOver = gameState.game ? gameState.game.endTime <= currentTime : false;
   const createGameRef = useRef<{ createGame: () => Promise<void> }>(null);
   const [selectedGame, setSelectedGame] = useState<'space-invaders' | 'asteroids' | null>(null);
+  let gameId: number;
 
   const handleGameSelect = (game: 'space-invaders' | 'asteroids') => {
     setSelectedGame(game);
@@ -217,7 +218,7 @@ export default function ActiveGame() {
         abi: contractABI,
         functionName: 'getLatestGameId',
       });
-      const gameId = Number(latestGameId);
+      gameId = Number(latestGameId);
       if (gameId > 0) {
         const gameData = await fetchGame(gameId);
         setGameState(prev => ({
@@ -262,7 +263,14 @@ export default function ActiveGame() {
             hash: txHash as `0x${string}`,
           });
           console.log('Transaction confirmed, hash:', txHash);
-          await fetchLatestGame();
+          const gameData = await fetchGame(gameId+1);
+          setGameState(prev => ({
+          ...prev,
+          game: gameData,
+          status: gameData.error ? 'error' : 'success',
+
+
+        }));
         } catch (error) {
           setGameState(prev => ({
             ...prev,
@@ -272,7 +280,7 @@ export default function ActiveGame() {
         }
       }
     },
-    [fetchLatestGame]
+    [fetchGame]
   );
 
   useEffect(() => {

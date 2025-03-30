@@ -1,7 +1,7 @@
 'use client';
 import Navbar from 'src/components/Navbar';
 import CreateGameWrapper from 'src/components/CreateGameWrapper';
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { Address } from 'viem';
 import { formatEther, decodeEventLog } from 'viem';
 import { useAccount } from 'wagmi';
@@ -67,7 +67,7 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
 
   const handleWithdrawSuccess = () => {
     console.log('Prize claimed successfully');
-    refreshGame(); // Refresh game data after withdrawal
+    refreshGame();
   };
 
   const isUserLeader = userAddress && game.leader.toLowerCase() === userAddress.toLowerCase();
@@ -81,7 +81,6 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
         </p>
       ) : (
         <div className="grid grid-cols-3 gap-2">
-          {/* Game # and End Time (left) */}
           <div className="col-span-1 text-left flex flex-col justify-between">
             <h3 className="text-lg font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
               GAME #{game.gameId}
@@ -99,8 +98,6 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
               </p>
             </div>
           </div>
-
-          {/* High Score and Buttons (center) */}
           <div className="col-span-1 text-center relative">
             <p className="text-white font-bold text-xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
               HIGH SCORE {game.highScore.toString()}
@@ -130,8 +127,6 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
               ) : null}
             </div>
           </div>
-
-          {/* Leader and Prize (right) */}
           <div className="col-span-1 text-right">
             <p className="text-white relative group" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
               {isGameOver ? (
@@ -176,21 +171,21 @@ export default function ActiveGame() {
     game: GameData | null;
     status: 'idle' | 'loading' | 'success' | 'error';
   }>({ game: null, status: 'idle' });
+  const [createGameStatus, setCreateGameStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const { address } = useAccount();
   const { ticketCount, refreshTickets } = useTicketContext();
-
   const currentTime = BigInt(Math.floor(Date.now() / 1000));
   const isGameOver = state.game ? state.game.endTime <= currentTime : false;
-
+  const createGameRef = useRef<{ createGame: () => Promise<void> }>(null);
   const [selectedGame, setSelectedGame] = useState<'space-invaders' | 'asteroids' | null>(null);
   
   const handleGameSelect = (game: 'space-invaders' | 'asteroids') => {
-      setSelectedGame(game);
-   };
+    setSelectedGame(game);
+  };
 
   const updateTickets = useCallback(() => {
     refreshTickets();
-    
   }, [refreshTickets]); 
 
   const fetchGame = useCallback(async (gameId: number): Promise<GameData> => {
@@ -217,8 +212,10 @@ export default function ActiveGame() {
         functionName: 'getLatestGameId',
       });
       const gameId = Number(latestGameId);
+      console.log('Latest game ID:', gameId);
       if (gameId > 0) { 
         const gameData = await fetchGame(gameId);
+        console.log('Fetched game data:', gameData);
         setState({ game: gameData, status: gameData.error ? 'error' : 'success' });
       } else {
         setState({ game: null, status: 'success' });
@@ -229,11 +226,56 @@ export default function ActiveGame() {
     }
   }, [fetchGame]);
 
+  const handleCreateGame = useCallback(async () => {
+    if (!createGameRef.current || createGameStatus === 'pending') {
+      console.log('Create game skipped: ref missing or already pending');
+      return;
+    }
+    
+    console.log('Starting game creation...');
+    setCreateGameStatus('pending');
+    setErrorMessage('');
+    
+    try {
+      await createGameRef.current.createGame();
+    } catch (error) {
+      console.error('Create game failed:', error);
+      setCreateGameStatus('error');
+      setErrorMessage(error instanceof Error ? error.message : 'Unknown error during game creation');
+    }
+  }, [createGameStatus]);
+
+  const handleCreateGameStatusChange = useCallback(async (status: 'idle' | 'pending' | 'success' | 'error', message?: string) => {
+    console.log('Create game status changed:', status, message);
+    setCreateGameStatus(status);
+    
+    if (status === 'error' && message) {
+      setErrorMessage(message);
+    } else if (status === 'success' && message?.startsWith('Transaction hash:')) {
+      setErrorMessage(''); // Clear any previous errors
+      const txHash = message.split('Transaction hash: ')[1];
+      console.log('Waiting for transaction confirmation:', txHash);
+      try {
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash: txHash as `0x${string}`,
+        });
+        console.log('Transaction confirmed, receipt:', receipt);
+        // Optionally, decode logs to verify game creation if needed
+        await fetchLatestGame();
+      } catch (error) {
+        console.error('Transaction confirmation failed:', error);
+        setCreateGameStatus('error');
+        setErrorMessage('Failed to confirm transaction: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      }
+    }
+  }, [fetchLatestGame]);
+
   const handleGameCreated = useCallback(async (txHash: string) => {
     console.log('Game created, waiting for transaction confirmation:', txHash);
     setState(prev => ({ ...prev, status: 'loading' }));
     try {
       const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
+      console.log('Transaction receipt:', receipt);
       const gameCreatedLog = receipt.logs.find(log => {
         try {
           const event = decodeEventLog({
@@ -257,20 +299,43 @@ export default function ActiveGame() {
 
       let gameId = 0;
       if ('gameId' in decodedLog.args) {
-        gameId = Number(decodedLog.args.gameId); // Indexed, so it's in topics
+        gameId = Number(decodedLog.args.gameId);
       };
 
+      console.log('New game ID from event:', gameId);
       const gameData = await fetchGame(gameId);
       setState({ game: gameData, status: gameData.error ? 'error' : 'success' });
     } catch (error) {
       console.error('Error handling game creation:', error);
       setState({ game: null, status: 'error' });
+      setErrorMessage(error instanceof Error ? error.message : 'Unknown error processing transaction');
     }
   }, [fetchGame]);
 
   useEffect(() => {
+    console.log('Initial fetch of latest game');
     fetchLatestGame();
-  }, [fetchGame]);
+  }, [fetchLatestGame]);
+
+  useEffect(() => {
+    if (state.status === 'success' && (!state.game || isGameOver) && createGameStatus === 'idle') {
+      console.log('Triggering automatic game creation');
+      handleCreateGame();
+    }
+  }, [state.status, state.game, isGameOver, createGameStatus, handleCreateGame]);
+
+  // Timeout for game creation
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (createGameStatus === 'pending') {
+      timeout = setTimeout(() => {
+        console.log('Game creation timeout after 30 seconds');
+        setCreateGameStatus('error');
+        setErrorMessage('Game creation timed out after 30 seconds');
+      }, 30000);
+    }
+    return () => clearTimeout(timeout);
+  }, [createGameStatus]);
 
   if (state.status === 'loading') {
     return (
@@ -294,75 +359,79 @@ export default function ActiveGame() {
       <div className="h-[10px]" />
       <section className="templateSection flex w-full flex-col items-center justify-center gap-4 bg-black px-2 py-4 md:grow border-4 border-[#FFFF00]">
         {state.status === 'error' ? (
-          <p className="text-red-500 text-lg font-semibold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-            ERROR RETRIEVING GAME. TRY AGAIN LATER.
-          </p>
+          <div className="flex flex-col items-center">
+            <p className="text-red-500 text-lg font-semibold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+              ERROR RETRIEVING GAME. TRY AGAIN LATER.
+            </p>
+            {errorMessage && (
+              <p className="text-red-500 text-sm mt-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                {errorMessage}
+              </p>
+            )}
+          </div>
         ) : !state.game || isGameOver ? (
           <div className="flex flex-col items-center w-full mb-4">
             <p className="text-white text-lg font-semibold mb-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-              NO ACTIVE GAME EXISTS! CREATE ONE FOR FREE!
+              {createGameStatus === 'pending' ? 'CREATING A NEW GAME...' : 'INITIALIZING NEW GAME...'}
             </p>
-            {address ? (
-              <CreateGameWrapper onSuccess={handleGameCreated} />
-            ) : (
-              <WalletWrapper
-                className="w-[450px] max-w-full button bg-yellow-500 text-white hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
-                text="LOG IN TO CREATE"
-                withWalletAggregator={true}
-              />
+            {errorMessage && (
+              <p className="text-red-500 text-sm mt-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                Error: {errorMessage}
+              </p>
             )}
+            <CreateGameWrapper 
+              ref={createGameRef} 
+              onStatusChange={handleCreateGameStatusChange}
+            />
           </div>
         ) : (
           <>
-          <div className="w-full max-w-md">
-            <GameCard
-              game={state.game}
-              isLoading={false}
-              refreshGame={fetchLatestGame}
-              userAddress={address}
-            />
-          </div>
-          {address ? (
+            <div className="w-full max-w-md">
+              <GameCard
+                game={state.game}
+                isLoading={false}
+                refreshGame={fetchLatestGame}
+                userAddress={address}
+              />
+            </div>
+            {address ? (
               <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl px-2 py-4 md:grow">
-              {/* Horizontal Menu */}
-              <div className="flex w-full justify-center gap-4 mb-4">
-                <button
-                  onClick={() => handleGameSelect('space-invaders')}
-                  className={`px-4 py-2 text-lg font-mono transition-all ${
-                    selectedGame === 'space-invaders'
-                      ? 'bg-yellow-500 text-black px-4 py-2 border-2 border-[#FFFF00] hover:bg-black hover:text-yellow-500 transition-all'
-                      : 'bg-black text-yellow-500 hover:bg-yellow-500 hover:text-black'
-                  }`}
-                >
-                  SPACE INVADERS
-                </button>
-                <button
-                  onClick={() => handleGameSelect('asteroids')}
-                  className={`px-4 py-2 text-lg font-mono transition-all ${
-                    selectedGame === 'asteroids'
-                      ? 'bg-yellow-500 text-black px-4 py-2 border-2 border-[#FFFF00] hover:bg-black hover:text-yellow-500 transition-all'
-                      : 'bg-black text-yellow-500 hover:bg-yellow-500 hover:text-black'
-                  }`}
-                >
-                  ASTEROIDS
-                </button>
-              </div>            
-
-              {/* Game Display */}
-              {!selectedGame && (
-                <p className="font-mono text-white">select a game to play!</p>
-              )}
-              {selectedGame === 'space-invaders' && (
-                <div className="w-full">
-                  <SpaceInvaders gameId={Number(state.game.gameId)} existingHighScore={Number(state.game.highScore)} />
-                </div>
-              )}
-              {selectedGame === 'asteroids' && (
-                <div className="w-full">
-                  <Asteroids gameId={Number(state.game.gameId)} existingHighScore={Number(state.game.highScore)} updateTickets={updateTickets} />
-                </div>
-              )}
-            </section>
+                <div className="flex w-full justify-center gap-4 mb-4">
+                  <button
+                    onClick={() => handleGameSelect('space-invaders')}
+                    className={`px-4 py-2 text-lg font-mono transition-all ${
+                      selectedGame === 'space-invaders'
+                        ? 'bg-yellow-500 text-black px-4 py-2 border-2 border-[#FFFF00] hover:bg-black hover:text-yellow-500 transition-all'
+                        : 'bg-black text-yellow-500 hover:bg-yellow-500 hover:text-black'
+                    }`}
+                  >
+                    SPACE INVADERS
+                  </button>
+                  <button
+                    onClick={() => handleGameSelect('asteroids')}
+                    className={`px-4 py-2 text-lg font-mono transition-all ${
+                      selectedGame === 'asteroids'
+                        ? 'bg-yellow-500 text-black px-4 py-2 border-2 border-[#FFFF00] hover:bg-black hover:text-yellow-500 transition-all'
+                        : 'bg-black text-yellow-500 hover:bg-yellow-500 hover:text-black'
+                    }`}
+                  >
+                    ASTEROIDS
+                  </button>
+                </div>            
+                {!selectedGame && (
+                  <p className="font-mono text-white">select a game to play!</p>
+                )}
+                {selectedGame === 'space-invaders' && (
+                  <div className="w-full">
+                    <SpaceInvaders gameId={Number(state.game.gameId)} existingHighScore={Number(state.game.highScore)} />
+                  </div>
+                )}
+                {selectedGame === 'asteroids' && (
+                  <div className="w-full">
+                    <Asteroids gameId={Number(state.game.gameId)} existingHighScore={Number(state.game.highScore)} updateTickets={updateTickets} />
+                  </div>
+                )}
+              </section>
             ) : (
               <WalletWrapper
                 className="w-[450px] max-w-full button bg-yellow-500 text-white hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
@@ -370,10 +439,9 @@ export default function ActiveGame() {
                 withWalletAggregator={true}
               />
             )}
-        </>
+          </>
         )}
       </section>
-      
     </div>
   );
 }

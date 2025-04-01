@@ -8,6 +8,7 @@ import { useAccount } from 'wagmi';
 interface AsteroidsProps {
     gameId: number;
     existingHighScore: number;
+    updateTickets: () => void;
 }
 
 interface Entity {
@@ -30,7 +31,7 @@ interface Bullet extends Entity {
     dy: number; // Y velocity
 }
 
-const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore }) => {
+const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, updateTickets }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [gameStarted, setGameStarted] = useState<boolean>(false);
@@ -43,7 +44,9 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore }) => {
     const startGameRef = useRef<{ startGame: () => Promise<void> }>(null);
     const endGameRef = useRef<{ endGame: () => Promise<void> }>(null);
     const [startGameStatus, setStartGameStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+    const [endGameStatus, setEndGameStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
     const [startGameError, setStartGameError] = useState<string>('');
+    const [endGameError, setEndGameError] = useState<string>('');
     const { address } = useAccount();
 
     useEffect(() => {
@@ -55,17 +58,13 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore }) => {
             const { width, height } = container.getBoundingClientRect();
             canvas.width = width;
             canvas.height = height;
-            // Adjust ship starting position when resizing before game starts
             if (!gameStarted && ship) {
                 ship.x = width / 2;
                 ship.y = height / 2;
             }
         };
 
-        // Initial resize
         resizeCanvas();
-
-        // Observe container size changes
         const resizeObserver = new ResizeObserver(resizeCanvas);
         resizeObserver.observe(container);
 
@@ -125,7 +124,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore }) => {
             }));
 
             const spawnAsteroid = () => {
-                const edge = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+                const edge = Math.floor(Math.random() * 4);
                 let x: number, y: number, dx: number, dy: number;
 
                 switch (edge) {
@@ -356,30 +355,54 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore }) => {
 
     const startGame = useCallback(async () => {
         if (ticketCount > 0 && startGameRef.current) {
-          setStartGameStatus('pending');
-          await startGameRef.current.startGame();
-          
+            setStartGameStatus('pending');
+            await startGameRef.current.startGame();
+        } else if (ticketCount < 1) {
+            setStartGameStatus('error');
+            setStartGameError('You need one ticket to play!');
         }
-        else if (ticketCount < 1) {
-          setStartGameStatus('error');
-          setStartGameError('You need one ticket to play!');
+    }, [ticketCount]);
+
+    const endGame = useCallback(async () => {
+        if (endGameRef.current && gameStarted) {
+            setEndGameStatus('pending');
+            await endGameRef.current.endGame();
         }
-      }, []);
+    }, [gameStarted]);
 
     const handleStartGameStatusChange = useCallback((status: 'idle' | 'pending' | 'success' | 'error', errorMessage?: string) => {
         setStartGameStatus(status);
         if (status === 'pending') {
-          setStartGameError('');
-        } else if (status === 'success') { 
-            refreshTickets();
+            setStartGameError('');
+        } else if (status === 'success') {
+            updateTickets();
             setGameStarted(true);
             setGameOver(false);
             setScore(0);
         } else if (status === 'error') {
-          setStartGameError(errorMessage || 'Failed to start game');
-          setGameStarted(false);
-        }   
-      }, []);
+            setStartGameError(errorMessage || 'Failed to start game');
+            setGameStarted(false);
+        }
+    }, [updateTickets]);
+
+    const handleEndGameStatusChange = useCallback((status: 'idle' | 'pending' | 'success' | 'error', errorMessage?: string) => {
+        setEndGameStatus(status);
+        if (status === 'pending') {
+            setEndGameError('');
+        } else if (status === 'success') {
+            console.log('Game ended successfully with score:', score);
+            // Optionally reset game state or trigger additional actions
+        } else if (status === 'error') {
+            setEndGameError(errorMessage || 'Failed to end game');
+        }
+    }, [score]);
+
+    // Trigger endGame when gameOver becomes true
+    useEffect(() => {
+        if (gameOver && gameStarted && endGameStatus === 'idle') {
+            endGame();
+        }
+    }, [gameOver, gameStarted, endGameStatus, endGame]);
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-black p-4">
@@ -388,6 +411,13 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore }) => {
                 gameId={gameId.toString()}
                 playerAddress={address || '0x0'}
                 onStatusChange={handleStartGameStatusChange}
+            />
+            <EndGameWrapper
+                ref={endGameRef}
+                gameId={gameId.toString()}
+                playerAddress={address || '0x0'}
+                score={score.toString()}
+                onStatusChange={handleEndGameStatusChange}
             />
             {!gameStarted ? (
                 <div className="text-center text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
@@ -403,11 +433,11 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore }) => {
                         onClick={startGame}
                         disabled={startGameStatus === 'pending'}
                         className={`bg-yellow-500 text-black px-4 py-2 border-2 border-[#FFFF00] transition-all ${
-                        startGameStatus === 'pending' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-black hover:text-yellow-500'
+                            startGameStatus === 'pending' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-black hover:text-yellow-500'
                         }`}
                         style={{ fontFamily: "'Courier New', Courier, monospace" }}
                     >
-                    {startGameStatus === 'pending' ? 'starting...' : 'START GAME'}
+                        {startGameStatus === 'pending' ? 'starting...' : 'START GAME'}
                     </button>
                     <p className="mt-2">COST: 1 TICKET</p>
                     {startGameStatus === 'error' && startGameError && (
@@ -421,8 +451,13 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore }) => {
                         <span className="text-2xl text-yellow-500 ml-8">HIGH SCORE: {existingHighScore}</span>
                     </div>
                     {gameOver && (
-                        <div className="absolute inset-0 flex items-center justify-center text-white text-2xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                            GAME OVER - SCORE: {score} - Press F5 to Restart
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-2xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                            <p>GAME OVER - SCORE: {score}</p>
+                            {endGameStatus === 'pending' && <p>SUBMITTING SCORE...</p>}
+                            {endGameStatus === 'success' && <p>SCORE SUBMITTED - Press F5 to Restart</p>}
+                            {endGameStatus === 'error' && (
+                                <p className="text-red-500">Error: {endGameError || 'Failed to submit score'}</p>
+                            )}
                         </div>
                     )}
                     <canvas ref={canvasRef} className="w-full h-full border-2 border-[#FFFF00]" />

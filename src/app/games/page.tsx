@@ -61,7 +61,10 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
               <span className="font-bold">{isGameOver ? 'WINNER' : 'LEADER'}</span>{' '}
               <Link
                 href="#"
-                onClick={(e) => { e.preventDefault(); navigator.clipboard.writeText(game.leader).then(() => setIsCopied(true)).then(() => setTimeout(() => setIsCopied(false), 2000)); }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigator.clipboard.writeText(game.leader).then(() => setIsCopied(true)).then(() => setTimeout(() => setIsCopied(false), 2000));
+                }}
                 className={`${isUserLeader ? 'text-success-green text-2xl' : 'text-accent-yellow'} hover:underline cursor-pointer font-bold`}
               >
                 {isUserLeader ? 'YOU!' : `${game.leader.slice(0, 5)}...${game.leader.slice(-3)}`}
@@ -94,9 +97,7 @@ export default function Games() {
     setIsLoading(true);
     setError(null);
     setGames([]);
-
     const endId = Math.max(1, startGameId - count + 1);
-
     try {
       for (let gameId = startGameId; gameId >= endId && gameId >= 1; gameId--) {
         try {
@@ -156,42 +157,44 @@ export default function Games() {
     <div className="flex flex-col min-h-screen w-96 max-w-full px-1 md:w-[1008px] mx-auto">
       <Navbar />
       <div className="h-[10px]" />
-      <section className="flex w-full h-full flex-col items-center justify-center gap-4 bg-primary-bg px-2 py-4 border-4 border-primary-border">
-        <div className="flex justify-center w-full mb-4 gap-2 animate-fade-in">
-          <input
-            type="number"
-            value={gameIdInput}
-            onChange={(e) => setGameIdInput(e.target.value)}
-            placeholder="enter game #"
-            className="input-field"
-            min="1"
-            disabled={isLoading}
-          />
-          <Button onClick={handleFetchGame} disabled={isLoading}>
-            FETCH GAME
-          </Button>
-          <Button onClick={handleShowRecentGames} disabled={isLoading}>
-            RECENT GAMES
-          </Button>
-          <Link href="/active-game" className="btn-primary">
+      <div className="flex flex-col flex-grow bg-primary-bg border-4 border-primary-border">
+        <section className="flex flex-col flex-grow w-full items-center gap-4 px-2 py-4">
+          <div className="flex justify-center w-full mb-4 gap-2 animate-fade-in">
+            <input
+              type="number"
+              value={gameIdInput}
+              onChange={(e) => setGameIdInput(e.target.value)}
+              placeholder="enter game #"
+              className="input-field"
+              min="1"
+              disabled={isLoading}
+            />
+            <Button onClick={handleFetchGame} disabled={isLoading}>
+              FETCH GAME
+            </Button>
+            <Button onClick={handleShowRecentGames} disabled={isLoading}>
+              RECENT GAMES
+            </Button>
+            <Link href="/active-game" className="btn-primary">
               LATEST GAME
-          </Link>
-        </div>
-        {error ? (
-          <p className="text-error-red text-lg animate-fade-in">{error}</p>
-        ) : games.length === 0 && isLoading ? (
-          <div className="flex items-center justify-center w-full h-64">
-            <div className="text-xl animate-pulse-slow">LOADING GAME...</div>
+            </Link>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 w-full fade-in">
-            {games.map(game => (
-              <GameCard key={game.gameId} game={game} userAddress={address} />
-            ))}
-            {isLoading && <div className="col-span-full text-sm mt-2 text-center">LOADING MORE GAMES...</div>}
-          </div>
-        )}
-      </section>
+          {error ? (
+            <p className="text-error-red text-lg animate-fade-in">{error}</p>
+          ) : games.length === 0 && isLoading ? (
+            <div className="flex items-center justify-center w-full h-full">
+              <div className="text-xl animate-pulse-slow">LOADING GAME...</div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 w-full animate-fade-in">
+              {games.map(game => (
+                <GameCard key={game.gameId} game={game} userAddress={address} />
+              ))}
+              {isLoading && <div className="col-span-full text-sm mt-2 text-center">LOADING MORE GAMES...</div>}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

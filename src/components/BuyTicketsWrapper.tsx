@@ -11,7 +11,7 @@ import {
   TransactionToastLabel,
 } from '@coinbase/onchainkit/transaction';
 import type { TransactionError, TransactionResponse } from '@coinbase/onchainkit/transaction';
-import { encodeFunctionData, Hex } from 'viem';
+import { encodeFunctionData, formatEther, Hex } from 'viem';
 import {
   BASE_SEPOLIA_CHAIN_ID,
   contractABI,
@@ -67,6 +67,9 @@ export default function BuyTicketsWrapper({ updateTickets }: BuyTicketsWrapperPr
         </TransactionToast>
         <TransactionToastAction />
       </Transaction>
+      <p className="text-center text-accent-yellow">
+        TOTAL COST: {formatEther(BigInt(GAME_PRICE_WEI * quantity))} ETH
+      </p>
     </div>
   );
 }

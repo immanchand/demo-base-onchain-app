@@ -5,6 +5,7 @@ import { BASE_SEPOLIA_CHAIN_ID, contractABI, contractAddress } from '../constant
 import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
+import { publicClient } from '../constants';
 
 interface StartGameWrapperProps {
   gameId: string;
@@ -12,7 +13,6 @@ interface StartGameWrapperProps {
   onStatusChange: (status: 'idle' | 'pending' | 'success' | 'error', errorMessage?: string) => void;
 }
 
-// Load private key from .env
 const gameMasterPrivateKey = process.env.NEXT_PUBLIC_GAME_MASTER_PRIVATE_KEY;
 const gameMasterClient = gameMasterPrivateKey
   ? createWalletClient({
@@ -60,6 +60,9 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
           value: BigInt(0),
           chainId: BASE_SEPOLIA_CHAIN_ID,
         });
+
+        // Wait for transaction confirmation
+        await publicClient.waitForTransactionReceipt({ hash });
 
         onStatusChange('success');
         console.log('Game started successfully, tx hash:', hash);

@@ -57,59 +57,36 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
 }) => {
   const [isCopied, setIsCopied] = useState(false);
   const { isGameOver, countdown, timeLeft } = useCountdown(game.endTime);
-
-  const handleCopyAddress = async () => {
-    try {
-      await navigator.clipboard.writeText(game.leader);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy address:', error);
-    }
-  };
-
-  const handleWithdrawSuccess = () => {
-    refreshGame();
-  };
-
   const isUserLeader = userAddress && game.leader.toLowerCase() === userAddress.toLowerCase();
   const isGMLeader = gameMasterAddress && game.leader.toLowerCase() === gameMasterAddress.toLowerCase();
   const isGameWithdrawn = game.potHistory > game.pot;
 
   return (
-    <div className="bg-black p-4 flex flex-col gap-2 border-2 border-[#FFFF00] transition-all duration-300 ease-in-out hover:scale-102 hover:brightness-110 hover:shadow-[0_0_8px_rgba(255,255,0,0.5)]">
+    <div className="card-container">
       {game.error ? (
-        <p className="text-red-500 text-center" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-          FAILED TO LOAD GAME DATA
-        </p>
+        <p className="text-error-red text-center">FAILED TO LOAD GAME DATA</p>
       ) : (
         <div className="grid grid-cols-3 gap-2">
           <div className="col-span-1 text-left flex flex-col justify-between">
-            <h3 className="text-lg font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-              GAME #{game.gameId}
-            </h3>
+            <h3 className="text-lg font-bold text-primary-text">GAME #{game.gameId}</h3>
             <div>
-              <p className="text-white font-bold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                END TIME
-              </p>
-              <p className="text-white text-xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+              <p className="font-bold text-primary-text">END TIME</p>
+              <p className="text-xl">
                 {isGameOver ? (
-                  <span className="text-red-500 font-semibold">GAME OVER</span>
+                  <span className="text-error-red font-semibold">GAME OVER</span>
                 ) : (
-                  <span className={timeLeft < 3600 ? 'text-red-500' : 'text-green-500'}>{countdown}</span>
+                  <span className={timeLeft < 3600 ? 'text-error-red' : 'text-success-green'}>{countdown}</span>
                 )}
               </p>
             </div>
           </div>
           <div className="col-span-1 text-center relative">
-            <p className="text-white font-bold text-xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-              HIGH SCORE {game.highScore.toString()}
-            </p>
+            <p className="text-xl font-bold text-primary-text">HIGH SCORE {game.highScore.toString()}</p>
             <div className="mt-4 flex justify-center items-center">
               {!isGameOver ? (
                 <button
                   onClick={refreshGame}
-                  className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 text-white hover:text-yellow-500 focus:outline-none ${isLoading ? 'animate-spin' : ''}`}
+                  className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 hover:text-accent-yellow focus:outline-none ${isLoading ? 'animate-spin' : ''}`}
                   disabled={isLoading}
                   aria-label={`Refresh game ${game.gameId}`}
                 >
@@ -118,49 +95,30 @@ const GameCard = React.memo(({ game, isLoading, refreshGame, userAddress }: {
                   </svg>
                 </button>
               ) : isGameOver && !isGameWithdrawn && isUserLeader ? (
-                <WinnerWithdrawWrapper 
-                  gameId={game.gameId}
-                  onSuccess={handleWithdrawSuccess}
-                  userAddress={userAddress}
-                />
+                <WinnerWithdrawWrapper gameId={game.gameId} userAddress={userAddress} />
               ) : isGameOver && isGameWithdrawn && isUserLeader ? (
-                <p className="font-bold text-yellow-500" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                    PRIZE WITHDRAWN!
-                </p>
+                <p className="font-bold text-accent-yellow">PRIZE WITHDRAWN!</p>
               ) : null}
             </div>
           </div>
-          <div className="col-span-1 text-right">
-            <p className="text-white relative group" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-              {isGameOver ? (
-                <span className="font-bold">WINNER</span>
-              ) : (
-                <span className="font-bold">LEADER</span>
-              )}{' '}
+          <div className="col-span-1 text-right relative group">
+            <p className="text-primary-text">
+              <span className="font-bold">{isGameOver ? 'WINNER' : 'LEADER'}</span>{' '}
               <a
                 href="#"
-                onClick={(e) => { e.preventDefault(); handleCopyAddress(); }}
-                className={`${isUserLeader ? 'text-green-500 text-2xl' : 'text-yellow-500'} hover:underline cursor-pointer font-bold`}
-                title="Click to copy address"
+                onClick={(e) => { e.preventDefault(); navigator.clipboard.writeText(game.leader).then(() => setIsCopied(true)).then(() => setTimeout(() => setIsCopied(false), 2000)); }}
+                className={`${isUserLeader ? 'text-success-green text-2xl' : 'text-accent-yellow'} hover:underline cursor-pointer font-bold`}
               >
                 {isUserLeader ? 'YOU!' : (isGMLeader ? 'NO ONE YET' : `${game.leader.slice(0, 5)}...${game.leader.slice(-3)}`)}
               </a>
-              <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-black text-yellow-500 text-xs py-1 px-2 border border-yellow-500">
+              <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-primary-bg text-accent-yellow text-xs py-1 px-2 border border-primary-border">
                 {game.leader}
               </span>
-              {isCopied && (
-                <span className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 text-yellow-500 text-xs animate-fade-in-out">
-                  COPIED!
-                </span>
-              )}
+              {isCopied && <span className="absolute left-1/2 -translate-x-1/2 top-full mt-1 text-accent-yellow text-xs animate-fade-in-out">COPIED!</span>}
             </p>
             <div className="mt-4">
-              <p className="font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                PRIZE
-              </p>
-              <p className="text-yellow-500 text-2xl text-bold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                {formatEther(game.pot > game.potHistory ? game.pot : game.potHistory)} ETH
-              </p>
+              <p className="font-bold text-primary-text">PRIZE</p>
+              <p className="text-accent-yellow text-2xl font-bold">{formatEther(game.pot > game.potHistory ? game.pot : game.potHistory)} ETH</p>
             </div>
           </div>
         </div>
@@ -185,19 +143,18 @@ export default function ActiveGame() {
   const { refreshTickets } = useTicketContext();
   const currentTime = BigInt(Math.floor(Date.now() / 1000));
   const isGameOver = gameState.game ? gameState.game.endTime <= currentTime : false;
-  const createGameRef = useRef<{ createGame: () => Promise<void> }>(null);
+  const createGameRef = useRef<{ createGame: () => Promise<void> } | null>(null);
   const [selectedGame, setSelectedGame] = useState<'space-invaders' | 'asteroids' | null>(null);
-  let gameId: number;
 
-  const handleGameSelect = (game: 'space-invaders' | 'asteroids') => {
-    setSelectedGame(game);
-  };
+  interface GameSelectionHandler {
+    (game: 'space-invaders' | 'asteroids'): void;
+  }
 
-  const updateTickets = useCallback(() => {
-    refreshTickets();
-  }, [refreshTickets]);
+  const handleGameSelect: GameSelectionHandler = (game) => setSelectedGame(game);
 
-  const fetchGame = useCallback(async (gameId: number): Promise<GameData> => {
+  const updateTickets = useCallback(() => refreshTickets(), [refreshTickets]);
+
+  const fetchGame = useCallback(async (gameId: number) => {
     try {
       const { endTime, highScore, leader, pot, potHistory } = await publicClient.readContract({
         address: contractAddress,
@@ -205,7 +162,7 @@ export default function ActiveGame() {
         functionName: 'getGame',
         args: [BigInt(gameId)],
       });
-      return { gameId, endTime, highScore, leader, pot, potHistory };
+      return { gameId, endTime, highScore, leader: leader as Address, pot, potHistory };
     } catch (error) {
       return { gameId, endTime: 0n, highScore: 0n, leader: '0x0' as Address, pot: 0n, potHistory: 0n, error: true };
     }
@@ -219,14 +176,10 @@ export default function ActiveGame() {
         abi: contractABI,
         functionName: 'getLatestGameId',
       });
-      gameId = Number(latestGameId);
+      const gameId = Number(latestGameId);
       if (gameId > 0) {
         const gameData = await fetchGame(gameId);
-        setGameState(prev => ({
-          ...prev,
-          game: gameData,
-          status: gameData.error ? 'error' : 'success',
-        }));
+        setGameState(prev => ({ ...prev, game: gameData, status: gameData.error ? 'error' : 'success' }));
       } else {
         setGameState(prev => ({ ...prev, game: null, status: 'success' }));
       }
@@ -237,7 +190,6 @@ export default function ActiveGame() {
 
   const handleCreateGame = useCallback(async () => {
     if (!createGameRef.current || gameState.createStatus === 'pending') return;
-
     setGameState(prev => ({ ...prev, createStatus: 'pending', errorMessage: '' }));
     try {
       await createGameRef.current.createGame();
@@ -250,54 +202,37 @@ export default function ActiveGame() {
     }
   }, [gameState.createStatus]);
 
-  const handleCreateGameStatusChange = useCallback(
-    async (status: 'idle' | 'pending' | 'success' | 'error', message?: string) => {
-      setGameState(prev => ({ ...prev, createStatus: status }));
-      if (status === 'error' && message) {
-        setGameState(prev => ({ ...prev, errorMessage: message }));
-      } else if (status === 'success' && message?.startsWith('Transaction hash:')) {
-        setGameState(prev => ({ ...prev, errorMessage: '' }));
-        const txHash = message.split('Transaction hash: ')[1];
-        console.log('Waiting for transaction confirmation:', txHash);
-        try {
-          const receipt = await publicClient.waitForTransactionReceipt({
-            hash: txHash as `0x${string}`,
-          });
-          console.log('Transaction confirmed, hash:', txHash);
-          const gameData = await fetchGame(gameId+1);
-          setGameState(prev => ({
+  const handleCreateGameStatusChange = useCallback(async (status: 'idle' | 'pending' | 'success' | 'error', message?: string) => {
+    setGameState(prev => ({ ...prev, createStatus: status }));
+    if (status === 'error' && message) {
+      setGameState(prev => ({ ...prev, errorMessage: message }));
+    } else if (status === 'success' && message?.startsWith('Transaction hash:')) {
+      setGameState(prev => ({ ...prev, errorMessage: '' }));
+      const txHash = message.split('Transaction hash: ')[1];
+      try {
+        await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
+        const gameData = await fetchGame(gameState.game ? gameState.game.gameId + 1 : 1);
+        setGameState(prev => ({ ...prev, game: gameData, status: gameData.error ? 'error' : 'success' }));
+      } catch (error) {
+        setGameState(prev => ({
           ...prev,
-          game: gameData,
-          status: gameData.error ? 'error' : 'success',
-
-
+          createStatus: 'error',
+          errorMessage: 'Failed to confirm transaction: ' + (error instanceof Error ? error.message : 'Unknown error'),
         }));
-        } catch (error) {
-          setGameState(prev => ({
-            ...prev,
-            createStatus: 'error',
-            errorMessage: 'Failed to confirm transaction: ' + (error instanceof Error ? error.message : 'Unknown error'),
-          }));
-        }
       }
-    },
-    [fetchGame]
-  );
+    }
+  }, [fetchGame, gameState.game]);
 
   useEffect(() => {
-    if (!gameState.game || isGameOver) {
-      fetchLatestGame();
-    }
+    if (!gameState.game || isGameOver) fetchLatestGame();
   }, [fetchLatestGame, gameState.game, isGameOver]);
 
   useEffect(() => {
-    if (gameState.status === 'success' && (!gameState.game || isGameOver) && gameState.createStatus === 'idle') {
-      handleCreateGame();
-    }
+    if (gameState.status === 'success' && (!gameState.game || isGameOver) && gameState.createStatus === 'idle') handleCreateGame();
   }, [gameState.status, gameState.game, isGameOver, gameState.createStatus, handleCreateGame]);
 
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
+    let timeout: NodeJS.Timeout | undefined;
     if (gameState.createStatus === 'pending') {
       timeout = setTimeout(() => {
         setGameState(prev => ({
@@ -312,14 +247,12 @@ export default function ActiveGame() {
 
   if (gameState.status === 'loading') {
     return (
-      <div className="flex flex-col min-h-screen w-96 max-w-full px-1 md:w-[1008px]">
+      <div className="flex flex-col min-h-screen w-96 max-w-full px-1 md:w-[1008px] mx-auto">
         <Navbar />
         <div className="h-[10px]" />
-        <section className="templateSection flex w-full flex-col items-center justify-center gap-4 bg-black px-2 py-4 md:grow border-4 border-[#FFFF00]">
+        <section className="flex w-full flex-col items-center justify-center gap-4 bg-primary-bg px-2 py-4 border-4 border-primary-border">
           <div className="flex items-center justify-center w-full h-64">
-            <div className="text-white text-xl animate-pulse" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-              LOADING ACTIVE GAME...
-            </div>
+            <div className="text-xl animate-pulse-slow">LOADING ACTIVE GAME...</div>
           </div>
         </section>
       </div>
@@ -327,31 +260,21 @@ export default function ActiveGame() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen w-96 max-w-full px-1 md:w-[1008px]">
+    <div className="flex flex-col min-h-screen w-96 max-w-full px-1 md:w-[1008px] mx-auto">
       <Navbar />
       <div className="h-[10px]" />
-      <section className="templateSection flex w-full flex-col items-center justify-center gap-4 bg-black px-2 py-4 md:grow border-4 border-[#FFFF00]">
+      <section className="flex w-full flex-col items-center justify-center gap-4 bg-primary-bg px-2 py-4 border-4 border-primary-border">
         {gameState.status === 'error' ? (
           <div className="flex flex-col items-center">
-            <p className="text-red-500 text-lg font-semibold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-              ERROR RETRIEVING GAME. TRY AGAIN LATER.
-            </p>
-            {gameState.errorMessage && (
-              <p className="text-red-500 text-sm mt-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                {gameState.errorMessage}
-              </p>
-            )}
+            <p className="text-error-red text-lg font-semibold">ERROR RETRIEVING GAME. TRY AGAIN LATER.</p>
+            {gameState.errorMessage && <p className="text-error-red text-sm mt-2">{gameState.errorMessage}</p>}
           </div>
         ) : !gameState.game || isGameOver ? (
           <div className="flex flex-col items-center w-full mb-4">
-            <p className="text-white text-lg font-semibold mb-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+            <p className="text-lg font-semibold mb-2">
               {gameState.createStatus === 'pending' ? 'CREATING A NEW GAME...' : 'INITIALIZING NEW GAME...'}
             </p>
-            {gameState.errorMessage && (
-              <p className="text-red-500 text-sm mt-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                Error: {gameState.errorMessage}
-              </p>
-            )}
+            {gameState.errorMessage && <p className="text-error-red text-sm mt-2">Error: {gameState.errorMessage}</p>}
             <CreateGameWrapper ref={createGameRef} onStatusChange={handleCreateGameStatusChange} />
           </div>
         ) : (
@@ -360,30 +283,22 @@ export default function ActiveGame() {
               <GameCard game={gameState.game} isLoading={false} refreshGame={fetchLatestGame} userAddress={address} />
             </div>
             {address ? (
-              <section className="templateSection flex w-full flex-col items-center justify-center gap-4 rounded-xl px-2 py-4 md:grow">
+              <section className="flex w-full flex-col items-center justify-center gap-4 px-2 py-4">
                 <div className="flex w-full justify-center gap-4 mb-4">
                   <button
                     onClick={() => handleGameSelect('space-invaders')}
-                    className={`px-4 py-2 text-lg font-mono transition-all ${
-                      selectedGame === 'space-invaders'
-                        ? 'bg-yellow-500 text-black px-4 py-2 border-2 border-[#FFFF00] hover:bg-black hover:text-yellow-500 transition-all'
-                        : 'bg-black text-yellow-500 hover:bg-yellow-500 hover:text-black'
-                    }`}
+                    className={`px-4 py-2 text-lg transition-all ${selectedGame === 'space-invaders' ? 'bg-accent-yellow-dark text-primary-bg border-2 border-primary-border hover:bg-primary-bg hover:text-accent-yellow' : 'bg-primary-bg text-accent-yellow hover:bg-accent-yellow-dark hover:text-primary-bg'}`}
                   >
                     SPACE INVADERS
                   </button>
                   <button
                     onClick={() => handleGameSelect('asteroids')}
-                    className={`px-4 py-2 text-lg font-mono transition-all ${
-                      selectedGame === 'asteroids'
-                        ? 'bg-yellow-500 text-black px-4 py-2 border-2 border-[#FFFF00] hover:bg-black hover:text-yellow-500 transition-all'
-                        : 'bg-black text-yellow-500 hover:bg-yellow-500 hover:text-black'
-                    }`}
+                    className={`px-4 py-2 text-lg transition-all ${selectedGame === 'asteroids' ? 'bg-accent-yellow-dark text-primary-bg border-2 border-primary-border hover:bg-primary-bg hover:text-accent-yellow' : 'bg-primary-bg text-accent-yellow hover:bg-accent-yellow-dark hover:text-primary-bg'}`}
                   >
                     ASTEROIDS
                   </button>
                 </div>
-                {!selectedGame && <p className="font-mono text-white">select a game to play!</p>}
+                {!selectedGame && <p className="text-primary-text">select a game to play!</p>}
                 {selectedGame === 'space-invaders' && (
                   <div className="w-full">
                     <SpaceInvaders gameId={Number(gameState.game.gameId)} existingHighScore={Number(gameState.game.highScore)} />
@@ -391,20 +306,12 @@ export default function ActiveGame() {
                 )}
                 {selectedGame === 'asteroids' && (
                   <div className="w-full">
-                    <Asteroids
-                      gameId={Number(gameState.game.gameId)}
-                      existingHighScore={Number(gameState.game.highScore)}
-                      updateTickets={updateTickets}
-                    />
+                    <Asteroids gameId={Number(gameState.game.gameId)} existingHighScore={Number(gameState.game.highScore)} updateTickets={updateTickets} />
                   </div>
                 )}
               </section>
             ) : (
-              <WalletWrapper
-                className="w-[450px] max-w-full button bg-yellow-500 text-white hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
-                text="LOG IN TO PLAY"
-                withWalletAggregator={true}
-              />
+              <WalletWrapper className="btn-login" text="LOG IN TO PLAY" withWalletAggregator={true} />
             )}
           </>
         )}

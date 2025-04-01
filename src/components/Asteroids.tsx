@@ -8,7 +8,6 @@ import { useAccount } from 'wagmi';
 interface AsteroidsProps {
     gameId: number;
     existingHighScore: number;
-    updateTickets: () => void;
 }
 
 interface Entity {
@@ -31,7 +30,7 @@ interface Bullet extends Entity {
     dy: number; // Y velocity
 }
 
-const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, updateTickets }) => {
+const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [gameStarted, setGameStarted] = useState<boolean>(false);
@@ -363,7 +362,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         }
         else if (ticketCount < 1) {
           setStartGameStatus('error');
-          setStartGameError('You need at least one ticket to play!');
+          setStartGameError('You need one ticket to play!');
         }
       }, []);
 
@@ -372,14 +371,14 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         if (status === 'pending') {
           setStartGameError('');
         } else if (status === 'success') { 
-            updateTickets();
+            refreshTickets();
             setGameStarted(true);
             setGameOver(false);
             setScore(0);
         } else if (status === 'error') {
           setStartGameError(errorMessage || 'Failed to start game');
           setGameStarted(false);
-        }
+        }   
       }, []);
 
     return (
@@ -410,6 +409,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                     >
                     {startGameStatus === 'pending' ? 'starting...' : 'START GAME'}
                     </button>
+                    <p className="mt-2">COST: 1 TICKET</p>
                     {startGameStatus === 'error' && startGameError && (
                         <p className="text-red-500 mt-2">{startGameError}</p>
                     )}

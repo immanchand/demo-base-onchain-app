@@ -6,6 +6,7 @@
   --primary-bg: #000; /* Black background */
   --primary-border: #FFFF00; /* Yellow border */
   --primary-text: #fff; /* White text */
+  --secondary-text: #000; /* black text */
   --accent-yellow: #FFFF00; /* Bright yellow */
   --accent-yellow-dark: rgb(255, 179, 0); /* Darker yellow */
   --success-green: #00FF00; /* Green for active states */
@@ -27,13 +28,22 @@ body {
 
 @layer components {
   .btn-primary {
-    @apply bg-[var(--accent-yellow-dark)] text-[var(--primary-text)] border-2 border-[var(--primary-border)] font-bold px-4 py-2 hover:bg-[var(--primary-bg)] hover:text-[var(--accent-yellow)] transition-all duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-[var(--accent-yellow-dark)] disabled:text-[var(--primary-text)];
+    @apply bg-[var(--accent-yellow-dark)] text-[var(--secondary-text)] border-2 border-[var(--primary-border)] font-bold px-4 py-2 hover:bg-[var(--primary-bg)] hover:text-[var(--accent-yellow)] transition-all duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-[var(--accent-yellow-dark)] disabled:text-[var(--primary-text)];
+  }
+  .btn-menu-selected {
+    @apply bg-[var(--accent-yellow-dark)] text-[var(--secondary-text)] border-2 border-[var(--primary-border)] font-bold px-4 py-2 hover:bg-[var(--primary-bg)] hover:text-[var(--accent-yellow)] transition-all duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-[var(--accent-yellow-dark)] disabled:text-[var(--primary-text)];
+  }
+  .btn-menu-idle {
+    @apply bg-[var(--primary-bg)] hover:text-[var(--accent-yellow)] border-2 border-[var(--primary-border)] font-bold px-4 py-2 hover:bg-[var(--primary-bg)] hover:text-[var(--accent-yellow)] transition-all duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-[var(--accent-yellow-dark)] disabled:text-[var(--primary-text)];
   }
   .btn-login {
-    @apply bg-[var(--accent-yellow-dark)] text-[var(--primary-text)] border-2 border-[var(--primary-border)] font-bold px-4 py-2 hover:bg-[var(--primary-bg)] hover:text-[var(--accent-yellow)] transition-all duration-300 ease-in-out w-[450px] max-w-full;
+    @apply bg-[var(--accent-yellow-dark)] text-[var(--secondary-text)] border-2 border-[var(--primary-border)] font-bold px-4 py-2 hover:bg-[var(--primary-bg)] hover:text-[var(--accent-yellow)] transition-all duration-300 ease-in-out w-[450px] max-w-full;
   }
   .card-container {
     @apply bg-[var(--primary-bg)] border-2 border-[var(--primary-border)] p-4 transition-all duration-300 ease-in-out hover:scale-[1.02] hover:brightness-110 hover:shadow-[0_0_8px_rgba(255,255,0,0.5)];
+  }
+  .game-container {
+    @apply bg-[var(--primary-bg)] border-2 border-[var(--primary-border)];
   }
   .input-field {
     @apply bg-gray-900 text-[var(--primary-text)] border-2 border-[var(--primary-border)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--accent-yellow)] transition-all duration-300 ease-in-out placeholder-[var(--accent-yellow)];

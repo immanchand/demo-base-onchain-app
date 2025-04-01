@@ -279,7 +279,7 @@ export default function ActiveGame() {
           </div>
         ) : (
           <>
-            <div className="w-full max-w-md">
+            <div className="gap-4 w-full animate-fade-in">
               <GameCard game={gameState.game} isLoading={false} refreshGame={fetchLatestGame} userAddress={address} />
             </div>
             {address ? (

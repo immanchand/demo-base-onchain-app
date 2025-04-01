@@ -23,15 +23,13 @@ export default function Tickets() {
       <Navbar />
       <div className="h-[10px]" />
       <div className="flex flex-col flex-grow bg-primary-bg border-4 border-primary-border pt-[10px] items-center justify-center">
-        <section className="flex w-full h-full flex-col items-center justify-center gap-4 px-2 py-4 animate-fade-in">
+        <section className="flex w-full flex-col flex-grow items-center justify-center gap-4 px-2 py-4 animate-fade-in">
           <div className="card-container flex h-[200px] w-[450px] max-w-full items-center justify-center">
-            <div className="bg-primary-bg px-4 py-5 border border-primary-border">
-              <p className="font-bold text-xl">
+              <p className="font-bold text-xl text-center">
                 <span className="text-2xl">YOU HAVE </span>
                 <span className="text-4xl text-accent-yellow">{address ? ticketCount : 0}</span>
                 <span className="text-2xl"> TICKETS</span>
               </p>
-            </div>
           </div>
           {address ? (
             <BuyTicketsWrapper updateTickets={handlePurchaseSuccess} />

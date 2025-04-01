@@ -4,6 +4,7 @@ import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import { useAccount } from 'wagmi';
+import Button from './Button';
 
 interface AsteroidsProps {
     gameId: number;
@@ -44,9 +45,10 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
     const startGameRef = useRef<{ startGame: () => Promise<void> }>(null);
     const endGameRef = useRef<{ endGame: () => Promise<void> }>(null);
     const [startGameStatus, setStartGameStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
-    const [endGameStatus, setEndGameStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+    const [endGameStatus, setEndGameStatus] = useState<'idle' | 'pending' | 'leader' | 'loser' | 'error'>('idle');
     const [startGameError, setStartGameError] = useState<string>('');
     const [endGameError, setEndGameError] = useState<string>('');
+    const [endGameMessage, setEndGameMessage] = useState<string>('');
     const { address } = useAccount();
 
     useEffect(() => {
@@ -267,7 +269,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                         if (distance < asteroid.width / 2) {
                             bullet.active = false;
                             asteroid.active = false;
-                            setScore((prev) => prev + 1000);
+                            setScore((prev) => prev + 5000);
                             asteroidSpeedMultiplier += 0.1;
                             asteroidPool.forEach((a) => {
                                 if (a.active) {
@@ -372,6 +374,8 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
 
     const handleStartGameStatusChange = useCallback((status: 'idle' | 'pending' | 'success' | 'error', errorMessage?: string) => {
         setStartGameStatus(status);
+        setEndGameStatus('idle');
+        setEndGameError('');
         if (status === 'pending') {
             setStartGameError('');
         } else if (status === 'success') {
@@ -385,17 +389,20 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         }
     }, [updateTickets]);
 
-    const handleEndGameStatusChange = useCallback((status: 'idle' | 'pending' | 'success' | 'error', errorMessage?: string) => {
+    const handleEndGameStatusChange = useCallback((status: 'idle' | 'pending' | 'leader' | 'loser' | 'error', errorMessage?: string, highScore?: string) => {
         setEndGameStatus(status);
         if (status === 'pending') {
-            setEndGameError('');
-        } else if (status === 'success') {
-            console.log('Game ended successfully with score:', score);
-            // Optionally reset game state or trigger additional actions
+          setEndGameError('');
+        } else if (status === 'leader') {
+            setEndGameMessage('YOU SET A NEW HIGH SCORE OF '+score+'! YOU ARE NOW THE LEADER!');
+            console.log('New leader score:', score);
+        } else if (status === 'loser') {
+            setEndGameMessage('SORRY, YOU DID NOT BEAT THE HIGH SCORE OF '+highScore+'!');
+          console.log('Game ended, not the leader. Player Score:', score, 'High Score:', highScore);
         } else if (status === 'error') {
-            setEndGameError(errorMessage || 'Failed to end game');
+          setEndGameError(errorMessage || 'Failed to end game');
         }
-    }, [score]);
+      }, [score]);
 
     // Trigger endGame when gameOver becomes true
     useEffect(() => {
@@ -405,7 +412,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
     }, [gameOver, gameStarted, endGameStatus, endGame]);
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-black p-4">
+        <div className="flex flex-col items-center min-h-screen bg-black p-4">
             <StartGameWrapper
                 ref={startGameRef}
                 gameId={gameId.toString()}
@@ -417,6 +424,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                 gameId={gameId.toString()}
                 playerAddress={address || '0x0'}
                 score={score.toString()}
+                highScore={existingHighScore.toString()}
                 onStatusChange={handleEndGameStatusChange}
             />
             {!gameStarted ? (
@@ -429,16 +437,11 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                     <p className="mb-2">CONTROLS:</p>
                     <p className="mb-2">Mouse Move: Steer Ship</p>
                     <p className="mb-4">Mouse Click: Shoot</p>
-                    <button
-                        onClick={startGame}
-                        disabled={startGameStatus === 'pending'}
-                        className={`bg-yellow-500 text-black px-4 py-2 border-2 border-[#FFFF00] transition-all ${
-                            startGameStatus === 'pending' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-black hover:text-yellow-500'
-                        }`}
-                        style={{ fontFamily: "'Courier New', Courier, monospace" }}
-                    >
+                    
+                    <Button onClick={startGame} disabled={startGameStatus === 'pending'}  >
                         {startGameStatus === 'pending' ? 'starting...' : 'START GAME'}
-                    </button>
+                    </Button>
+                    
                     <p className="mt-2">COST: 1 TICKET</p>
                     {startGameStatus === 'error' && startGameError && (
                         <p className="text-red-500 mt-2">{startGameError}</p>
@@ -446,17 +449,24 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                 </div>
             ) : (
                 <div ref={containerRef} className="w-full max-w-4xl h-[80vh] relative">
-                    <div className="text-white mb-4 text-center" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                    <div className="text-white mb-1 text-center" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                         <span className="text-2xl text-yellow-500">SCORE: {score}</span>
                         <span className="text-2xl text-yellow-500 ml-8">HIGH SCORE: {existingHighScore}</span>
                     </div>
                     {gameOver && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-2xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                            <p>GAME OVER - SCORE: {score}</p>
+                            <p>GAME OVER - YOUR SCORE: {score}</p>
                             {endGameStatus === 'pending' && <p>SUBMITTING SCORE...</p>}
-                            {endGameStatus === 'success' && <p>SCORE SUBMITTED - Press F5 to Restart</p>}
+                            {endGameStatus === 'leader' && <p>{endGameMessage}</p>}
+                            {endGameStatus === 'loser' && <p>{endGameMessage}</p>}
                             {endGameStatus === 'error' && (
-                                <p className="text-red-500">Error: {endGameError || 'Failed to submit score'}</p>
+                            <p className="text-red-500">Error: {endGameError || 'Failed to submit score'}</p>
+                            )}
+                            <Button className='mt-6' onClick={startGame} disabled={startGameStatus === 'pending' || endGameStatus === 'pending'}  >
+                                {startGameStatus === 'pending' ? 'starting...' : 'PLAY AGAIN'}
+                            </Button>
+                            {startGameStatus === 'error' && startGameError && (
+                                <p className="text-red-500 mt-2">{startGameError}</p>
                             )}
                         </div>
                     )}

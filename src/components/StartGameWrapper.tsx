@@ -1,11 +1,11 @@
 'use client';
 import { useCallback, useImperativeHandle, forwardRef } from 'react';
 import { Address, encodeFunctionData, Hex } from 'viem';
-import { BASE_SEPOLIA_CHAIN_ID, contractABI, contractAddress } from '../constants';
+import { BASE_SEPOLIA_CHAIN_ID, contractABI, contractAddress, publicClient } from 'src/constants';
 import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
-import { publicClient } from '../constants';
+
 
 interface StartGameWrapperProps {
   gameId: string;
@@ -57,7 +57,6 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
         const hash = await gameMasterClient.sendTransaction({
           to: contractAddress as Hex,
           data: callData,
-          value: BigInt(0),
           chainId: BASE_SEPOLIA_CHAIN_ID,
         });
 

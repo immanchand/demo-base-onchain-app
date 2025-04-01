@@ -44,7 +44,7 @@ export default function BuyTicketsWrapper({ updateTickets }: BuyTicketsWrapperPr
   return (
     <div className="flex flex-col gap-4 w-[450px] max-w-full">
       <QuantitySelector
-        className="quantity-selector mt-0 mx-auto"
+        className="quantity-selector-custom mt-0 w-full bg-[var(--primary-bg)] text-[var(--accent-yellow)] border-2 border-[var(--primary-border)]"
         onChange={(value) => setQuantity(Number(value))}
         minQuantity={1}
         maxQuantity={100}

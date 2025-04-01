@@ -18,23 +18,8 @@ interface GameData {
   error?: boolean;
 }
 
-const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddress?: Address }) => {
+const GameCard = React.memo(({ game, userAddress }) => {
   const [isCopied, setIsCopied] = useState(false);
-
-  const handleCopyAddress = async () => {
-    try {
-      await navigator.clipboard.writeText(game.leader);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy address:', error);
-    }
-  };
-
-  const handleWithdrawSuccess = () => {
-    console.log('Prize claimed successfully');
-  };
-
   const isUserLeader = userAddress && game.leader.toLowerCase() === userAddress.toLowerCase();
   const currentTime = BigInt(Math.floor(Date.now() / 1000));
   const isGameOver = game.endTime <= currentTime;
@@ -42,91 +27,52 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
   const isGameWithdrawn = game.potHistory > game.pot;
 
   return (
-    <div className="bg-black p-4 flex flex-col gap-2 border-2 border-[#FFFF00] transition-all duration-300 ease-in-out hover:scale-102 hover:brightness-110 hover:shadow-[0_0_8px_rgba(255,255,0,0.5)]">
+    <div className="card-container">
       {game.error || isGameNotExist ? (
-        <p className="text-red-500 text-center" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-          FAILED TO LOAD GAME DATA OR GAME DOES NOT EXIST
-        </p>
+        <p className="text-error-red text-center">FAILED TO LOAD GAME DATA OR GAME DOES NOT EXIST</p>
       ) : (
         <div className="grid grid-cols-3 gap-2">
-          {/* Game # (left) */}
           <div className="col-span-1 text-left">
-            <h3 className="text-lg font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-              GAME #{game.gameId}
-            </h3>
+            <h3 className="text-lg font-bold text-primary-text">GAME #{game.gameId}</h3>
             <div className="mt-4">
-              <p className="text-white font-bold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                END TIME
-              </p>
-              <p className="text-white text-xl " style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                <span className={isGameOver ? 'text-red-500' : 'text-green-500'}>
-                  {new Date(Number(game.endTime) * 1000).toLocaleString()}
-                </span>
+              <p className="font-bold text-primary-text">END TIME</p>
+              <p className={`text-xl ${isGameOver ? 'text-error-red' : 'text-success-green'}`}>
+                {new Date(Number(game.endTime) * 1000).toLocaleString()}
               </p>
             </div>
           </div>
-
-          {/* High Score and Buttons (center) */}
           <div className="col-span-1 text-center">
-            <p className="text-white font-bold text-xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-              HIGH SCORE{' '}{game.highScore.toString()}
-            </p>
+            <p className="text-xl font-bold text-primary-text">HIGH SCORE {game.highScore.toString()}</p>
             <div className="mt-4 flex justify-center">
               {!isGameOver ? (
-                <Link href={'/active-game'}>
-                  <p className="w-full max-w-xs font-bold text-center text-white bg-yellow-500 hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 transition-all duration-300 ease-in-out py-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                    PLAY TO WIN
-                  </p>
+                <Link href="/active-game" className="btn-primary w-full max-w-xs text-center">
+                  PLAY TO WIN
                 </Link>
               ) : isGameOver && !isGameWithdrawn && isUserLeader ? (
-                <WinnerWithdrawWrapper
-                  gameId={game.gameId}
-                  onSuccess={handleWithdrawSuccess}
-                  userAddress={userAddress}
-                />
+                <WinnerWithdrawWrapper gameId={game.gameId} userAddress={userAddress} />
               ) : isGameOver && isGameWithdrawn && isUserLeader ? (
-                <p className="font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                    PRIZE WITHDRAWN!
-                </p>
+                <p className="font-bold text-accent-yellow">PRIZE WITHDRAWN!</p>
               ) : null}
             </div>
           </div>
-
-          {/* Leader and WIN/WON (right) */}
-          <div className="col-span-1 text-right">
-            <p className="text-white relative group" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-              {isGameOver ? (
-                <span className="font-bold">WINNER</span>
-              ) : (
-                <span className="font-bold">LEADER</span>
-              )}{' '}
+          <div className="col-span-1 text-right relative group">
+            <p className="text-primary-text">
+              <span className="font-bold">{isGameOver ? 'WINNER' : 'LEADER'}</span>{' '}
               <Link
                 href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleCopyAddress();
-                }}
-                className={`${isUserLeader ? 'text-green-500 text-2xl' : 'text-yellow-500'} hover:underline cursor-pointer font-bold`}
-                title="Click to copy address"
+                onClick={(e) => { e.preventDefault(); navigator.clipboard.writeText(game.leader).then(() => setIsCopied(true)).then(() => setTimeout(() => setIsCopied(false), 2000)); }}
+                className={`${isUserLeader ? 'text-success-green text-2xl' : 'text-accent-yellow'} hover:underline cursor-pointer font-bold`}
               >
                 {isUserLeader ? 'YOU!' : `${game.leader.slice(0, 5)}...${game.leader.slice(-3)}`}
               </Link>
-              <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-black text-yellow-500 text-xs py-1 px-2 border border-yellow-500" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+              <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-primary-bg text-accent-yellow text-xs py-1 px-2 border border-primary-border">
                 {game.leader}
               </span>
-              {isCopied && (
-                <span className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 text-yellow-500 text-xs animate-fade-in-out" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                  COPIED!
-                </span>
-              )}
+              {isCopied && <span className="absolute left-1/2 -translate-x-1/2 top-full mt-1 text-accent-yellow text-xs animate-fade-in-out">COPIED!</span>}
             </p>
             <div className="mt-4">
-            <p className="font-bold text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-              PRIZE
-            </p>
-            <p className="text-yellow-500 text-2xl text-bold" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-              {formatEther(game.pot > game.potHistory ? game.pot : game.potHistory)} ETH
-            </p>
+              <p className="font-bold text-primary-text">PRIZE</p>
+              <p className="text-accent-yellow text-2xl font-bold">{formatEther(game.pot > game.potHistory ? game.pot : game.potHistory)} ETH</p>
             </div>
           </div>
         </div>

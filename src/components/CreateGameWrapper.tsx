@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useImperativeHandle, forwardRef } from 'react';
 import { encodeFunctionData, Hex } from 'viem';
-import { BASE_SEPOLIA_CHAIN_ID, contractABI, contractAddress } from '../constants';
+import { BASE_SEPOLIA_CHAIN_ID, contractABI, contractAddress, publicClient } from 'src/constants';
 import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
@@ -60,7 +60,9 @@ const CreateGameWrapper = forwardRef<{ createGame: () => Promise<void> }, Create
           chainId: BASE_SEPOLIA_CHAIN_ID,
         });
 
-        console.log('Transaction sent successfully, hash:', hash);
+        await publicClient.waitForTransactionReceipt({ hash });
+
+        console.log('Game created successfully, hash:', hash);
         onStatusChange('success', `Transaction hash: ${hash}`);
       } catch (error) {
         const errorMsg = parseErrorMessage(error);

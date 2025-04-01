@@ -18,7 +18,7 @@ interface GameData {
   error?: boolean;
 }
 
-const GameCard = React.memo(({ game, userAddress }) => {
+const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddress?: Address }) => {
   const [isCopied, setIsCopied] = useState(false);
   const isUserLeader = userAddress && game.leader.toLowerCase() === userAddress.toLowerCase();
   const currentTime = BigInt(Math.floor(Date.now() / 1000));

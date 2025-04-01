@@ -1,5 +1,4 @@
 'use client';
-
 import {
   Transaction,
   TransactionButton,
@@ -7,29 +6,17 @@ import {
   TransactionStatusAction,
   TransactionStatusLabel,
   TransactionToast,
-  TransactionToastAction,
   TransactionToastIcon,
   TransactionToastLabel,
 } from '@coinbase/onchainkit/transaction';
-import type {
-  TransactionError,
-  TransactionResponse,
-} from '@coinbase/onchainkit/transaction';
-import type { Address, Hex } from 'viem';
-import { encodeFunctionData } from 'viem'
-import {
-  BASE_SEPOLIA_CHAIN_ID,
-  contractABI,
-  contractAddress,
-  GAME_PRICE_WEI,
-} from '../constants';
+import { encodeFunctionData, Hex } from 'viem';
+import { BASE_SEPOLIA_CHAIN_ID, contractABI, contractAddress, GAME_PRICE_WEI } from '../constants';
 import { QuantitySelector } from '../../node_modules/@coinbase/onchainkit/esm/internal/components/QuantitySelector';
-import { NFTQuantitySelector } from '@coinbase/onchainkit/nft/mint';
 import { useState } from 'react';
 
-export default function TransactionWrapper({ address }: { address: Address }) {
+export default function TransactionWrapper() {
   const [quantity, setQuantity] = useState(1);
-  
+
   const data = encodeFunctionData({
     abi: contractABI,
     functionName: 'mintTickets',
@@ -37,46 +24,31 @@ export default function TransactionWrapper({ address }: { address: Address }) {
 
   const calls = [{
     to: contractAddress as Hex,
-    data: data as Hex,
+    data,
     value: BigInt(GAME_PRICE_WEI * quantity),
   }];
 
-  const handleError = (err: TransactionError) => {
-    console.error('Transaction error:', err);
-  };
-
-  const handleSuccess = (response: TransactionResponse) => {
-    console.log('Transaction successful', response);
-  };
-
   return (
-    
-    <div className="flex w-[450px]" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-
-      <div >
+    <div className="flex flex-col gap-4 w-[450px] max-w-full">
       <QuantitySelector
-        className="mt-0 mr-auto ml-auto w-[450px] max-w-full text-[white]"
-        onChange={(value: string) => setQuantity(Number(value))}
+        className="quantity-selector mt-0 mx-auto"
+        onChange={(value) => setQuantity(Number(value))}
         minQuantity={1}
         maxQuantity={100}
-        placeholder=""
+        placeholder={''}
       />
-      </div>
       <Transaction
         calls={calls}
-        className="w-[450px]"
         chainId={BASE_SEPOLIA_CHAIN_ID}
-        onError={handleError}
-        onSuccess={handleSuccess}
+        onError={(err) => console.error('Transaction error:', err)}
+        onSuccess={(response) => console.log('Transaction successful', response)}
       >
-        
-        <TransactionButton className="mt-0 mr-auto ml-auto w-[450px] max-w-full text-[white]" text='Buy Tickets'/>
-        
+        <TransactionButton className="btn-login" text="Buy Tickets" />
         <TransactionStatus>
           <TransactionStatusLabel />
           <TransactionStatusAction />
         </TransactionStatus>
-        <TransactionToast >
+        <TransactionToast>
           <TransactionToastIcon />
           <TransactionToastLabel />
         </TransactionToast>
@@ -84,4 +56,3 @@ export default function TransactionWrapper({ address }: { address: Address }) {
     </div>
   );
 }
-

@@ -1,19 +1,23 @@
-import type { Config } from 'tailwindcss';
-
-const config: Config = {
-  content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './src/**/*.{js,ts,jsx,tsx}',
+  ],
   theme: {
-    container: {
-      center: true,
-      screens: {
-        sm: '640px',
-        md: '768px',
-        lg: '1024px',
-        xl: '1280px',
+    extend: {
+      fontFamily: {
+        mono: ['Courier New', 'Courier', 'monospace'],
+      },
+      colors: {
+        'primary-bg': 'var(--primary-bg)',
+        'primary-border': 'var(--primary-border)',
+        'primary-text': 'var(--primary-text)',
+        'accent-yellow': 'var(--accent-yellow)',
+        'accent-yellow-dark': 'var(--accent-yellow-dark)',
+        'success-green': 'var(--success-green)',
+        'error-red': 'var(--error-red)',
       },
     },
   },
   plugins: [],
 };
-
-export default config;

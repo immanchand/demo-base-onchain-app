@@ -7,6 +7,7 @@ import { publicClient, contractABI, contractAddress, GAME_COUNT } from 'src/cons
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import WinnerWithdrawWrapper from 'src/components/WinnerWithdrawWrapper';
+import Button from 'src/components/Button';
 
 interface GameData {
   gameId: number;
@@ -152,104 +153,42 @@ export default function Games() {
   }, [fetchGames, getLatestGameId]);
 
   return (
-    <div className="flex flex-col min-h-screen w-96 max-w-full px-1 md:w-[1008px]">
+    <div className="flex flex-col min-h-screen w-96 max-w-full px-1 md:w-[1008px] mx-auto">
       <Navbar />
       <div className="h-[10px]" />
-      <section className="templateSection flex w-full flex-col items-center justify-center gap-4 bg-black px-2 py-4 md:grow border-4 border-[#FFFF00]">
-        <style>
-          {`
-            .input-field {
-              transition: all 0.3s ease;
-              background: rgba(255, 255, 255, 0.1);
-              border: 2px solid #FFFF00;
-            }
-            .input-field:focus {
-              box-shadow: 0 0 8px rgba(255, 255, 0, 0.5);
-            }
-            .input-field::placeholder {
-              color: #FFFF00;
-            }
-            .button {
-              transition: all 0.3s ease;
-            }
-            .button:hover {
-              transform: scale(1.05);
-              box-shadow: 0 0 8px rgba(255, 255, 0, 0.5);
-            }
-            .button:disabled {
-              opacity: 0.6;
-              cursor: not-allowed;
-            }
-            .pulse {
-              animation: pulse 1.5s infinite ease-in-out;
-            }
-            @keyframes pulse {
-              0% { opacity: 0.6; }
-              50% { opacity: 1; }
-              100% { opacity: 0.6; }
-            }
-            .fade-in {
-              animation: fadeIn 0.5s ease-in forwards;
-            }
-            @keyframes fadeIn {
-              from { opacity: 0; }
-              to { opacity: 1; }
-            }
-          `}
-        </style>
-        <div className="flex justify-center w-full mb-4 gap-2 fade-in">
+      <section className="flex w-full h-full flex-col items-center justify-center gap-4 bg-primary-bg px-2 py-4 border-4 border-primary-border">
+        <div className="flex justify-center w-full mb-4 gap-2 animate-fade-in">
           <input
             type="number"
             value={gameIdInput}
             onChange={(e) => setGameIdInput(e.target.value)}
             placeholder="enter game #"
-            className="input-field px-3 py-2 text-white placeholder-[#FFFF00] focus:outline-none"
-            style={{ fontFamily: "'Courier New', Courier, monospace" }}
+            className="input-field"
             min="1"
             disabled={isLoading}
           />
-          <button
-            onClick={handleFetchGame}
-            className="button bg-yellow-500 font-bold text-white px-4 py-2 hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
-            disabled={isLoading}
-            style={{ fontFamily: "'Courier New', Courier, monospace" }}
-          >
+          <Button onClick={handleFetchGame} disabled={isLoading}>
             FETCH GAME
-          </button>
-          <button
-            onClick={handleShowRecentGames}
-            className="button bg-yellow-500 font-bold text-white px-4 py-2 hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white"
-            disabled={isLoading}
-            style={{ fontFamily: "'Courier New', Courier, monospace" }}
-          >
+          </Button>
+          <Button onClick={handleShowRecentGames} disabled={isLoading}>
             RECENT GAMES
-          </button>
-          <Link href={'/active-game'}>
-            <p className="bg-yellow-500 font-bold text-white px-4 py-2 hover:bg-black hover:text-yellow-500 border-2 border-yellow-500 disabled:bg-yellow-500 disabled:text-white">
+          </Button>
+          <Link href="/active-game" className="btn-primary">
               LATEST GAME
-            </p>
           </Link>
         </div>
         {error ? (
-          <p className="text-red-500 text-lg fade-in" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-            {error}
-          </p>
+          <p className="text-error-red text-lg animate-fade-in">{error}</p>
         ) : games.length === 0 && isLoading ? (
           <div className="flex items-center justify-center w-full h-64">
-            <div className="text-white text-xl pulse" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-              LOADING GAME...
-            </div>
+            <div className="text-xl animate-pulse-slow">LOADING GAME...</div>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 w-full fade-in">
             {games.map(game => (
               <GameCard key={game.gameId} game={game} userAddress={address} />
             ))}
-            {isLoading && (
-              <div className="col-span-full text-white text-sm mt-2 text-center" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                LOADING MORE GAMES...
-              </div>
-            )}
+            {isLoading && <div className="col-span-full text-sm mt-2 text-center">LOADING MORE GAMES...</div>}
           </div>
         )}
       </section>

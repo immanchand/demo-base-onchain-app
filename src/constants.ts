@@ -423,7 +423,3 @@ export const contractABI = [
     "anonymous": false
   }
 ] as const;
-
-export const SHIP_SIZE = 20;
-export const BULLET_SIZE = 4;
-export const ASTEROID_SIZE = 40;

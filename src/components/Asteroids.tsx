@@ -56,7 +56,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
     const [endGameMessage, setEndGameMessage] = useState<string>('');
     const { address } = useAccount();
 
-    // Preload images and store references
+    // Preload images and store references (unchanged)
     useEffect(() => {
         const asteroidImage = new Image();
         const bitcoinImage = new Image();
@@ -77,7 +77,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         baseImage.src = '/images/base.png';
 
         let loadedCount = 0;
-        const totalImages = 8; // 5 enemies + 3 ships
+        const totalImages = 8;
 
         const onImageLoad = () => {
             loadedCount += 1;
@@ -98,6 +98,10 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
             }
         };
 
+        const onImageError = (e: Event) => {
+            console.error('Image failed to load:', (e.target as HTMLImageElement).src);
+        };
+
         asteroidImage.onload = onImageLoad;
         bitcoinImage.onload = onImageLoad;
         xrpImage.onload = onImageLoad;
@@ -106,8 +110,18 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         shipImage.onload = onImageLoad;
         ethImage.onload = onImageLoad;
         baseImage.onload = onImageLoad;
+
+        asteroidImage.onerror = onImageError;
+        bitcoinImage.onerror = onImageError;
+        xrpImage.onerror = onImageError;
+        solanaImage.onerror = onImageError;
+        genslerImage.onerror = onImageError;
+        shipImage.onerror = onImageError;
+        ethImage.onerror = onImageError;
+        baseImage.onerror = onImageError;
     }, []);
 
+    // Game logic (unchanged)
     useEffect(() => {
         const canvas = canvasRef.current;
         const container = containerRef.current;
@@ -236,7 +250,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                 ctx.save();
                 ctx.translate(ship.x, ship.y);
                 ctx.rotate(ship.angle);
-                const image = shipImages[shipType] || shipImages.ship; // Fallback to default ship
+                const image = shipImages[shipType] || shipImages.ship;
                 ctx.drawImage(image, -ship.width / 2, -ship.height / 2, ship.width, ship.height);
                 ctx.restore();
             };
@@ -256,7 +270,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                         ctx.save();
                         ctx.translate(asteroid.x, asteroid.y);
                         ctx.rotate(asteroid.rotation);
-                        const image = enemyImages[enemyType] || enemyImages.asteroid; // Fallback to asteroid
+                        const image = enemyImages[enemyType] || enemyImages.asteroid;
                         ctx.drawImage(image, -asteroid.width / 2, -asteroid.height / 2, asteroid.width, asteroid.height);
                         ctx.restore();
                     }
@@ -461,7 +475,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
     }, [gameOver, gameStarted, endGameStatus, endGame]);
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-black p-4">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-primary-bg p-4">
             <StartGameWrapper
                 ref={startGameRef}
                 gameId={gameId.toString()}
@@ -477,8 +491,8 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                 onStatusChange={handleEndGameStatusChange}
             />
             {!gameStarted ? (
-                <div className="text-center text-white" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                    <h1 className="text-3xl text-yellow-500 mb-4">ASTEROIDS</h1>
+                <div className="text-center text-primary-text font-mono">
+                    <h1 className="text-3xl text-accent-yellow mb-4">ASTEROIDS</h1>
                     <p className="text-xl mb-2">INSTRUCTIONS:</p>
                     <p className="mb-2">Move your mouse to steer the ship towards the pointer.</p>
                     <p className="mb-2">Click to shoot asteroids and score points!</p>
@@ -498,7 +512,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                         <select
                             value={shipType}
                             onChange={(e) => setShipType(e.target.value as typeof shipType)}
-                            className="bg-black text-white border border-yellow-500 p-1"
+                            className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
                             <option value="ship">DEFAULT</option>
                             <option value="eth">ETHEREUM</option>
@@ -517,7 +531,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                         <select
                             value={enemyType}
                             onChange={(e) => setEnemyType(e.target.value as typeof enemyType)}
-                            className="bg-black text-white border border-yellow-500 p-1"
+                            className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
                             <option value="asteroid">DEFAULT</option>
                             <option value="bitcoin">BITCOIN</option>
@@ -531,33 +545,33 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                     </Button>
                     <p className="mt-2">COST: 1 TICKET</p>
                     {startGameStatus === 'error' && startGameError && (
-                        <p className="text-red-500 mt-2">{startGameError}</p>
+                        <p className="text-error-red mt-2">{startGameError}</p>
                     )}
                 </div>
             ) : (
                 <div ref={containerRef} className="w-full max-w-4xl h-[80vh] relative">
-                    <div className="text-white mb-1 text-center" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                        <span className="text-2xl text-yellow-500">SCORE: {score}</span>
-                        <span className="text-2xl text-yellow-500 ml-8">HIGH SCORE: {existingHighScore}</span>
+                    <div className="text-primary-text mb-1 text-center font-mono">
+                        <span className="text-2xl text-accent-yellow">SCORE: {score}</span>
+                        <span className="text-2xl text-accent-yellow ml-8">HIGH SCORE: {existingHighScore}</span>
                     </div>
                     {gameOver && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-2xl" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-primary-text text-2xl font-mono">
                             <p>GAME OVER - YOUR SCORE: {score}</p>
                             {endGameStatus === 'pending' && <p>SUBMITTING SCORE...</p>}
                             {endGameStatus === 'leader' && <p>{endGameMessage}</p>}
                             {endGameStatus === 'loser' && <p>{endGameMessage}</p>}
                             {endGameStatus === 'error' && (
-                                <p className="text-red-500">Error: {endGameError || 'Failed to submit score'}</p>
+                                <p className="text-error-red">Error: {endGameError || 'Failed to submit score'}</p>
                             )}
-                            <Button className='mt-6' onClick={startGame} disabled={startGameStatus === 'pending' || endGameStatus === 'pending' || endGameStatus === 'leader'}>
+                            <Button className="mt-6" onClick={startGame} disabled={startGameStatus === 'pending' || endGameStatus === 'pending' || endGameStatus === 'leader'}>
                                 {startGameStatus === 'pending' ? 'starting...' : 'PLAY AGAIN'}
                             </Button>
                             {startGameStatus === 'error' && startGameError && (
-                                <p className="text-red-500 mt-2">{startGameError}</p>
+                                <p className="text-error-red mt-2">{startGameError}</p>
                             )}
                         </div>
                     )}
-                    <canvas ref={canvasRef} className="w-full h-full border-2 border-[#FFFF00]" />
+                    <canvas ref={canvasRef} className="w-full h-full border-2 border-primary-border" />
                 </div>
             )}
         </div>

@@ -31,8 +31,11 @@ const SHIP_SIZE = 40;
 const OBSTACLE_SIZE = 40;
 const GRAVITY = 0.5;
 const JUMP_VELOCITY = -12;
-const OBSTACLE_SPEED = -3;
+const DOUBLE_JUMP_VELOCITY = JUMP_VELOCITY * 2;
+const BASE_OBSTACLE_SPEED = -3;
 const GROUND_HEIGHT = 100;
+const MIN_GAP = OBSTACLE_SIZE * 3; // Minimum gap between obstacle sets
+const DOUBLE_PRESS_THRESHOLD = 300; // 300ms for double press detection
 
 const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -47,6 +50,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const [shipImages, setShipImages] = useState<Record<ShipType, HTMLImageElement>>({} as Record<ShipType, HTMLImageElement>);
     const lastFrameTimeRef = useRef<number>(performance.now());
     const animationFrameIdRef = useRef<number>(0);
+    const lastKeyPressRef = useRef<number>(0); // Track time of last spacebar press
     const { ticketCount } = useTicketContext();
     const startGameRef = useRef<{ startGame: () => Promise<void> }>(null);
     const endGameRef = useRef<{ endGame: () => Promise<void> }>(null);
@@ -57,7 +61,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const [endGameMessage, setEndGameMessage] = useState<string>('');
     const { address } = useAccount();
 
-    // Preload images (reused from Asteroids)
+    // Preload images (unchanged)
     useEffect(() => {
         const images = {
             asteroid: new Image(),
@@ -106,14 +110,27 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     }, []);
 
     // Game logic
-    const spawnObstacle = useCallback((canvas: HTMLCanvasElement): Obstacle => {
-        return {
-            x: canvas.width,
-            y: canvas.height - GROUND_HEIGHT - OBSTACLE_SIZE,
-            width: OBSTACLE_SIZE,
-            height: OBSTACLE_SIZE,
-            dx: OBSTACLE_SPEED,
-        };
+    const spawnObstacles = useCallback((canvas: HTMLCanvasElement, speed: number): Obstacle[] => {
+        const obstacles: Obstacle[] = [];
+        const baseX = canvas.width;
+        const baseY = canvas.height - GROUND_HEIGHT - OBSTACLE_SIZE;
+
+        // Randomly decide width (1 or 2) and height (1 or 2)
+        const widthCount = Math.random() < 0.5 ? 1 : 2;
+        const heightCount = Math.random() < 0.5 ? 1 : 2;
+
+        for (let w = 0; w < widthCount; w++) {
+            for (let h = 0; h < heightCount; h++) {
+                obstacles.push({
+                    x: baseX + w * OBSTACLE_SIZE,
+                    y: baseY - h * OBSTACLE_SIZE,
+                    width: OBSTACLE_SIZE,
+                    height: OBSTACLE_SIZE,
+                    dx: speed,
+                });
+            }
+        }
+        return obstacles;
     }, []);
 
     const drawShip = (ctx: CanvasRenderingContext2D, ship: { x: number; y: number }) => {
@@ -154,10 +171,11 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             y: canvas.height - GROUND_HEIGHT - SHIP_SIZE,
             width: SHIP_SIZE,
             height: SHIP_SIZE,
-            vy: 0, // Vertical velocity for jumping
+            vy: 0,
         };
         let obstaclePool: Obstacle[] = [];
-        let lastObstacleSpawn = 0;
+        let lastObstacleSpawnX = canvas.width; // Track the x-position of the last spawn
+
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
@@ -171,6 +189,10 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         };
 
         const update = (deltaTime: number) => {
+            // Calculate speed based on score
+            const speedMultiplier = 1 + Math.floor(score / 100) * 0.1; // Increase speed by 10% every 100 points
+            const obstacleSpeed = BASE_OBSTACLE_SPEED * speedMultiplier;
+
             // Update ship
             if (!gameOver) {
                 ship.vy += GRAVITY;
@@ -179,20 +201,21 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     ship.y = canvas.height - GROUND_HEIGHT - SHIP_SIZE;
                     ship.vy = 0;
                 }
-                setScore((prev) => prev + deltaTime * 10); // Score increases over time
+                setScore((prev) => prev + deltaTime * 10 * speedMultiplier); // Score increases faster as speed increases
             }
 
             // Update obstacles
             obstaclePool.forEach((obstacle) => {
+                obstacle.dx = obstacleSpeed; // Update speed dynamically
                 obstacle.x += obstacle.dx;
             });
             obstaclePool = obstaclePool.filter((obstacle) => obstacle.x + OBSTACLE_SIZE > 0);
 
-            // Spawn new obstacles
-            lastObstacleSpawn += deltaTime;
-            if (lastObstacleSpawn > 2 && !gameOver) { // Spawn every 2 seconds
-                obstaclePool.push(spawnObstacle(canvas));
-                lastObstacleSpawn = 0;
+            // Spawn new obstacles with minimum gap
+            const rightmostObstacle = obstaclePool.reduce((max, obs) => Math.max(max, obs.x), -MIN_GAP);
+            if (canvas.width - rightmostObstacle >= MIN_GAP && !gameOver) {
+                obstaclePool.push(...spawnObstacles(canvas, obstacleSpeed));
+                lastObstacleSpawnX = canvas.width;
             }
 
             // Check collisions
@@ -218,15 +241,22 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.code === 'Space' && !gameOver && ship.y === canvas.height - GROUND_HEIGHT - SHIP_SIZE) {
-                ship.vy = JUMP_VELOCITY;
+                const now = Date.now();
+                const timeSinceLastPress = now - lastKeyPressRef.current;
+                if (timeSinceLastPress < DOUBLE_PRESS_THRESHOLD && lastKeyPressRef.current !== 0) {
+                    ship.vy = DOUBLE_JUMP_VELOCITY; // Double jump
+                } else {
+                    ship.vy = JUMP_VELOCITY; // Single jump
+                }
+                lastKeyPressRef.current = now;
             }
         };
 
         if (gameStarted) {
             ship.y = canvas.height - GROUND_HEIGHT - SHIP_SIZE;
             ship.vy = 0;
-            obstaclePool = [spawnObstacle(canvas)];
-            lastObstacleSpawn = 0;
+            obstaclePool = spawnObstacles(canvas, BASE_OBSTACLE_SPEED);
+            lastObstacleSpawnX = canvas.width;
 
             window.addEventListener('keydown', handleKeyDown);
             lastFrameTimeRef.current = performance.now();
@@ -238,7 +268,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             window.removeEventListener('keydown', handleKeyDown);
             cancelAnimationFrame(animationFrameIdRef.current);
         };
-    }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnObstacle]);
+    }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnObstacles]);
 
     const startGame = useCallback(async () => {
         if (ticketCount > 0 && startGameRef.current) {
@@ -326,10 +356,10 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 <div className="text-center text-primary-text font-mono">
                     <h1 className="text-3xl text-accent-yellow mb-4">JUMP</h1>
                     <p className="text-xl mb-2">INSTRUCTIONS:</p>
-                    <p className="mb-2">Press the spacebar to make your ship jump.</p>
+                    <p className="mb-2">Press the spacebar to jump, double-press quickly for a higher jump.</p>
                     <p className="mb-4">Avoid hitting obstacles to keep going!</p>
                     <p className="mb-2">CONTROLS:</p>
-                    <p className="mb-4">Spacebar: Jump</p>
+                    <p className="mb-4">Spacebar: Jump (Double-press for higher jump)</p>
                     <div className="mb-4 flex items-center justify-center">
                         <p className="mr-2">CHOOSE SPACE SHIP:</p>
                         {imagesLoaded && shipImages[shipType] && (

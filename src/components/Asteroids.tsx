@@ -320,7 +320,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                         if (distance < asteroid.width / 2) {
                             bullet.active = false;
                             asteroid.active = false;
-                            setScore((prev) => prev + 1000);
+                            setScore((prev) => prev + 10);
                             asteroidSpeedMultiplier += 0.1;
                             asteroidPool.forEach((a) => {
                                 if (a.active) {
@@ -445,7 +445,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         if (status === 'pending') {
             setEndGameError('');
         } else if (status === 'leader') {
-            setEndGameMessage('YOU SET A NEW HIGH SCORE: '+score+'! YOU ARE THE LEADER!');
+            setEndGameMessage('CONGRATULATIONS! YOU SET A NEW HIGH SCORE!');
             console.log('New leader score:', score);
         } else if (status === 'loser') {
             setEndGameMessage('YOU DID NOT BEAT THE HIGH SCORE: '+highScore+'!');

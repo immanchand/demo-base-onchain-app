@@ -3,13 +3,14 @@ import { baseSepolia } from "viem/chains";
 
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
 
-export const GAME_COUNT = 6;
+export const GAME_COUNT = 3;
 export const GAME_PRICE_WEI = 100000000000000; 
 export const publicClient = createPublicClient({
         chain: baseSepolia,
         transport: http(),
       });
-export const contractAddress = '0x9E8F6C8Bb670e457460FE4e6F702365351c547a4';
+export const gameMasterAddress = '0xcfd97f78e1c225b4569edbafb950026247f67faf';
+export const contractAddress = '0x40200F717BfDEceF133C3E9C49ae007Fd15C9586';
 export const contractABI = [
   {
     "type": "constructor",
@@ -46,13 +47,7 @@ export const contractABI = [
   {
     "type": "function",
     "name": "createGame",
-    "inputs": [
-      {
-        "name": "_player",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
+    "inputs": [],
     "outputs": [
       {
         "name": "",
@@ -113,6 +108,11 @@ export const contractABI = [
         "name": "",
         "type": "bool",
         "internalType": "bool"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "nonpayable"
@@ -423,3 +423,7 @@ export const contractABI = [
     "anonymous": false
   }
 ] as const;
+
+export const SHIP_SIZE = 20;
+export const BULLET_SIZE = 4;
+export const ASTEROID_SIZE = 40;

@@ -31,7 +31,6 @@ const SHIP_SIZE = 40;
 const OBSTACLE_SIZE = 40;
 const GRAVITY = 0.5;
 const JUMP_VELOCITY = -12;
-const DOUBLE_JUMP_VELOCITY = JUMP_VELOCITY * Math.sqrt(2); // Double height, same speed
 const BASE_OBSTACLE_SPEED = -3;
 const GROUND_HEIGHT = 100;
 const DOUBLE_PRESS_THRESHOLD = 300; // 300ms for double press detection
@@ -176,7 +175,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         resizeObserver.observe(container);
 
         let ship = {
-            x: 100, //starting ship position
+            x: 200, //starting ship position
             y: canvas.height - GROUND_HEIGHT - SHIP_SIZE,
             width: SHIP_SIZE,
             height: SHIP_SIZE,
@@ -274,7 +273,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
         if (gameStarted) {
             ship.y = canvas.height - GROUND_HEIGHT - SHIP_SIZE;
-            ship.vy = 0+10;
+            ship.vy = 0;
             jumpCountRef.current = 0;
             obstaclePool = spawnObstacles(canvas, BASE_OBSTACLE_SPEED, 0);
             lastObstacleSpawnX = canvas.width;

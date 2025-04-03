@@ -92,10 +92,10 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         const enemy1Image = new Image();
         const enemy2Image = new Image();
         const enemy3Image = new Image();
-        asteroidImage.src = '/images/asteroid.png'; // Adjust path as needed
-        enemy1Image.src = '/images/enemy1.png';
-        enemy2Image.src = '/images/enemy2.png';
-        enemy3Image.src = '/images/enemy3.png';
+        asteroidImage.src = '/images/asteroid.webp'; // Adjust path as needed
+        enemy1Image.src = '/images/enemy1.webp';
+        enemy2Image.src = '/images/enemy2.webp';
+        enemy3Image.src = '/images/enemy3.webp';
 
         if (gameStarted && !gameOver) {
             const ctx = canvas.getContext('2d');
@@ -462,6 +462,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                             <option value="enemy2">Enemy 2</option>
                             <option value="enemy3">Enemy 3</option>
                         </select>
+                        
                     </div>
                     <Button onClick={startGame} disabled={startGameStatus === 'pending'}>
                         {startGameStatus === 'pending' ? 'starting...' : 'START GAME'}

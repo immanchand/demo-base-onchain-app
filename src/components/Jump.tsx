@@ -31,7 +31,7 @@ const SHIP_SIZE = 40;
 const OBSTACLE_SIZE = 40;
 const GRAVITY = 0.5;
 const JUMP_VELOCITY = -12;
-const DOUBLE_JUMP_VELOCITY = JUMP_VELOCITY * 2;
+const DOUBLE_JUMP_VELOCITY = JUMP_VELOCITY * Math.sqrt(2); // Double height, same speed
 const BASE_OBSTACLE_SPEED = -3;
 const GROUND_HEIGHT = 100;
 const DOUBLE_PRESS_THRESHOLD = 300; // 300ms for double press detection
@@ -51,6 +51,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const animationFrameIdRef = useRef<number>(0);
     const lastKeyPressRef = useRef<number>(0); // Track time of last spacebar press
     const jumpCountRef = useRef<number>(0); // Track number of jumps in air
+    const startTimeRef = useRef<number>(0); // Track game start time
     const { ticketCount } = useTicketContext();
     const startGameRef = useRef<{ startGame: () => Promise<void> }>(null);
     const endGameRef = useRef<{ endGame: () => Promise<void> }>(null);
@@ -110,7 +111,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     }, []);
 
     // Game logic
-    const spawnObstacles = useCallback((canvas: HTMLCanvasElement, speed: number, score: number): Obstacle[] => {
+    const spawnObstacles = useCallback((canvas: HTMLCanvasElement, speed: number, elapsedTime: number): Obstacle[] => {
         const obstacles: Obstacle[] = [];
         const baseX = canvas.width;
         const baseY = canvas.height - GROUND_HEIGHT - OBSTACLE_SIZE;
@@ -118,10 +119,11 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         let widthCount = 1;
         let heightCount = 1;
 
-        // Progressive difficulty based on score
-        if (score >= 100 && Math.random() < 0.5) heightCount = 2; // 1x2 at 100+
-        if (score >= 200 && Math.random() < 0.5) widthCount = 2;  // 2x1 at 200+
-        if (score >= 300 && Math.random() < 0.5) {               // 2x2 at 300+
+        // Time-based difficulty (every 10 seconds)
+        const timeLevel = Math.floor(elapsedTime / 10);
+        if (timeLevel >= 1 && Math.random() < 0.5) heightCount = 2; // 1x2 at 10s+
+        if (timeLevel >= 2 && Math.random() < 0.5) widthCount = 2;  // 2x1 at 20s+
+        if (timeLevel >= 3 && Math.random() < 0.5) {               // 2x2 at 30s+
             widthCount = 2;
             heightCount = 2;
         }
@@ -196,15 +198,16 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         };
 
         const update = (deltaTime: number) => {
-            // Calculate difficulty based on score
-            const scoreLevel = Math.floor(score / 100);
-            const speedMultiplier = 1 + scoreLevel * 0.1; // Increase speed by 10% per 100 points
+            // Calculate elapsed time
+            const elapsedTime = (performance.now() - startTimeRef.current) / 1000; // in seconds
+            const timeLevel = Math.floor(elapsedTime / 10);
+            const speedMultiplier = 1 + timeLevel * 0.1; // Increase speed by 10% every 10s
             const obstacleSpeed = BASE_OBSTACLE_SPEED * speedMultiplier;
-            const minGap = scoreLevel >= 5 ? OBSTACLE_SIZE * 5 :
-                           scoreLevel >= 4 ? OBSTACLE_SIZE * 10 :
-                           scoreLevel >= 3 ? OBSTACLE_SIZE * 20 :
-                           scoreLevel >= 2 ? OBSTACLE_SIZE * 30 :
-                           scoreLevel >= 1 ? OBSTACLE_SIZE * 40 :
+            const minGap = timeLevel >= 5 ? OBSTACLE_SIZE * 5 :
+                           timeLevel >= 4 ? OBSTACLE_SIZE * 10 :
+                           timeLevel >= 3 ? OBSTACLE_SIZE * 20 :
+                           timeLevel >= 2 ? OBSTACLE_SIZE * 30 :
+                           timeLevel >= 1 ? OBSTACLE_SIZE * 40 :
                                              OBSTACLE_SIZE * 50;
 
             // Update ship
@@ -229,7 +232,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             // Spawn new obstacles with dynamic gap
             const rightmostObstacle = obstaclePool.reduce((max, obs) => Math.max(max, obs.x), -minGap);
             if (canvas.width - rightmostObstacle >= minGap && !gameOver) {
-                obstaclePool.push(...spawnObstacles(canvas, obstacleSpeed, score));
+                obstaclePool.push(...spawnObstacles(canvas, obstacleSpeed, elapsedTime));
                 lastObstacleSpawnX = canvas.width;
             }
 
@@ -275,6 +278,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             jumpCountRef.current = 0;
             obstaclePool = spawnObstacles(canvas, BASE_OBSTACLE_SPEED, 0);
             lastObstacleSpawnX = canvas.width;
+            startTimeRef.current = performance.now(); // Set start time
 
             window.addEventListener('keydown', handleKeyDown);
             lastFrameTimeRef.current = performance.now();

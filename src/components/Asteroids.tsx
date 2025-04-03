@@ -38,6 +38,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
     const [gameStarted, setGameStarted] = useState<boolean>(false);
     const [gameOver, setGameOver] = useState<boolean>(false);
     const [score, setScore] = useState<number>(0);
+    const [enemyType, setEnemyType] = useState<'asteroid' | 'enemy1' | 'enemy2' | 'enemy3'>('asteroid'); // New state for enemy type
     const lastFrameTimeRef = useRef<number>(performance.now());
     const animationFrameIdRef = useRef<number>(0);
     const mousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -85,6 +86,16 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         let bulletPool: Bullet[] = [];
         let asteroidPool: Asteroid[] = [];
         let asteroidSpeedMultiplier = 1;
+
+        // Preload enemy images
+        const asteroidImage = new Image();
+        const enemy1Image = new Image();
+        const enemy2Image = new Image();
+        const enemy3Image = new Image();
+        asteroidImage.src = '/images/asteroid.png'; // Adjust path as needed
+        enemy1Image.src = '/images/enemy1.png';
+        enemy2Image.src = '/images/enemy2.png';
+        enemy3Image.src = '/images/enemy3.png';
 
         if (gameStarted && !gameOver) {
             const ctx = canvas.getContext('2d');
@@ -199,15 +210,17 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
             };
 
             const drawAsteroids = () => {
-                ctx.fillStyle = '#808080';
                 asteroidPool.forEach((asteroid) => {
                     if (asteroid.active) {
                         ctx.save();
                         ctx.translate(asteroid.x, asteroid.y);
                         ctx.rotate(asteroid.rotation);
-                        ctx.beginPath();
-                        ctx.arc(0, 0, asteroid.width / 2, 0, Math.PI * 2);
-                        ctx.fill();
+                        const image =
+                            enemyType === 'asteroid' ? asteroidImage :
+                            enemyType === 'enemy1' ? enemy1Image :
+                            enemyType === 'enemy2' ? enemy2Image :
+                            enemy3Image;
+                        ctx.drawImage(image, -asteroid.width / 2, -asteroid.height / 2, asteroid.width, asteroid.height);
                         ctx.restore();
                     }
                 });
@@ -269,7 +282,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                         if (distance < asteroid.width / 2) {
                             bullet.active = false;
                             asteroid.active = false;
-                            setScore((prev) => prev + 5000);
+                            setScore((prev) => prev + 1000);
                             asteroidSpeedMultiplier += 0.1;
                             asteroidPool.forEach((a) => {
                                 if (a.active) {
@@ -404,7 +417,6 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         }
       }, [score]);
 
-    // Trigger endGame when gameOver becomes true
     useEffect(() => {
         if (gameOver && gameStarted && endGameStatus === 'idle') {
             endGame();
@@ -437,11 +449,23 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                     <p className="mb-2">CONTROLS:</p>
                     <p className="mb-2">Mouse Move: Steer Ship</p>
                     <p className="mb-4">Mouse Click: Shoot</p>
-                    
-                    <Button onClick={startGame} disabled={startGameStatus === 'pending'}  >
+                    {/* New UI element for enemy selection */}
+                    <div className="mb-4">
+                        <p className="mb-2">CHOOSE ENEMY:</p>
+                        <select
+                            value={enemyType}
+                            onChange={(e) => setEnemyType(e.target.value as typeof enemyType)}
+                            className="bg-black text-white border border-yellow-500 p-1"
+                        >
+                            <option value="asteroid">Asteroids</option>
+                            <option value="enemy1">Enemy 1</option>
+                            <option value="enemy2">Enemy 2</option>
+                            <option value="enemy3">Enemy 3</option>
+                        </select>
+                    </div>
+                    <Button onClick={startGame} disabled={startGameStatus === 'pending'}>
                         {startGameStatus === 'pending' ? 'starting...' : 'START GAME'}
                     </Button>
-                    
                     <p className="mt-2">COST: 1 TICKET</p>
                     {startGameStatus === 'error' && startGameError && (
                         <p className="text-red-500 mt-2">{startGameError}</p>
@@ -460,9 +484,9 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                             {endGameStatus === 'leader' && <p>{endGameMessage}</p>}
                             {endGameStatus === 'loser' && <p>{endGameMessage}</p>}
                             {endGameStatus === 'error' && (
-                            <p className="text-red-500">Error: {endGameError || 'Failed to submit score'}</p>
+                                <p className="text-red-500">Error: {endGameError || 'Failed to submit score'}</p>
                             )}
-                            <Button className='mt-6' onClick={startGame} disabled={startGameStatus === 'pending' || endGameStatus === 'pending'}  >
+                            <Button className='mt-6' onClick={startGame} disabled={startGameStatus === 'pending' || endGameStatus === 'pending'}>
                                 {startGameStatus === 'pending' ? 'starting...' : 'PLAY AGAIN'}
                             </Button>
                             {startGameStatus === 'error' && startGameError && (

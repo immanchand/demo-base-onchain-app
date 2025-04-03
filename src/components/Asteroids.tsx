@@ -98,10 +98,6 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
             }
         };
 
-        const onImageError = (e: Event) => {
-            console.error('Image failed to load:', (e.target as HTMLImageElement).src);
-        };
-
         asteroidImage.onload = onImageLoad;
         bitcoinImage.onload = onImageLoad;
         xrpImage.onload = onImageLoad;
@@ -110,15 +106,6 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         shipImage.onload = onImageLoad;
         ethImage.onload = onImageLoad;
         baseImage.onload = onImageLoad;
-
-        asteroidImage.onerror = onImageError;
-        bitcoinImage.onerror = onImageError;
-        xrpImage.onerror = onImageError;
-        solanaImage.onerror = onImageError;
-        genslerImage.onerror = onImageError;
-        shipImage.onerror = onImageError;
-        ethImage.onerror = onImageError;
-        baseImage.onerror = onImageError;
     }, []);
 
     // Game logic (unchanged)
@@ -458,10 +445,10 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         if (status === 'pending') {
             setEndGameError('');
         } else if (status === 'leader') {
-            setEndGameMessage('YOU SET A NEW HIGH SCORE OF '+score+'! YOU ARE NOW THE LEADER!');
+            setEndGameMessage('YOU SET A NEW HIGH SCORE: '+score+'! YOU ARE THE LEADER!');
             console.log('New leader score:', score);
         } else if (status === 'loser') {
-            setEndGameMessage('SORRY, YOU DID NOT BEAT THE HIGH SCORE OF '+highScore+'!');
+            setEndGameMessage('YOU DID NOT BEAT THE HIGH SCORE: '+highScore+'!');
             console.log('Game ended, not the leader. Player Score:', score, 'High Score:', highScore);
         } else if (status === 'error') {
             setEndGameError(errorMessage || 'Failed to end game');

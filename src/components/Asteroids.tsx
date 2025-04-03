@@ -69,15 +69,15 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
 
         asteroidImage.src = '/images/asteroid.webp';
         bitcoinImage.src = '/images/bitcoin.png';
-        xrpImage.src = '/images/xrp.png'; // Placeholder until actual image
-        solanaImage.src = '/images/solana.png'; // Placeholder until actual image
-        genslerImage.src = '/images/gensler.png'; // Placeholder until actual image
+        xrpImage.src = '/images/xrp.png';
+        solanaImage.src = '/images/solana.png';
+        genslerImage.src = '/images/gensler.png';
         shipImage.src = '/images/spaceship.png';
         ethImage.src = '/images/ethereum.png';
         baseImage.src = '/images/base.png';
 
         let loadedCount = 0;
-        const totalImages = 5; // Corrected to match number of images
+        const totalImages = 8; // 5 enemies + 3 ships
 
         const onImageLoad = () => {
             loadedCount += 1;
@@ -89,8 +89,17 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                     solana: solanaImage,
                     gensler: genslerImage,
                 });
+                setShipImages({
+                    ship: shipImage,
+                    eth: ethImage,
+                    base: baseImage,
+                });
                 setImagesLoaded(true);
             }
+        };
+
+        const onImageError = (e: Event) => {
+            console.error('Image failed to load:', (e.target as HTMLImageElement).src);
         };
 
         asteroidImage.onload = onImageLoad;
@@ -98,6 +107,18 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         xrpImage.onload = onImageLoad;
         solanaImage.onload = onImageLoad;
         genslerImage.onload = onImageLoad;
+        shipImage.onload = onImageLoad;
+        ethImage.onload = onImageLoad;
+        baseImage.onload = onImageLoad;
+
+        asteroidImage.onerror = onImageError;
+        bitcoinImage.onerror = onImageError;
+        xrpImage.onerror = onImageError;
+        solanaImage.onerror = onImageError;
+        genslerImage.onerror = onImageError;
+        shipImage.onerror = onImageError;
+        ethImage.onerror = onImageError;
+        baseImage.onerror = onImageError;
     }, []);
 
     useEffect(() => {
@@ -228,13 +249,8 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                 ctx.save();
                 ctx.translate(ship.x, ship.y);
                 ctx.rotate(ship.angle);
-                ctx.beginPath();
-                ctx.moveTo(10, 0);
-                ctx.lineTo(-5, 7);
-                ctx.lineTo(-5, -7);
-                ctx.closePath();
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fill();
+                const image = shipImages[shipType] || shipImages.ship; // Fallback to default ship
+                ctx.drawImage(image, -ship.width / 2, -ship.height / 2, ship.width, ship.height);
                 ctx.restore();
             };
 

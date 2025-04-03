@@ -98,10 +98,6 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
             }
         };
 
-        const onImageError = (e: Event) => {
-            console.error('Image failed to load:', (e.target as HTMLImageElement).src);
-        };
-
         asteroidImage.onload = onImageLoad;
         bitcoinImage.onload = onImageLoad;
         xrpImage.onload = onImageLoad;
@@ -110,15 +106,6 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         shipImage.onload = onImageLoad;
         ethImage.onload = onImageLoad;
         baseImage.onload = onImageLoad;
-
-        asteroidImage.onerror = onImageError;
-        bitcoinImage.onerror = onImageError;
-        xrpImage.onerror = onImageError;
-        solanaImage.onerror = onImageError;
-        genslerImage.onerror = onImageError;
-        shipImage.onerror = onImageError;
-        ethImage.onerror = onImageError;
-        baseImage.onerror = onImageError;
     }, []);
 
     useEffect(() => {
@@ -474,7 +461,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
     }, [gameOver, gameStarted, endGameStatus, endGame]);
 
     return (
-        <div className="flex flex-col items-center min-h-screen bg-black p-4">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-black p-4">
             <StartGameWrapper
                 ref={startGameRef}
                 gameId={gameId.toString()}

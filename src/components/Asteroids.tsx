@@ -343,9 +343,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         };
 
         const handleMouseMove = (e: MouseEvent) => {
-            const rect = canvas.getBoundingClient
-
-Rect();
+            const rect = canvas.getBoundingClientRect();
             mousePosRef.current = {
                 x: e.clientX - rect.left,
                 y: e.clientY - rect.top,

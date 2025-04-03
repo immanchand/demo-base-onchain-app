@@ -176,7 +176,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         resizeObserver.observe(container);
 
         let ship = {
-            x: 50,
+            x: 100, //starting ship position
             y: canvas.height - GROUND_HEIGHT - SHIP_SIZE,
             width: SHIP_SIZE,
             height: SHIP_SIZE,
@@ -262,7 +262,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 const now = Date.now();
                 const timeSinceLastPress = now - lastKeyPressRef.current;
                 if (timeSinceLastPress < DOUBLE_PRESS_THRESHOLD && lastKeyPressRef.current !== 0 && jumpCountRef.current === 1) {
-                    ship.vy = DOUBLE_JUMP_VELOCITY; // Double jump
+                    ship.vy = JUMP_VELOCITY; // Double jump
                     jumpCountRef.current += 1;
                 } else if (jumpCountRef.current === 0) {
                     ship.vy = JUMP_VELOCITY; // Single jump
@@ -274,7 +274,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
         if (gameStarted) {
             ship.y = canvas.height - GROUND_HEIGHT - SHIP_SIZE;
-            ship.vy = 0;
+            ship.vy = 0+10;
             jumpCountRef.current = 0;
             obstaclePool = spawnObstacles(canvas, BASE_OBSTACLE_SPEED, 0);
             lastObstacleSpawnX = canvas.width;

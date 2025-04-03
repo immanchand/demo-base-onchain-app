@@ -271,7 +271,23 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             }
         };
 
-        if (gameStarted) {
+        const handleMouseDown = () => {
+            if (gameOver) return;
+            if (!gameOver && jumpCountRef.current < 2) {
+                const now = Date.now();
+                const timeSinceLastPress = now - lastKeyPressRef.current;
+                if (timeSinceLastPress < DOUBLE_PRESS_THRESHOLD && lastKeyPressRef.current !== 0 && jumpCountRef.current === 1) {
+                    ship.vy = JUMP_VELOCITY; // Double jump
+                    jumpCountRef.current += 1;
+                } else if (jumpCountRef.current === 0) {
+                    ship.vy = JUMP_VELOCITY; // Single jump
+                    jumpCountRef.current += 1;
+                }
+                lastKeyPressRef.current = now;
+            }
+        };
+
+        if (gameStarted && !gameOver) {
             ship.y = canvas.height - GROUND_HEIGHT - SHIP_SIZE;
             ship.vy = 0;
             jumpCountRef.current = 0;
@@ -280,6 +296,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             startTimeRef.current = performance.now(); // Set start time
 
             window.addEventListener('keydown', handleKeyDown);
+            window.addEventListener('mousedown', handleMouseDown);
             lastFrameTimeRef.current = performance.now();
             animationFrameIdRef.current = requestAnimationFrame(gameLoop);
         }
@@ -378,9 +395,11 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     <h1 className="text-3xl text-accent-yellow mb-4">JUMP</h1>
                     <p className="text-xl mb-2">INSTRUCTIONS:</p>
                     <p className="mb-2">Press the spacebar to jump, double-press quickly for a higher jump.</p>
+                    <p className="mb-2">Or Click the mouse to jump, double-click quickly for a higher jump.</p>
                     <p className="mb-4">Avoid hitting obstacles to keep going!</p>
                     <p className="mb-2">CONTROLS:</p>
                     <p className="mb-4">Spacebar: Jump (Double-press for higher jump)</p>
+                    <p className="mb-4">Mouse Click: Jump (Double-click for higher jump)</p>
                     <div className="mb-4 flex items-center justify-center">
                         <p className="mr-2">CHOOSE SPACE SHIP:</p>
                         {imagesLoaded && shipImages[shipType] && (

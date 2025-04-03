@@ -21,15 +21,15 @@ interface Entity {
 }
 
 interface Asteroid extends Entity {
-    dx: number; // X velocity
-    dy: number; // Y velocity
-    rotation: number; // Rotation angle in radians
-    rotationSpeed: number; // Rotation speed in radians per frame
+    dx: number;
+    dy: number;
+    rotation: number;
+    rotationSpeed: number;
 }
 
 interface Bullet extends Entity {
-    dx: number; // X velocity
-    dy: number; // Y velocity
+    dx: number;
+    dy: number;
 }
 
 const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, updateTickets }) => {
@@ -38,9 +38,9 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
     const [gameStarted, setGameStarted] = useState<boolean>(false);
     const [gameOver, setGameOver] = useState<boolean>(false);
     const [score, setScore] = useState<number>(0);
-    const [enemyType, setEnemyType] = useState<'asteroid' | 'enemy1' | 'enemy2' | 'enemy3'>('asteroid');
+    const [enemyType, setEnemyType] = useState<'asteroid' | 'bitcoin' | 'xrp' | 'solana' | 'gensler'>('asteroid');
     const [imagesLoaded, setImagesLoaded] = useState<boolean>(false);
-    const [enemyImages, setEnemyImages] = useState<Record<string, HTMLImageElement>>({}); // Store image references
+    const [enemyImages, setEnemyImages] = useState<Record<string, HTMLImageElement>>({});
     const lastFrameTimeRef = useRef<number>(performance.now());
     const animationFrameIdRef = useRef<number>(0);
     const mousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -57,26 +57,29 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
     // Preload images and store references
     useEffect(() => {
         const asteroidImage = new Image();
-        const enemy1Image = new Image();
-        const enemy2Image = new Image();
-        const enemy3Image = new Image();
+        const bitcoinImage = new Image();
+        const xrpImage = new Image();
+        const solanaImage = new Image();
+        const genslerImage = new Image();
 
         asteroidImage.src = '/images/asteroid.webp';
-        enemy1Image.src = '/images/asteroid.webp'; // Temporarily same image
-        enemy2Image.src = '/images/asteroid.webp';
-        enemy3Image.src = '/images/asteroid.webp';
+        bitcoinImage.src = '/images/bitcoin.png';
+        xrpImage.src = '/images/xrp.png'; // Placeholder until actual image
+        solanaImage.src = '/images/solana.png'; // Placeholder until actual image
+        genslerImage.src = '/images/ethereum.png'; // Placeholder until actual image
 
         let loadedCount = 0;
-        const totalImages = 4;
+        const totalImages = 5; // Corrected to match number of images
 
         const onImageLoad = () => {
             loadedCount += 1;
             if (loadedCount === totalImages) {
                 setEnemyImages({
                     asteroid: asteroidImage,
-                    enemy1: enemy1Image,
-                    enemy2: enemy2Image,
-                    enemy3: enemy3Image,
+                    bitcoin: bitcoinImage,
+                    xrp: xrpImage,
+                    solana: solanaImage,
+                    gensler: genslerImage,
                 });
                 setImagesLoaded(true);
             }
@@ -87,14 +90,16 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         };
 
         asteroidImage.onload = onImageLoad;
-        enemy1Image.onload = onImageLoad;
-        enemy2Image.onload = onImageLoad;
-        enemy3Image.onload = onImageLoad;
+        bitcoinImage.onload = onImageLoad;
+        xrpImage.onload = onImageLoad;
+        solanaImage.onload = onImageLoad;
+        genslerImage.onload = onImageLoad;
 
         asteroidImage.onerror = onImageError;
-        enemy1Image.onerror = onImageError;
-        enemy2Image.onerror = onImageError;
-        enemy3Image.onerror = onImageError;
+        bitcoinImage.onerror = onImageError;
+        xrpImage.onerror = onImageError;
+        solanaImage.onerror = onImageError;
+        genslerImage.onerror = onImageError;
     }, []);
 
     useEffect(() => {
@@ -131,11 +136,6 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         let bulletPool: Bullet[] = [];
         let asteroidPool: Asteroid[] = [];
         let asteroidSpeedMultiplier = 1;
-
-        const asteroidImage = enemyImages.asteroid;
-        const enemy1Image = enemyImages.enemy1;
-        const enemy2Image = enemyImages.enemy2;
-        const enemy3Image = enemyImages.enemy3;
 
         if (gameStarted && !gameOver) {
             const ctx = canvas.getContext('2d');
@@ -255,11 +255,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                         ctx.save();
                         ctx.translate(asteroid.x, asteroid.y);
                         ctx.rotate(asteroid.rotation);
-                        const image =
-                            enemyType === 'asteroid' ? asteroidImage :
-                            enemyType === 'enemy1' ? enemy1Image :
-                            enemyType === 'enemy2' ? enemy2Image :
-                            enemy3Image;
+                        const image = enemyImages[enemyType] || enemyImages.asteroid; // Fallback to asteroid
                         ctx.drawImage(image, -asteroid.width / 2, -asteroid.height / 2, asteroid.width, asteroid.height);
                         ctx.restore();
                     }
@@ -445,17 +441,17 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
     const handleEndGameStatusChange = useCallback((status: 'idle' | 'pending' | 'leader' | 'loser' | 'error', errorMessage?: string, highScore?: string) => {
         setEndGameStatus(status);
         if (status === 'pending') {
-          setEndGameError('');
+            setEndGameError('');
         } else if (status === 'leader') {
             setEndGameMessage('YOU SET A NEW HIGH SCORE OF '+score+'! YOU ARE NOW THE LEADER!');
             console.log('New leader score:', score);
         } else if (status === 'loser') {
             setEndGameMessage('SORRY, YOU DID NOT BEAT THE HIGH SCORE OF '+highScore+'!');
-          console.log('Game ended, not the leader. Player Score:', score, 'High Score:', highScore);
+            console.log('Game ended, not the leader. Player Score:', score, 'High Score:', highScore);
         } else if (status === 'error') {
-          setEndGameError(errorMessage || 'Failed to end game');
+            setEndGameError(errorMessage || 'Failed to end game');
         }
-      }, [score]);
+    }, [score]);
 
     useEffect(() => {
         if (gameOver && gameStarted && endGameStatus === 'idle') {
@@ -504,9 +500,10 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                             className="bg-black text-white border border-yellow-500 p-1"
                         >
                             <option value="asteroid">Asteroids</option>
-                            <option value="enemy1">Enemy 1</option>
-                            <option value="enemy2">Enemy 2</option>
-                            <option value="enemy3">Enemy 3</option>
+                            <option value="bitcoin">Bitcoin</option>
+                            <option value="xrp">XRP</option>
+                            <option value="solana">Solana</option>
+                            <option value="gensler">Gensler</option>
                         </select>
                     </div>
                     <Button onClick={startGame} disabled={startGameStatus === 'pending' || !imagesLoaded}>
@@ -532,7 +529,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                             {endGameStatus === 'error' && (
                                 <p className="text-red-500">Error: {endGameError || 'Failed to submit score'}</p>
                             )}
-                            <Button className='mt-6' onClick={startGame} disabled={startGameStatus === 'pending' || endGameStatus === 'pending'}>
+                            <Button className='mt-6' onClick={startGame} disabled={startGameStatus === 'pending' || endGameStatus === 'pending' || endGameStatus === 'leader'}>
                                 {startGameStatus === 'pending' ? 'starting...' : 'PLAY AGAIN'}
                             </Button>
                             {startGameStatus === 'error' && startGameError && (

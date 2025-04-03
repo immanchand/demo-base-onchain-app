@@ -32,14 +32,26 @@ interface Bullet extends Entity {
     dy: number;
 }
 
+type EnemyType = 'asteroid' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
+type ShipType = 'ship' | 'eth' | 'base';
+
+// Constants
+const SHIP_SIZE = 20;
+const BULLET_SIZE = 4;
+const ASTEROID_SIZE = 40;
+const INITIAL_BULLET_COUNT = 10;
+const INITIAL_ASTEROID_COUNT = 5;
+const BULLET_SPEED = 5;
+const ASTEROID_SPEED_BASE = 2;
+
 const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, updateTickets }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [gameStarted, setGameStarted] = useState<boolean>(false);
     const [gameOver, setGameOver] = useState<boolean>(false);
     const [score, setScore] = useState<number>(0);
-    const [enemyType, setEnemyType] = useState<'asteroid' | 'bitcoin' | 'xrp' | 'solana' | 'gensler'>('asteroid');
-    const [shipType, setShipType] = useState<'ship' | 'eth' | 'base'>('ship');
+    const [enemyType, setEnemyType] = useState<EnemyType>('asteroid');
+    const [shipType, setShipType] = useState<ShipType>('ship');
     const [imagesLoaded, setImagesLoaded] = useState<boolean>(false);
     const [enemyImages, setEnemyImages] = useState<Record<string, HTMLImageElement>>({});
     const [shipImages, setShipImages] = useState<Record<string, HTMLImageElement>>({});
@@ -56,355 +68,319 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
     const [endGameMessage, setEndGameMessage] = useState<string>('');
     const { address } = useAccount();
 
-    // Preload images and store references (unchanged)
+    // Preload images
     useEffect(() => {
-        const asteroidImage = new Image();
-        const bitcoinImage = new Image();
-        const xrpImage = new Image();
-        const solanaImage = new Image();
-        const genslerImage = new Image();
-        const shipImage = new Image();
-        const ethImage = new Image();
-        const baseImage = new Image();
-
-        asteroidImage.src = '/images/asteroid.webp';
-        bitcoinImage.src = '/images/bitcoin.png';
-        xrpImage.src = '/images/xrp.png';
-        solanaImage.src = '/images/solana.png';
-        genslerImage.src = '/images/gensler.png';
-        shipImage.src = '/images/spaceship.png';
-        ethImage.src = '/images/ethereum.png';
-        baseImage.src = '/images/base.png';
+        const images = {
+            asteroid: new Image(),
+            bitcoin: new Image(),
+            xrp: new Image(),
+            solana: new Image(),
+            gensler: new Image(),
+            ship: new Image(),
+            eth: new Image(),
+            base: new Image(),
+        };
+        images.asteroid.src = '/images/asteroid.webp';
+        images.bitcoin.src = '/images/bitcoin.png';
+        images.xrp.src = '/images/xrp.png';
+        images.solana.src = '/images/solana.png';
+        images.gensler.src = '/images/gensler.png';
+        images.ship.src = '/images/spaceship.png';
+        images.eth.src = '/images/ethereum.png';
+        images.base.src = '/images/base.png';
 
         let loadedCount = 0;
-        const totalImages = 8;
+        const totalImages = Object.keys(images).length;
 
         const onImageLoad = () => {
             loadedCount += 1;
             if (loadedCount === totalImages) {
                 setEnemyImages({
-                    asteroid: asteroidImage,
-                    bitcoin: bitcoinImage,
-                    xrp: xrpImage,
-                    solana: solanaImage,
-                    gensler: genslerImage,
+                    asteroid: images.asteroid,
+                    bitcoin: images.bitcoin,
+                    xrp: images.xrp,
+                    solana: images.solana,
+                    gensler: images.gensler,
                 });
                 setShipImages({
-                    ship: shipImage,
-                    eth: ethImage,
-                    base: baseImage,
+                    ship: images.ship,
+                    eth: images.eth,
+                    base: images.base,
                 });
                 setImagesLoaded(true);
             }
         };
 
-        asteroidImage.onload = onImageLoad;
-        bitcoinImage.onload = onImageLoad;
-        xrpImage.onload = onImageLoad;
-        solanaImage.onload = onImageLoad;
-        genslerImage.onload = onImageLoad;
-        shipImage.onload = onImageLoad;
-        ethImage.onload = onImageLoad;
-        baseImage.onload = onImageLoad;
+        Object.values(images).forEach(img => {
+            img.onload = onImageLoad;
+        });
     }, []);
 
-    // Game logic (unchanged)
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        const container = containerRef.current;
-        if (!canvas || !container || !imagesLoaded) return;
+    // Game logic functions
+    const spawnAsteroid = useCallback((canvas: HTMLCanvasElement, speedMultiplier: number): Asteroid => {
+        const edge = Math.floor(Math.random() * 4);
+        let x: number, y: number, dx: number, dy: number;
 
-        const resizeCanvas = () => {
-            const { width, height } = container.getBoundingClientRect();
-            canvas.width = width;
-            canvas.height = height;
-            if (!gameStarted && ship) {
-                ship.x = width / 2;
-                ship.y = height / 2;
-            }
-        };
-
-        resizeCanvas();
-        const resizeObserver = new ResizeObserver(resizeCanvas);
-        resizeObserver.observe(container);
-
-        let ship = {
-            x: canvas.width / 2,
-            y: canvas.height / 2,
-            width: 20,
-            height: 20,
-            angle: 0,
-            speed: 0,
-            dx: 0,
-            dy: 0,
-            acceleration: 0.1,
-            friction: 0.98,
-        };
-        let bulletPool: Bullet[] = [];
-        let asteroidPool: Asteroid[] = [];
-        let asteroidSpeedMultiplier = 1;
-
-        if (gameStarted && !gameOver) {
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
-
-            ship = {
-                x: canvas.width / 2,
-                y: canvas.height / 2,
-                width: 20,
-                height: 20,
-                angle: 0,
-                speed: 0,
-                dx: 0,
-                dy: 0,
-                acceleration: 0.1,
-                friction: 0.98,
-            };
-
-            bulletPool = Array(10).fill(null).map(() => ({
-                x: 0,
-                y: 0,
-                width: 4,
-                height: 4,
-                dx: 0,
-                dy: 0,
-                active: false,
-            }));
-
-            asteroidPool = Array(5).fill(null).map(() => ({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                width: 40,
-                height: 40,
-                dx: (Math.random() - 0.5) * 2 * asteroidSpeedMultiplier,
-                dy: (Math.random() - 0.5) * 2 * asteroidSpeedMultiplier,
-                rotation: 0,
-                rotationSpeed: (Math.random() - 0.5) * 0.05,
-                active: true,
-            }));
-
-            const spawnAsteroid = () => {
-                const edge = Math.floor(Math.random() * 4);
-                let x: number, y: number, dx: number, dy: number;
-
-                switch (edge) {
-                    case 0: // Top
-                        x = Math.random() * canvas.width;
-                        y = -40;
-                        dx = (Math.random() - 0.5) * 2 * asteroidSpeedMultiplier;
-                        dy = Math.random() * 2 * asteroidSpeedMultiplier;
-                        break;
-                    case 1: // Right
-                        x = canvas.width + 40;
-                        y = Math.random() * canvas.height;
-                        dx = -Math.random() * 2 * asteroidSpeedMultiplier;
-                        dy = (Math.random() - 0.5) * 2 * asteroidSpeedMultiplier;
-                        break;
-                    case 2: // Bottom
-                        x = Math.random() * canvas.width;
-                        y = canvas.height + 40;
-                        dx = (Math.random() - 0.5) * 2 * asteroidSpeedMultiplier;
-                        dy = -Math.random() * 2 * asteroidSpeedMultiplier;
-                        break;
-                    case 3: // Left
-                        x = -40;
-                        y = Math.random() * canvas.height;
-                        dx = Math.random() * 2 * asteroidSpeedMultiplier;
-                        dy = (Math.random() - 0.5) * 2 * asteroidSpeedMultiplier;
-                        break;
-                    default:
-                        x = 0;
-                        y = 0;
-                        dx = 0;
-                        dy = 0;
-                }
-
-                const newAsteroid: Asteroid = {
-                    x,
-                    y,
-                    width: 40,
-                    height: 40,
-                    dx,
-                    dy,
-                    rotation: 0,
-                    rotationSpeed: (Math.random() - 0.5) * 0.05,
-                    active: true,
-                };
-                asteroidPool.push(newAsteroid);
-            };
-
-            const drawShip = () => {
-                ctx.save();
-                ctx.translate(ship.x, ship.y);
-                ctx.rotate(ship.angle);
-                const image = shipImages[shipType] || shipImages.ship;
-                ctx.drawImage(image, -ship.width / 2, -ship.height / 2, ship.width, ship.height);
-                ctx.restore();
-            };
-
-            const drawBullets = () => {
-                ctx.fillStyle = '#FFFF00';
-                bulletPool.forEach((bullet) => {
-                    if (bullet.active) {
-                        ctx.fillRect(bullet.x - bullet.width / 2, bullet.y - bullet.height / 2, bullet.width, bullet.height);
-                    }
-                });
-            };
-
-            const drawAsteroids = () => {
-                asteroidPool.forEach((asteroid) => {
-                    if (asteroid.active) {
-                        ctx.save();
-                        ctx.translate(asteroid.x, asteroid.y);
-                        ctx.rotate(asteroid.rotation);
-                        const image = enemyImages[enemyType] || enemyImages.asteroid;
-                        ctx.drawImage(image, -asteroid.width / 2, -asteroid.height / 2, asteroid.width, asteroid.height);
-                        ctx.restore();
-                    }
-                });
-            };
-
-            const updateShip = (deltaTime: number) => {
-                const dx = mousePosRef.current.x - ship.x;
-                const dy = mousePosRef.current.y - ship.y;
-                ship.angle = Math.atan2(dy, dx);
-
-                ship.dx += Math.cos(ship.angle) * ship.acceleration;
-                ship.dy += Math.sin(ship.angle) * ship.acceleration;
-                ship.dx *= ship.friction;
-                ship.dy *= ship.friction;
-                ship.x += ship.dx * deltaTime * 60;
-                ship.y += ship.dy * deltaTime * 60;
-
-                if (ship.x < 0) ship.x = canvas.width;
-                if (ship.x > canvas.width) ship.x = 0;
-                if (ship.y < 0) ship.y = canvas.height;
-                if (ship.y > canvas.height) ship.y = 0;
-            };
-
-            const updateBullets = (deltaTime: number) => {
-                bulletPool.forEach((bullet) => {
-                    if (bullet.active) {
-                        bullet.x += bullet.dx * deltaTime * 60;
-                        bullet.y += bullet.dy * deltaTime * 60;
-                        if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
-                            bullet.active = false;
-                        }
-                    }
-                });
-            };
-
-            const updateAsteroids = (deltaTime: number) => {
-                asteroidPool.forEach((asteroid) => {
-                    if (asteroid.active) {
-                        asteroid.x += asteroid.dx * deltaTime * 60;
-                        asteroid.y += asteroid.dy * deltaTime * 60;
-                        asteroid.rotation += asteroid.rotationSpeed * deltaTime * 60;
-
-                        if (asteroid.x < 0) asteroid.x = canvas.width;
-                        if (asteroid.x > canvas.width) asteroid.x = 0;
-                        if (asteroid.y < 0) asteroid.y = canvas.height;
-                        if (asteroid.y > canvas.height) asteroid.y = 0;
-                    }
-                });
-            };
-
-            const checkCollisions = () => {
-                bulletPool.forEach((bullet) => {
-                    if (!bullet.active) return;
-                    asteroidPool.forEach((asteroid) => {
-                        if (!asteroid.active) return;
-                        const dx = bullet.x - asteroid.x;
-                        const dy = bullet.y - asteroid.y;
-                        const distance = Math.sqrt(dx * dx + dy * dy);
-                        if (distance < asteroid.width / 2) {
-                            bullet.active = false;
-                            asteroid.active = false;
-                            setScore((prev) => prev + 10);
-                            asteroidSpeedMultiplier += 0.1;
-                            asteroidPool.forEach((a) => {
-                                if (a.active) {
-                                    a.dx *= 1.1;
-                                    a.dy *= 1.1;
-                                }
-                            });
-                            spawnAsteroid();
-                        }
-                    });
-                });
-
-                asteroidPool.forEach((asteroid) => {
-                    if (!asteroid.active) return;
-                    const dx = ship.x - asteroid.x;
-                    const dy = ship.y - asteroid.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    if (distance < (asteroid.width / 2 + ship.width / 2)) {
-                        setGameOver(true);
-                    }
-                });
-            };
-
-            const draw = () => {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                drawShip();
-                drawBullets();
-                drawAsteroids();
-            };
-
-            const update = (deltaTime: number) => {
-                if (gameOver) return;
-                updateShip(deltaTime);
-                updateBullets(deltaTime);
-                updateAsteroids(deltaTime);
-                checkCollisions();
-            };
-
-            const gameLoop = (time: number) => {
-                if (gameOver) return;
-                const deltaTime = (time - lastFrameTimeRef.current) / 1000;
-                lastFrameTimeRef.current = time;
-
-                draw();
-                update(deltaTime);
-                animationFrameIdRef.current = requestAnimationFrame(gameLoop);
-            };
-
-            const handleMouseMove = (e: MouseEvent) => {
-                const rect = canvas.getBoundingClientRect();
-                mousePosRef.current = {
-                    x: e.clientX - rect.left,
-                    y: e.clientY - rect.top,
-                };
-            };
-
-            const handleMouseDown = () => {
-                if (gameOver) return;
-                const inactiveBullet = bulletPool.find((b) => !b.active);
-                if (inactiveBullet) {
-                    inactiveBullet.x = ship.x + Math.cos(ship.angle) * 10;
-                    inactiveBullet.y = ship.y + Math.sin(ship.angle) * 10;
-                    inactiveBullet.dx = Math.cos(ship.angle) * 5;
-                    inactiveBullet.dy = Math.sin(ship.angle) * 5;
-                    inactiveBullet.active = true;
-                }
-            };
-
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mousedown', handleMouseDown);
-            lastFrameTimeRef.current = performance.now();
-            animationFrameIdRef.current = requestAnimationFrame(gameLoop);
-
-            return () => {
-                window.removeEventListener('mousemove', handleMouseMove);
-                window.removeEventListener('mousedown', handleMouseDown);
-                cancelAnimationFrame(animationFrameIdRef.current);
-            };
+        switch (edge) {
+            case 0: // Top
+                x = Math.random() * canvas.width;
+                y = -ASTEROID_SIZE;
+                dx = (Math.random() - 0.5) * ASTEROID_SPEED_BASE * speedMultiplier;
+                dy = Math.random() * ASTEROID_SPEED_BASE * speedMultiplier;
+                break;
+            case 1: // Right
+                x = canvas.width + ASTEROID_SIZE;
+                y = Math.random() * canvas.height;
+                dx = -Math.random() * ASTEROID_SPEED_BASE * speedMultiplier;
+                dy = (Math.random() - 0.5) * ASTEROID_SPEED_BASE * speedMultiplier;
+                break;
+            case 2: // Bottom
+                x = Math.random() * canvas.width;
+                y = canvas.height + ASTEROID_SIZE;
+                dx = (Math.random() - 0.5) * ASTEROID_SPEED_BASE * speedMultiplier;
+                dy = -Math.random() * ASTEROID_SPEED_BASE * speedMultiplier;
+                break;
+            case 3: // Left
+                x = -ASTEROID_SIZE;
+                y = Math.random() * canvas.height;
+                dx = Math.random() * ASTEROID_SPEED_BASE * speedMultiplier;
+                dy = (Math.random() - 0.5) * ASTEROID_SPEED_BASE * speedMultiplier;
+                break;
+            default:
+                x = 0;
+                y = 0;
+                dx = 0;
+                dy = 0;
         }
 
-        return () => {
-            resizeObserver.disconnect();
+        return {
+            x,
+            y,
+            width: ASTEROID_SIZE,
+            height: ASTEROID_SIZE,
+            dx,
+            dy,
+            rotation: 0,
+            rotationSpeed: (Math.random() - 0.5) * 0.05,
+            active: true,
         };
-    }, [gameStarted, gameOver, imagesLoaded]);
+    }, []);
+
+    const drawShip = (ctx: CanvasRenderingContext2D, ship: { x: number; y: number; angle: number }) => {
+        ctx.save();
+        ctx.translate(ship.x, ship.y);
+        ctx.rotate(ship.angle);
+        const image = shipImages[shipType] || shipImages.ship;
+        ctx.drawImage(image, -SHIP_SIZE / 2, -SHIP_SIZE / 2, SHIP_SIZE, SHIP_SIZE);
+        ctx.restore();
+    };
+
+    const drawBullets = (ctx: CanvasRenderingContext2D, bulletPool: Bullet[]) => {
+        ctx.fillStyle = '#FFFF00';
+        bulletPool.forEach((bullet) => {
+            if (bullet.active) {
+                ctx.fillRect(bullet.x - BULLET_SIZE / 2, bullet.y - BULLET_SIZE / 2, BULLET_SIZE, BULLET_SIZE);
+            }
+        });
+    };
+
+    const drawAsteroids = (ctx: CanvasRenderingContext2D, asteroidPool: Asteroid[]) => {
+        asteroidPool.forEach((asteroid) => {
+            if (asteroid.active) {
+                ctx.save();
+                ctx.translate(asteroid.x, asteroid.y);
+                ctx.rotate(asteroid.rotation);
+                const image = enemyImages[enemyType] || enemyImages.asteroid;
+                ctx.drawImage(image, -ASTEROID_SIZE / 2, -ASTEROID_SIZE / 2, ASTEROID_SIZE, ASTEROID_SIZE);
+                ctx.restore();
+            }
+        });
+    };
+
+    const updateShip = useCallback((ship: { x: number; y: number; angle: number; dx: number; dy: number }, deltaTime: number, canvas: HTMLCanvasElement) => {
+        const dx = mousePosRef.current.x - ship.x;
+        const dy = mousePosRef.current.y - ship.y;
+        ship.angle = Math.atan2(dy, dx);
+
+        ship.dx += Math.cos(ship.angle) * 0.1;
+        ship.dy += Math.sin(ship.angle) * 0.1;
+        ship.dx *= 0.98;
+        ship.dy *= 0.98;
+        ship.x += ship.dx * deltaTime * 60;
+        ship.y += ship.dy * deltaTime * 60;
+
+        if (ship.x < 0) ship.x = canvas.width;
+        if (ship.x > canvas.width) ship.x = 0;
+        if (ship.y < 0) ship.y = canvas.height;
+        if (ship.y > canvas.height) ship.y = 0;
+    }, []);
+
+    const updateBullets = (bulletPool: Bullet[], deltaTime: number, canvas: HTMLCanvasElement) => {
+        bulletPool.forEach((bullet) => {
+            if (bullet.active) {
+                bullet.x += bullet.dx * deltaTime * 60;
+                bullet.y += bullet.dy * deltaTime * 60;
+                if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
+                    bullet.active = false;
+                }
+            }
+        });
+    };
+
+    const updateAsteroids = (asteroidPool: Asteroid[], deltaTime: number, canvas: HTMLCanvasElement) => {
+        asteroidPool.forEach((asteroid) => {
+            if (asteroid.active) {
+                asteroid.x += asteroid.dx * deltaTime * 60;
+                asteroid.y += asteroid.dy * deltaTime * 60;
+                asteroid.rotation += asteroid.rotationSpeed * deltaTime * 60;
+
+                if (asteroid.x < 0) asteroid.x = canvas.width;
+                if (asteroid.x > canvas.width) asteroid.x = 0;
+                if (asteroid.y < 0) asteroid.y = canvas.height;
+                if (asteroid.y > canvas.height) asteroid.y = 0;
+            }
+        });
+    };
+
+    const checkCollisions = useCallback((bulletPool: Bullet[], asteroidPool: Asteroid[], ship: { x: number; y: number }, speedMultiplier: number, canvas: HTMLCanvasElement) => {
+        bulletPool.forEach((bullet) => {
+            if (!bullet.active) return;
+            asteroidPool.forEach((asteroid) => {
+                if (!asteroid.active) return;
+                const dx = bullet.x - asteroid.x;
+                const dy = bullet.y - asteroid.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < ASTEROID_SIZE / 2) {
+                    bullet.active = false;
+                    asteroid.active = false;
+                    setScore((prev) => prev + 10);
+                    asteroidPool.forEach((a) => {
+                        if (a.active) {
+                            a.dx *= 1.1;
+                            a.dy *= 1.1;
+                        }
+                    });
+                    asteroidPool.push(spawnAsteroid(canvas, speedMultiplier + 0.1));
+                }
+            });
+        });
+
+        asteroidPool.forEach((asteroid) => {
+            if (!asteroid.active) return;
+            const dx = ship.x - asteroid.x;
+            const dy = ship.y - asteroid.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < (ASTEROID_SIZE / 2 + SHIP_SIZE / 2)) {
+                setGameOver(true);
+            }
+        });
+    }, [spawnAsteroid]);
+
+    // Game loop setup
+    useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container || !imagesLoaded) return;
+
+    const resizeCanvas = () => {
+        const { width, height } = container.getBoundingClientRect();
+        canvas.width = width;
+        canvas.height = height;
+    };
+
+    resizeCanvas();
+    const resizeObserver = new ResizeObserver(resizeCanvas);
+    resizeObserver.observe(container);
+
+    let ship = {
+        x: canvas.width / 2,
+        y: canvas.height / 2,
+        width: SHIP_SIZE,
+        height: SHIP_SIZE,
+        angle: 0,
+        dx: 0,
+        dy: 0,
+    };
+    let bulletPool: Bullet[] = Array(INITIAL_BULLET_COUNT).fill(null).map(() => ({
+        x: 0,
+        y: 0,
+        width: BULLET_SIZE,
+        height: BULLET_SIZE,
+        dx: 0,
+        dy: 0,
+        active: false,
+    }));
+    let asteroidPool: Asteroid[] = Array(INITIAL_ASTEROID_COUNT).fill(null).map(() => spawnAsteroid(canvas, 1));
+    let asteroidSpeedMultiplier = 1;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const draw = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (!gameOver) drawShip(ctx, ship); // Only draw ship if game is not over
+        drawBullets(ctx, bulletPool);
+        drawAsteroids(ctx, asteroidPool);
+    };
+
+    const update = (deltaTime: number) => {
+        if (gameOver) return;
+        updateShip(ship, deltaTime, canvas);
+        updateBullets(bulletPool, deltaTime, canvas);
+        updateAsteroids(asteroidPool, deltaTime, canvas);
+        checkCollisions(bulletPool, asteroidPool, ship, asteroidSpeedMultiplier, canvas);
+    };
+
+    const gameLoop = (time: number) => {
+        const deltaTime = (time - lastFrameTimeRef.current) / 1000;
+        lastFrameTimeRef.current = time;
+        draw();
+        update(deltaTime);
+        animationFrameIdRef.current = requestAnimationFrame(gameLoop);
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+        const rect = canvas.getBoundingClientRect();
+        mousePosRef.current = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
+        };
+    };
+
+    const handleMouseDown = () => {
+        if (gameOver) return;
+        const inactiveBullet = bulletPool.find((b) => !b.active);
+        if (inactiveBullet) {
+            inactiveBullet.x = ship.x + Math.cos(ship.angle) * 10;
+            inactiveBullet.y = ship.y + Math.sin(ship.angle) * 10;
+            inactiveBullet.dx = Math.cos(ship.angle) * BULLET_SPEED;
+            inactiveBullet.dy = Math.sin(ship.angle) * BULLET_SPEED;
+            inactiveBullet.active = true;
+        }
+    };
+
+    if (gameStarted && !gameOver) {
+        ship.x = canvas.width / 2;
+        ship.y = canvas.height / 2;
+        ship.dx = 0;
+        ship.dy = 0;
+        asteroidSpeedMultiplier = 1;
+        bulletPool.forEach(b => b.active = false);
+        asteroidPool = Array(INITIAL_ASTEROID_COUNT).fill(null).map(() => spawnAsteroid(canvas, asteroidSpeedMultiplier));
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mousedown', handleMouseDown);
+        lastFrameTimeRef.current = performance.now();
+        animationFrameIdRef.current = requestAnimationFrame(gameLoop);
+    }
+
+    return () => {
+        resizeObserver.disconnect();
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mousedown', handleMouseDown);
+        if (gameOver) cancelAnimationFrame(animationFrameIdRef.current);
+    };
+}, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnAsteroid, updateShip, checkCollisions]);
 
     const startGame = useCallback(async () => {
         if (ticketCount > 0 && startGameRef.current) {
@@ -425,8 +401,6 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
 
     const handleStartGameStatusChange = useCallback((status: 'idle' | 'pending' | 'success' | 'error', errorMessage?: string) => {
         setStartGameStatus(status);
-        setEndGameStatus('idle');
-        setEndGameError('');
         if (status === 'pending') {
             setStartGameError('');
         } else if (status === 'success') {
@@ -434,6 +408,11 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
             setGameStarted(true);
             setGameOver(false);
             setScore(0);
+            setEndGameStatus('idle'); // Reset end game state
+            setEndGameError('');
+            setEndGameMessage('');
+            containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            canvasRef.current?.focus();
         } else if (status === 'error') {
             setStartGameError(errorMessage || 'Failed to start game');
             setGameStarted(false);
@@ -448,7 +427,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
             setEndGameMessage('CONGRATULATIONS! YOU SET A NEW HIGH SCORE!');
             console.log('New leader score:', score);
         } else if (status === 'loser') {
-            setEndGameMessage('YOU DID NOT BEAT THE HIGH SCORE: '+highScore+'!');
+            setEndGameMessage(`YOU DID NOT BEAT THE HIGH SCORE: ${highScore}!`);
             console.log('Game ended, not the leader. Player Score:', score, 'High Score:', highScore);
         } else if (status === 'error') {
             setEndGameError(errorMessage || 'Failed to end game');
@@ -460,6 +439,14 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
             endGame();
         }
     }, [gameOver, gameStarted, endGameStatus, endGame]);
+
+    const gameOverMessages: Record<string, JSX.Element> = {
+        pending: <p>SUBMITTING SCORE...</p>,
+        leader: <p>{endGameMessage}</p>,
+        loser: <p>{endGameMessage}</p>,
+        error: <p className="text-error-red">Error: {endGameError || 'Failed to submit score'}</p>,
+        idle: <p></p>,
+    };
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-primary-bg p-4">
@@ -490,15 +477,11 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                     <div className="mb-4 flex items-center justify-center">
                         <p className="mr-2">CHOOSE SPACE SHIP:</p>
                         {imagesLoaded && shipImages[shipType] && (
-                            <img
-                                src={shipImages[shipType].src}
-                                alt={shipType}
-                                className="w-10 h-10 mr-2"
-                            />
+                            <img src={shipImages[shipType].src} alt={shipType} className="w-10 h-10 mr-2" />
                         )}
                         <select
                             value={shipType}
-                            onChange={(e) => setShipType(e.target.value as typeof shipType)}
+                            onChange={(e) => setShipType(e.target.value as ShipType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
                             <option value="ship">DEFAULT</option>
@@ -509,15 +492,11 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                     <div className="mb-4 flex items-center justify-center">
                         <p className="mr-2">CHOOSE ENEMY:</p>
                         {imagesLoaded && enemyImages[enemyType] && (
-                            <img
-                                src={enemyImages[enemyType].src}
-                                alt={enemyType}
-                                className="w-10 h-10 mr-2"
-                            />
+                            <img src={enemyImages[enemyType].src} alt={enemyType} className="w-10 h-10 mr-2" />
                         )}
                         <select
                             value={enemyType}
-                            onChange={(e) => setEnemyType(e.target.value as typeof enemyType)}
+                            onChange={(e) => setEnemyType(e.target.value as EnemyType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
                             <option value="asteroid">DEFAULT</option>
@@ -536,7 +515,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                     )}
                 </div>
             ) : (
-                <div ref={containerRef} className="w-full max-w-4xl h-[80vh] relative">
+                <div ref={containerRef} className="w-full max-w-[1008px] h-[80vh] min-h-[400px] min-w-[300px] relative">
                     <div className="text-primary-text mb-1 text-center font-mono">
                         <span className="text-2xl text-accent-yellow">SCORE: {score}</span>
                         <span className="text-2xl text-accent-yellow ml-8">HIGH SCORE: {existingHighScore}</span>
@@ -544,13 +523,12 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                     {gameOver && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-primary-text text-2xl font-mono">
                             <p>GAME OVER - YOUR SCORE: {score}</p>
-                            {endGameStatus === 'pending' && <p>SUBMITTING SCORE...</p>}
-                            {endGameStatus === 'leader' && <p>{endGameMessage}</p>}
-                            {endGameStatus === 'loser' && <p>{endGameMessage}</p>}
-                            {endGameStatus === 'error' && (
-                                <p className="text-error-red">Error: {endGameError || 'Failed to submit score'}</p>
-                            )}
-                            <Button className="mt-6" onClick={startGame} disabled={startGameStatus === 'pending' || endGameStatus === 'pending' || endGameStatus === 'leader'}>
+                            {gameOverMessages[endGameStatus]}
+                            <Button
+                                className="mt-6"
+                                onClick={startGame}
+                                disabled={startGameStatus === 'pending' || endGameStatus === 'pending' || endGameStatus === 'leader'}
+                            >
                                 {startGameStatus === 'pending' ? 'starting...' : 'PLAY AGAIN'}
                             </Button>
                             {startGameStatus === 'error' && startGameError && (
@@ -558,7 +536,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                             )}
                         </div>
                     )}
-                    <canvas ref={canvasRef} className="w-full h-full border-2 border-primary-border" />
+                    <canvas ref={canvasRef} className="w-full h-full border-2 border-primary-border" tabIndex={0} />
                 </div>
             )}
         </div>

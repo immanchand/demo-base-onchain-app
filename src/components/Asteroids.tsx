@@ -38,7 +38,9 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
     const [gameStarted, setGameStarted] = useState<boolean>(false);
     const [gameOver, setGameOver] = useState<boolean>(false);
     const [score, setScore] = useState<number>(0);
-    const [enemyType, setEnemyType] = useState<'asteroid' | 'enemy1' | 'enemy2' | 'enemy3'>('asteroid'); // New state for enemy type
+    const [enemyType, setEnemyType] = useState<'asteroid' | 'enemy1' | 'enemy2' | 'enemy3'>('asteroid');
+    const [imagesLoaded, setImagesLoaded] = useState<boolean>(false);
+    const [enemyImages, setEnemyImages] = useState<Record<string, HTMLImageElement>>({}); // Store image references
     const lastFrameTimeRef = useRef<number>(performance.now());
     const animationFrameIdRef = useRef<number>(0);
     const mousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -52,10 +54,53 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
     const [endGameMessage, setEndGameMessage] = useState<string>('');
     const { address } = useAccount();
 
+    // Preload images and store references
+    useEffect(() => {
+        const asteroidImage = new Image();
+        const enemy1Image = new Image();
+        const enemy2Image = new Image();
+        const enemy3Image = new Image();
+
+        asteroidImage.src = '/images/asteroid.webp';
+        enemy1Image.src = '/images/asteroid.webp'; // Temporarily same image
+        enemy2Image.src = '/images/asteroid.webp';
+        enemy3Image.src = '/images/asteroid.webp';
+
+        let loadedCount = 0;
+        const totalImages = 4;
+
+        const onImageLoad = () => {
+            loadedCount += 1;
+            if (loadedCount === totalImages) {
+                setEnemyImages({
+                    asteroid: asteroidImage,
+                    enemy1: enemy1Image,
+                    enemy2: enemy2Image,
+                    enemy3: enemy3Image,
+                });
+                setImagesLoaded(true);
+            }
+        };
+
+        const onImageError = (e: Event) => {
+            console.error('Image failed to load:', (e.target as HTMLImageElement).src);
+        };
+
+        asteroidImage.onload = onImageLoad;
+        enemy1Image.onload = onImageLoad;
+        enemy2Image.onload = onImageLoad;
+        enemy3Image.onload = onImageLoad;
+
+        asteroidImage.onerror = onImageError;
+        enemy1Image.onerror = onImageError;
+        enemy2Image.onerror = onImageError;
+        enemy3Image.onerror = onImageError;
+    }, []);
+
     useEffect(() => {
         const canvas = canvasRef.current;
         const container = containerRef.current;
-        if (!canvas || !container) return;
+        if (!canvas || !container || !imagesLoaded) return;
 
         const resizeCanvas = () => {
             const { width, height } = container.getBoundingClientRect();
@@ -87,15 +132,10 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         let asteroidPool: Asteroid[] = [];
         let asteroidSpeedMultiplier = 1;
 
-        // Preload enemy images
-        const asteroidImage = new Image();
-        const enemy1Image = new Image();
-        const enemy2Image = new Image();
-        const enemy3Image = new Image();
-        asteroidImage.src = '/images/asteroid.webp'; // Adjust path as needed
-        enemy1Image.src = '/images/enemy1.webp';
-        enemy2Image.src = '/images/enemy2.webp';
-        enemy3Image.src = '/images/enemy3.webp';
+        const asteroidImage = enemyImages.asteroid;
+        const enemy1Image = enemyImages.enemy1;
+        const enemy2Image = enemyImages.enemy2;
+        const enemy3Image = enemyImages.enemy3;
 
         if (gameStarted && !gameOver) {
             const ctx = canvas.getContext('2d');
@@ -366,7 +406,7 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         return () => {
             resizeObserver.disconnect();
         };
-    }, [gameStarted, gameOver]);
+    }, [gameStarted, gameOver, imagesLoaded]);
 
     const startGame = useCallback(async () => {
         if (ticketCount > 0 && startGameRef.current) {
@@ -449,9 +489,15 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                     <p className="mb-2">CONTROLS:</p>
                     <p className="mb-2">Mouse Move: Steer Ship</p>
                     <p className="mb-4">Mouse Click: Shoot</p>
-                    {/* New UI element for enemy selection */}
-                    <div className="mb-4">
-                        <p className="mb-2">CHOOSE ENEMY:</p>
+                    <div className="mb-4 flex items-center justify-center">
+                        <p className="mr-2">CHOOSE ENEMY:</p>
+                        {imagesLoaded && enemyImages[enemyType] && (
+                            <img
+                                src={enemyImages[enemyType].src}
+                                alt={enemyType}
+                                className="w-10 h-10 mr-2"
+                            />
+                        )}
                         <select
                             value={enemyType}
                             onChange={(e) => setEnemyType(e.target.value as typeof enemyType)}
@@ -462,10 +508,9 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                             <option value="enemy2">Enemy 2</option>
                             <option value="enemy3">Enemy 3</option>
                         </select>
-                        
                     </div>
-                    <Button onClick={startGame} disabled={startGameStatus === 'pending'}>
-                        {startGameStatus === 'pending' ? 'starting...' : 'START GAME'}
+                    <Button onClick={startGame} disabled={startGameStatus === 'pending' || !imagesLoaded}>
+                        {startGameStatus === 'pending' ? 'starting...' : !imagesLoaded ? 'Loading...' : 'START GAME'}
                     </Button>
                     <p className="mt-2">COST: 1 TICKET</p>
                     {startGameStatus === 'error' && startGameError && (

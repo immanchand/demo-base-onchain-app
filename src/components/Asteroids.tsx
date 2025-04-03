@@ -39,8 +39,10 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
     const [gameOver, setGameOver] = useState<boolean>(false);
     const [score, setScore] = useState<number>(0);
     const [enemyType, setEnemyType] = useState<'asteroid' | 'bitcoin' | 'xrp' | 'solana' | 'gensler'>('asteroid');
+    const [shipType, setShipType] = useState<'ship' | 'eth' | 'base'>('ship');
     const [imagesLoaded, setImagesLoaded] = useState<boolean>(false);
     const [enemyImages, setEnemyImages] = useState<Record<string, HTMLImageElement>>({});
+    const [shipImages, setShipImages] = useState<Record<string, HTMLImageElement>>({});
     const lastFrameTimeRef = useRef<number>(performance.now());
     const animationFrameIdRef = useRef<number>(0);
     const mousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -61,12 +63,18 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
         const xrpImage = new Image();
         const solanaImage = new Image();
         const genslerImage = new Image();
+        const shipImage = new Image();
+        const ethImage = new Image();
+        const baseImage = new Image();
 
         asteroidImage.src = '/images/asteroid.webp';
         bitcoinImage.src = '/images/bitcoin.png';
         xrpImage.src = '/images/xrp.png'; // Placeholder until actual image
         solanaImage.src = '/images/solana.png'; // Placeholder until actual image
-        genslerImage.src = '/images/ethereum.png'; // Placeholder until actual image
+        genslerImage.src = '/images/gensler.png'; // Placeholder until actual image
+        shipImage.src = '/images/spaceship.png';
+        ethImage.src = '/images/ethereum.png';
+        baseImage.src = '/images/base.png';
 
         let loadedCount = 0;
         const totalImages = 5; // Corrected to match number of images
@@ -85,21 +93,11 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
             }
         };
 
-        const onImageError = (e: Event) => {
-            console.error('Image failed to load:', (e.target as HTMLImageElement).src);
-        };
-
         asteroidImage.onload = onImageLoad;
         bitcoinImage.onload = onImageLoad;
         xrpImage.onload = onImageLoad;
         solanaImage.onload = onImageLoad;
         genslerImage.onload = onImageLoad;
-
-        asteroidImage.onerror = onImageError;
-        bitcoinImage.onerror = onImageError;
-        xrpImage.onerror = onImageError;
-        solanaImage.onerror = onImageError;
-        genslerImage.onerror = onImageError;
     }, []);
 
     useEffect(() => {
@@ -486,6 +484,25 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                     <p className="mb-2">Mouse Move: Steer Ship</p>
                     <p className="mb-4">Mouse Click: Shoot</p>
                     <div className="mb-4 flex items-center justify-center">
+                        <p className="mr-2">CHOOSE SPACE SHIP:</p>
+                        {imagesLoaded && shipImages[shipType] && (
+                            <img
+                                src={shipImages[shipType].src}
+                                alt={shipType}
+                                className="w-10 h-10 mr-2"
+                            />
+                        )}
+                        <select
+                            value={shipType}
+                            onChange={(e) => setShipType(e.target.value as typeof shipType)}
+                            className="bg-black text-white border border-yellow-500 p-1"
+                        >
+                            <option value="ship">DEFAULT</option>
+                            <option value="eth">ETHEREUM</option>
+                            <option value="base">BASE</option>
+                        </select>
+                    </div>
+                    <div className="mb-4 flex items-center justify-center">
                         <p className="mr-2">CHOOSE ENEMY:</p>
                         {imagesLoaded && enemyImages[enemyType] && (
                             <img
@@ -499,11 +516,11 @@ const Asteroids: React.FC<AsteroidsProps> = ({ gameId, existingHighScore, update
                             onChange={(e) => setEnemyType(e.target.value as typeof enemyType)}
                             className="bg-black text-white border border-yellow-500 p-1"
                         >
-                            <option value="asteroid">Asteroids</option>
-                            <option value="bitcoin">Bitcoin</option>
+                            <option value="asteroid">DEFAULT</option>
+                            <option value="bitcoin">BITCOIN</option>
                             <option value="xrp">XRP</option>
-                            <option value="solana">Solana</option>
-                            <option value="gensler">Gensler</option>
+                            <option value="solana">SOLANA</option>
+                            <option value="gensler">GENSLER</option>
                         </select>
                     </div>
                     <Button onClick={startGame} disabled={startGameStatus === 'pending' || !imagesLoaded}>

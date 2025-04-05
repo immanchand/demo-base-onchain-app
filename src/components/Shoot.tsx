@@ -36,7 +36,7 @@ type EnemyType = 'alien' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
 type ShipType = 'ship' | 'eth' | 'base';
 
 // Constants
-const SHIP_SIZE = 20;
+const SHIP_SIZE = 30;
 const BULLET_SIZE = 4;
 const ENEMY_SIZE = 40;
 const INITIAL_BULLET_COUNT = 10;
@@ -80,7 +80,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             eth: new Image(),
             base: new Image(),
         };
-        images.alien.src = '/images/alien.webp';
+        images.alien.src = '/images/alien.png';
         images.bitcoin.src = '/images/bitcoin.png';
         images.xrp.src = '/images/xrp.png';
         images.solana.src = '/images/solana.png';
@@ -354,8 +354,8 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             if (gameOver) return;
             const inactiveBullet = bulletPool.find((b) => !b.active);
             if (inactiveBullet) {
-                inactiveBullet.x = ship.x + Math.cos(ship.angle) * 10;
-                inactiveBullet.y = ship.y + Math.sin(ship.angle) * 10;
+                inactiveBullet.x = ship.x + Math.cos(ship.angle) * (SHIP_SIZE / 2);
+                inactiveBullet.y = ship.y + Math.sin(ship.angle) * (SHIP_SIZE / 2);
                 inactiveBullet.dx = Math.cos(ship.angle) * BULLET_SPEED;
                 inactiveBullet.dy = Math.sin(ship.angle) * BULLET_SPEED;
                 inactiveBullet.active = true;

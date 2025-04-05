@@ -146,17 +146,19 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const drawBackground = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, buildings: { x: number; width: number; height: number }[], offset: number) => {
         ctx.fillStyle = '#000000'; // Black sky
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#FFFFFF'; // White buildings
+        ctx.strokeStyle = '#FFFFFF'; // White outlines for buildings
+        ctx.lineWidth = 2;
         buildings.forEach(building => {
             const x = (building.x + offset) % (canvas.width * 2) - canvas.width; // Seamless looping
-            ctx.fillRect(x, canvas.height - GROUND_HEIGHT - building.height, building.width, building.height);
+            ctx.strokeRect(x, canvas.height - GROUND_HEIGHT - building.height, building.width, building.height);
         });
     };
 
     const drawGround = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, offset: number) => {
         ctx.fillStyle = '#000000'; // Black base ground
         ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
-        ctx.fillStyle = '#FFFFFF'; // White bricks
+        ctx.strokeStyle = '#FFFFFF'; // White outlines for bricks
+        ctx.lineWidth = 1;
         const brickRows = Math.ceil(GROUND_HEIGHT / BRICK_SIZE);
         const brickCols = Math.ceil(canvas.width / BRICK_SIZE) + 1; // Extra column for seamless scroll
         for (let row = 0; row < brickRows; row++) {
@@ -165,7 +167,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 const y = canvas.height - GROUND_HEIGHT + row * BRICK_SIZE;
                 const isOffsetRow = row % 2 === 1; // Stagger every other row
                 const brickX = isOffsetRow ? x + BRICK_SIZE / 2 : x;
-                ctx.fillRect(brickX, y, BRICK_SIZE - 2, BRICK_SIZE - 2); // Small gap for definition
+                ctx.strokeRect(brickX, y, BRICK_SIZE - 2, BRICK_SIZE - 2); // Small gap for definition
             }
         }
     };
@@ -237,9 +239,9 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             const obstacleSpeed = BASE_OBSTACLE_SPEED * speedMultiplier;
             const minGap = OBSTACLE_SIZE * (50 - timeLevel * 4);
 
-            // Update background offset (scrolls at obstacle speed)
-            backgroundOffset -= obstacleSpeed * deltaTime * 60; // Normalized to 60 FPS
-            if (backgroundOffset <= -canvas.width) backgroundOffset += canvas.width; // Reset for seamless loop
+            // Update background offset (scrolls right-to-left)
+            backgroundOffset += Math.abs(obstacleSpeed) * deltaTime * 60; // Positive to move right-to-left
+            if (backgroundOffset >= canvas.width) backgroundOffset -= canvas.width; // Reset for seamless loop
 
             // Update ship
             if (!gameOver) {
@@ -444,7 +446,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                             onChange={(e) => setShipType(e.target.value as ShipType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="runner">DEFAULT</option> {/* Corrected value */}
+                            <option value="runner">DEFAULT</option>
                             <option value="eth">ETHEREUM</option>
                             <option value="base">BASE</option>
                         </select>

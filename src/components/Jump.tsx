@@ -23,7 +23,7 @@ interface Obstacle extends Entity {
     dx: number;
 }
 
-type EnemyType = 'asteroid' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
+type EnemyType = 'obstacle' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
 type ShipType = 'ship' | 'eth' | 'base';
 
 // Constants
@@ -41,7 +41,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const [gameStarted, setGameStarted] = useState<boolean>(false);
     const [gameOver, setGameOver] = useState<boolean>(false);
     const [score, setScore] = useState<number>(0);
-    const [enemyType, setEnemyType] = useState<EnemyType>('asteroid');
+    const [enemyType, setEnemyType] = useState<EnemyType>('obstacle');
     const [shipType, setShipType] = useState<ShipType>('ship');
     const [imagesLoaded, setImagesLoaded] = useState<boolean>(false);
     const [enemyImages, setEnemyImages] = useState<Record<EnemyType, HTMLImageElement>>({} as Record<EnemyType, HTMLImageElement>);
@@ -64,7 +64,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     // Preload images (unchanged)
     useEffect(() => {
         const images = {
-            asteroid: new Image(),
+            obstacle: new Image(),
             bitcoin: new Image(),
             xrp: new Image(),
             solana: new Image(),
@@ -73,7 +73,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             eth: new Image(),
             base: new Image(),
         };
-        images.asteroid.src = '/images/asteroid.webp';
+        images.obstacle.src = '/images/obstacle.webp';
         images.bitcoin.src = '/images/bitcoin.png';
         images.xrp.src = '/images/xrp.png';
         images.solana.src = '/images/solana.png';
@@ -89,7 +89,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             loadedCount += 1;
             if (loadedCount === totalImages) {
                 setEnemyImages({
-                    asteroid: images.asteroid,
+                    obstacle: images.obstacle,
                     bitcoin: images.bitcoin,
                     xrp: images.xrp,
                     solana: images.solana,
@@ -148,7 +148,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
     const drawObstacles = (ctx: CanvasRenderingContext2D, obstaclePool: Obstacle[]) => {
         obstaclePool.forEach((obstacle) => {
-            const image = enemyImages[enemyType] || enemyImages.asteroid;
+            const image = enemyImages[enemyType] || enemyImages.obstacle;
             ctx.drawImage(image, obstacle.x, obstacle.y, OBSTACLE_SIZE, OBSTACLE_SIZE);
         });
     };
@@ -394,14 +394,14 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 <div className="text-center text-primary-text font-mono">
                     <h1 className="text-3xl text-accent-yellow mb-4">JUMP</h1>
                     <p className="text-xl mb-2">INSTRUCTIONS:</p>
-                    <p className="mb-2">Press the spacebar to jump, double-press quickly for a higher jump.</p>
-                    <p className="mb-2">Or Click the mouse to jump, double-click quickly for a higher jump.</p>
+                    <p className="mb-2">Use the spacebar or mouse to jump.</p>
+                    <p className="mb-2">Double-press or click quickly for a higher jump.</p>
                     <p className="mb-4">Avoid hitting obstacles to keep going!</p>
                     <p className="mb-2">CONTROLS:</p>
                     <p className="mb-4">Spacebar: Jump (Double-press for higher jump)</p>
                     <p className="mb-4">Mouse Click: Jump (Double-click for higher jump)</p>
                     <div className="mb-4 flex items-center justify-center">
-                        <p className="mr-2">CHOOSE SPACE SHIP:</p>
+                        <p className="mr-2">CHOOSE VEHICLE:</p>
                         {imagesLoaded && shipImages[shipType] && (
                             <img src={shipImages[shipType].src} alt={shipType} className="w-10 h-10 mr-2" />
                         )}
@@ -425,7 +425,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                             onChange={(e) => setEnemyType(e.target.value as EnemyType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="asteroid">DEFAULT</option>
+                            <option value="obstacle">DEFAULT</option>
                             <option value="bitcoin">BITCOIN</option>
                             <option value="xrp">XRP</option>
                             <option value="solana">SOLANA</option>

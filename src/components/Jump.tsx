@@ -32,8 +32,10 @@ const OBSTACLE_SIZE = 40;
 const GRAVITY = 0.5;
 const JUMP_VELOCITY = -12;
 const BASE_OBSTACLE_SPEED = -3;
-const GROUND_HEIGHT = 150;
+const GROUND_HEIGHT = 200;
 const DOUBLE_PRESS_THRESHOLD = 300; // 300ms for double press detection
+const BUILDING_COUNT = 20; // Number of buildings
+const BRICK_SIZE = 20; // Size of each brick in the pattern
 
 const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -48,9 +50,9 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const [shipImages, setShipImages] = useState<Record<ShipType, HTMLImageElement>>({} as Record<ShipType, HTMLImageElement>);
     const lastFrameTimeRef = useRef<number>(performance.now());
     const animationFrameIdRef = useRef<number>(0);
-    const lastKeyPressRef = useRef<number>(0); // Track time of last spacebar press
-    const jumpCountRef = useRef<number>(0); // Track number of jumps in air
-    const startTimeRef = useRef<number>(0); // Track game start time
+    const lastKeyPressRef = useRef<number>(0);
+    const jumpCountRef = useRef<number>(0);
+    const startTimeRef = useRef<number>(0);
     const { ticketCount } = useTicketContext();
     const startGameRef = useRef<{ startGame: () => Promise<void> }>(null);
     const endGameRef = useRef<{ endGame: () => Promise<void> }>(null);
@@ -114,10 +116,10 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         const obstacles: Obstacle[] = [];
         const baseX = canvas.width;
         const baseY = canvas.height - GROUND_HEIGHT - OBSTACLE_SIZE;
-    
+
         let widthCount = 1;
         let heightCount = 1;
-    
+
         const timeLevel = Math.floor(elapsedTime / 10);
         if (timeLevel >= 1) heightCount = 2; // 1x2 at 10s
         if (timeLevel >= 2) widthCount = 2;   // 2x1 at 20s
@@ -126,7 +128,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             heightCount = 2;
         }
         if (timeLevel >= 4 && Math.random() < 0.3) heightCount = 3; // 1x3 or 2x3 at 40s+
-    
+
         for (let w = 0; w < widthCount; w++) {
             for (let h = 0; h < heightCount; h++) {
                 obstacles.push({
@@ -140,8 +142,33 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         }
         return obstacles;
     }, []);
-    
-    
+
+    const drawBackground = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, buildings: { x: number; width: number; height: number }[], offset: number) => {
+        ctx.fillStyle = '#000000'; // Black sky
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#FFFFFF'; // White buildings
+        buildings.forEach(building => {
+            const x = (building.x + offset) % (canvas.width * 2) - canvas.width; // Seamless looping
+            ctx.fillRect(x, canvas.height - GROUND_HEIGHT - building.height, building.width, building.height);
+        });
+    };
+
+    const drawGround = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, offset: number) => {
+        ctx.fillStyle = '#000000'; // Black base ground
+        ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
+        ctx.fillStyle = '#FFFFFF'; // White bricks
+        const brickRows = Math.ceil(GROUND_HEIGHT / BRICK_SIZE);
+        const brickCols = Math.ceil(canvas.width / BRICK_SIZE) + 1; // Extra column for seamless scroll
+        for (let row = 0; row < brickRows; row++) {
+            for (let col = 0; col < brickCols; col++) {
+                const x = (col * BRICK_SIZE + offset) % (canvas.width + BRICK_SIZE) - BRICK_SIZE;
+                const y = canvas.height - GROUND_HEIGHT + row * BRICK_SIZE;
+                const isOffsetRow = row % 2 === 1; // Stagger every other row
+                const brickX = isOffsetRow ? x + BRICK_SIZE / 2 : x;
+                ctx.fillRect(brickX, y, BRICK_SIZE - 2, BRICK_SIZE - 2); // Small gap for definition
+            }
+        }
+    };
 
     const drawShip = (ctx: CanvasRenderingContext2D, ship: { x: number; y: number }) => {
         const image = shipImages[shipType] || shipImages.runner;
@@ -153,11 +180,6 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             const image = enemyImages[enemyType] || enemyImages.obstacle;
             ctx.drawImage(image, obstacle.x, obstacle.y, OBSTACLE_SIZE, OBSTACLE_SIZE);
         });
-    };
-
-    const drawGround = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
-        ctx.fillStyle = '#555555';
-        ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
     };
 
     // Game loop setup
@@ -177,7 +199,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         resizeObserver.observe(container);
 
         let ship = {
-            x: 200, //starting ship position
+            x: 200,
             y: canvas.height - GROUND_HEIGHT - SHIP_SIZE,
             width: SHIP_SIZE,
             height: SHIP_SIZE,
@@ -185,13 +207,23 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         };
         let obstaclePool: Obstacle[] = [];
         let lastObstacleSpawnX = canvas.width;
+        let backgroundOffset = 0; // Offset for scrolling background and ground
+
+        // Initialize buildings
+        const buildings: { x: number; width: number; height: number }[] = [];
+        for (let i = 0; i < BUILDING_COUNT; i++) {
+            const width = 50 + Math.random() * 50; // 50-100px wide
+            const height = 100 + Math.random() * 150; // 100-250px tall
+            const x = (i * canvas.width * 2) / BUILDING_COUNT; // Spread across double width for loop
+            buildings.push({ x, width, height });
+        }
 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
         const draw = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawGround(ctx, canvas);
+            drawBackground(ctx, canvas, buildings, backgroundOffset);
+            drawGround(ctx, canvas, backgroundOffset);
             if (!gameOver) {
                 drawShip(ctx, ship);
             }
@@ -200,13 +232,15 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
         const update = (deltaTime: number) => {
             const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
-            const timeLevel = Math.min(Math.floor(elapsedTime / 5), 10); // Every 5s, cap at 50s
-            const speedMultiplier = 1 + timeLevel * 0.05; // 5% increase, max 1.5x
+            const timeLevel = Math.min(Math.floor(elapsedTime / 5), 10);
+            const speedMultiplier = 1 + timeLevel * 0.05;
             const obstacleSpeed = BASE_OBSTACLE_SPEED * speedMultiplier;
-            const minGap = OBSTACLE_SIZE * (50 - timeLevel * 4); // 2000px to 200px
-        
-            // Rest of the update logic...
-       
+            const minGap = OBSTACLE_SIZE * (50 - timeLevel * 4);
+
+            // Update background offset (scrolls at obstacle speed)
+            backgroundOffset -= obstacleSpeed * deltaTime * 60; // Normalized to 60 FPS
+            if (backgroundOffset <= -canvas.width) backgroundOffset += canvas.width; // Reset for seamless loop
+
             // Update ship
             if (!gameOver) {
                 ship.vy += GRAVITY;
@@ -214,7 +248,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 if (ship.y > canvas.height - GROUND_HEIGHT - SHIP_SIZE) {
                     ship.y = canvas.height - GROUND_HEIGHT - SHIP_SIZE;
                     ship.vy = 0;
-                    jumpCountRef.current = 0; // Reset jump count when landing
+                    jumpCountRef.current = 0;
                 }
                 setScore((prev) => prev + deltaTime * 10 * speedMultiplier);
             }
@@ -226,7 +260,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             });
             obstaclePool = obstaclePool.filter((obstacle) => obstacle.x + OBSTACLE_SIZE > 0);
 
-            // Spawn new obstacles with dynamic gap
+            // Spawn new obstacles
             const rightmostObstacle = obstaclePool.reduce((max, obs) => Math.max(max, obs.x), -minGap);
             if (canvas.width - rightmostObstacle >= minGap && !gameOver) {
                 obstaclePool.push(...spawnObstacles(canvas, obstacleSpeed, elapsedTime));
@@ -259,10 +293,10 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 const now = Date.now();
                 const timeSinceLastPress = now - lastKeyPressRef.current;
                 if (timeSinceLastPress < DOUBLE_PRESS_THRESHOLD && lastKeyPressRef.current !== 0 && jumpCountRef.current === 1) {
-                    ship.vy = JUMP_VELOCITY; // Double jump
+                    ship.vy = JUMP_VELOCITY;
                     jumpCountRef.current += 1;
                 } else if (jumpCountRef.current === 0) {
-                    ship.vy = JUMP_VELOCITY; // Single jump
+                    ship.vy = JUMP_VELOCITY;
                     jumpCountRef.current += 1;
                 }
                 lastKeyPressRef.current = now;
@@ -275,10 +309,10 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 const now = Date.now();
                 const timeSinceLastPress = now - lastKeyPressRef.current;
                 if (timeSinceLastPress < DOUBLE_PRESS_THRESHOLD && lastKeyPressRef.current !== 0 && jumpCountRef.current === 1) {
-                    ship.vy = JUMP_VELOCITY; // Double jump
+                    ship.vy = JUMP_VELOCITY;
                     jumpCountRef.current += 1;
                 } else if (jumpCountRef.current === 0) {
-                    ship.vy = JUMP_VELOCITY; // Single jump
+                    ship.vy = JUMP_VELOCITY;
                     jumpCountRef.current += 1;
                 }
                 lastKeyPressRef.current = now;
@@ -291,7 +325,8 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             jumpCountRef.current = 0;
             obstaclePool = spawnObstacles(canvas, BASE_OBSTACLE_SPEED, 0);
             lastObstacleSpawnX = canvas.width;
-            startTimeRef.current = performance.now(); // Set start time
+            startTimeRef.current = performance.now();
+            backgroundOffset = 0;
 
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('mousedown', handleMouseDown);
@@ -302,6 +337,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         return () => {
             resizeObserver.disconnect();
             window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('mousedown', handleMouseDown);
             cancelAnimationFrame(animationFrameIdRef.current);
         };
     }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnObstacles]);
@@ -408,7 +444,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                             onChange={(e) => setShipType(e.target.value as ShipType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="runner">DEFAULT</option>
+                            <option value="runner">DEFAULT</option> {/* Corrected value */}
                             <option value="eth">ETHEREUM</option>
                             <option value="base">BASE</option>
                         </select>

@@ -24,7 +24,7 @@ interface Obstacle extends Entity {
 }
 
 type EnemyType = 'obstacle' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
-type ShipType = 'ship' | 'eth' | 'base';
+type ShipType = 'runner' | 'eth' | 'base';
 
 // Constants
 const SHIP_SIZE = 40;
@@ -32,7 +32,7 @@ const OBSTACLE_SIZE = 40;
 const GRAVITY = 0.5;
 const JUMP_VELOCITY = -12;
 const BASE_OBSTACLE_SPEED = -3;
-const GROUND_HEIGHT = 100;
+const GROUND_HEIGHT = 150;
 const DOUBLE_PRESS_THRESHOLD = 300; // 300ms for double press detection
 
 const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets }) => {
@@ -42,7 +42,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const [gameOver, setGameOver] = useState<boolean>(false);
     const [score, setScore] = useState<number>(0);
     const [enemyType, setEnemyType] = useState<EnemyType>('obstacle');
-    const [shipType, setShipType] = useState<ShipType>('ship');
+    const [shipType, setShipType] = useState<ShipType>('runner');
     const [imagesLoaded, setImagesLoaded] = useState<boolean>(false);
     const [enemyImages, setEnemyImages] = useState<Record<EnemyType, HTMLImageElement>>({} as Record<EnemyType, HTMLImageElement>);
     const [shipImages, setShipImages] = useState<Record<ShipType, HTMLImageElement>>({} as Record<ShipType, HTMLImageElement>);
@@ -69,17 +69,17 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             xrp: new Image(),
             solana: new Image(),
             gensler: new Image(),
-            ship: new Image(),
+            runner: new Image(),
             eth: new Image(),
             base: new Image(),
         };
-        images.obstacle.src = '/images/obstacle.webp';
+        images.obstacle.src = '/images/obstacle.png';
         images.bitcoin.src = '/images/bitcoin.png';
         images.xrp.src = '/images/xrp.png';
         images.solana.src = '/images/solana.png';
         images.gensler.src = '/images/gensler.png';
-        images.ship.src = '/images/spaceship.png';
-        images.eth.src = '/images/ethereum.png';
+        images.runner.src = '/images/runner.png';
+        images.eth.src = '/images/ethereum_up.png';
         images.base.src = '/images/base.png';
 
         let loadedCount = 0;
@@ -96,7 +96,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     gensler: images.gensler,
                 });
                 setShipImages({
-                    ship: images.ship,
+                    runner: images.runner,
                     eth: images.eth,
                     base: images.base,
                 });
@@ -114,19 +114,19 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         const obstacles: Obstacle[] = [];
         const baseX = canvas.width;
         const baseY = canvas.height - GROUND_HEIGHT - OBSTACLE_SIZE;
-
+    
         let widthCount = 1;
         let heightCount = 1;
-
-        // Time-based difficulty (every 10 seconds)
+    
         const timeLevel = Math.floor(elapsedTime / 10);
-        if (timeLevel >= 1 && Math.random() < 0.5) heightCount = 2; // 1x2 at 10s+
-        if (timeLevel >= 2 && Math.random() < 0.5) widthCount = 2;  // 2x1 at 20s+
-        if (timeLevel >= 3 && Math.random() < 0.5) {               // 2x2 at 30s+
+        if (timeLevel >= 1) heightCount = 2; // 1x2 at 10s
+        if (timeLevel >= 2) widthCount = 2;   // 2x1 at 20s
+        if (timeLevel >= 3) {                // 2x2 at 30s
             widthCount = 2;
             heightCount = 2;
         }
-
+        if (timeLevel >= 4 && Math.random() < 0.3) heightCount = 3; // 1x3 or 2x3 at 40s+
+    
         for (let w = 0; w < widthCount; w++) {
             for (let h = 0; h < heightCount; h++) {
                 obstacles.push({
@@ -140,9 +140,11 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         }
         return obstacles;
     }, []);
+    
+    
 
     const drawShip = (ctx: CanvasRenderingContext2D, ship: { x: number; y: number }) => {
-        const image = shipImages[shipType] || shipImages.ship;
+        const image = shipImages[shipType] || shipImages.runner;
         ctx.drawImage(image, ship.x, ship.y, SHIP_SIZE, SHIP_SIZE);
     };
 
@@ -197,18 +199,14 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         };
 
         const update = (deltaTime: number) => {
-            // Calculate elapsed time
-            const elapsedTime = (performance.now() - startTimeRef.current) / 1000; // in seconds
-            const timeLevel = Math.floor(elapsedTime / 10);
-            const speedMultiplier = 1 + timeLevel * 0.1; // Increase speed by 10% every 10s
+            const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
+            const timeLevel = Math.min(Math.floor(elapsedTime / 5), 10); // Every 5s, cap at 50s
+            const speedMultiplier = 1 + timeLevel * 0.05; // 5% increase, max 1.5x
             const obstacleSpeed = BASE_OBSTACLE_SPEED * speedMultiplier;
-            const minGap = timeLevel >= 5 ? OBSTACLE_SIZE * 5 :
-                           timeLevel >= 4 ? OBSTACLE_SIZE * 10 :
-                           timeLevel >= 3 ? OBSTACLE_SIZE * 20 :
-                           timeLevel >= 2 ? OBSTACLE_SIZE * 30 :
-                           timeLevel >= 1 ? OBSTACLE_SIZE * 40 :
-                                             OBSTACLE_SIZE * 50;
-
+            const minGap = OBSTACLE_SIZE * (50 - timeLevel * 4); // 2000px to 200px
+        
+            // Rest of the update logic...
+       
             // Update ship
             if (!gameOver) {
                 ship.vy += GRAVITY;
@@ -401,7 +399,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     <p className="mb-4">Spacebar: Jump (Double-press for higher jump)</p>
                     <p className="mb-4">Mouse Click: Jump (Double-click for higher jump)</p>
                     <div className="mb-4 flex items-center justify-center">
-                        <p className="mr-2">CHOOSE VEHICLE:</p>
+                        <p className="mr-2">CHOOSE RUNNER:</p>
                         {imagesLoaded && shipImages[shipType] && (
                             <img src={shipImages[shipType].src} alt={shipType} className="w-10 h-10 mr-2" />
                         )}
@@ -410,7 +408,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                             onChange={(e) => setShipType(e.target.value as ShipType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="ship">DEFAULT</option>
+                            <option value="runner">DEFAULT</option>
                             <option value="eth">ETHEREUM</option>
                             <option value="base">BASE</option>
                         </select>

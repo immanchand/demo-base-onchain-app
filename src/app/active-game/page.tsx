@@ -10,8 +10,10 @@ import WalletWrapper from 'src/components/WalletWrapper';
 import WinnerWithdrawWrapper from 'src/components/WinnerWithdrawWrapper';
 import Shoot from 'src/components/Shoot';
 import Jump from 'src/components/Jump';
+import Fly from 'src/components/Fly';
 import { useTicketContext } from 'src/context/TicketContext';
 import Button from 'src/components/Button';
+import FlyGame from 'src/components/Fly';
 
 interface GameData {
     gameId: number;
@@ -170,7 +172,7 @@ export default function ActiveGame() {
     const { address } = useAccount();
     const { refreshTickets } = useTicketContext();
     const createGameRef = useRef<{ createGame: () => Promise<void> } | null>(null);
-    const [selectedGame, setSelectedGame] = useState< 'jump' | 'shoot' | null>(null);
+    const [selectedGame, setSelectedGame] = useState< 'jump' | 'shoot' | 'fly' | null>(null);
     const [isTransitioning, setIsTransitioning] = useState(false);
 
     const fetchGame = useCallback(async (gameId: number) => {
@@ -245,7 +247,7 @@ export default function ActiveGame() {
         initializeGameFlow();
     }, [initializeGameFlow]);
 
-    const handleGameSelection = (game: 'jump' | 'shoot') => {
+    const handleGameSelection = (game: 'jump' | 'shoot' | 'fly') => {
         if (isTransitioning) return;
         setIsTransitioning(true);
         setSelectedGame(game);
@@ -297,7 +299,7 @@ export default function ActiveGame() {
                             <section className="flex w-full flex-col items-center gap-4 px-2 py-4">
                                 <div className="flex w-full justify-center gap-4 mb-4">
                                     <button
-                                        onClick={() => handleGameSelection('jump')} // Update to 'jump'
+                                        onClick={() => handleGameSelection('jump')}
                                         className={`${selectedGame === 'jump' ? 'btn-menu-selected' : 'btn-menu-idle'} ${isTransitioning ? 'opacity-60 cursor-not-allowed' : ''}`}
                                         disabled={isTransitioning}
                                     >
@@ -309,6 +311,13 @@ export default function ActiveGame() {
                                         disabled={isTransitioning}
                                     >
                                         SHOOT
+                                    </button>
+                                    <button
+                                        onClick={() => handleGameSelection('fly')}
+                                        className={`${selectedGame === 'fly' ? 'btn-menu-selected' : 'btn-menu-idle'} ${isTransitioning ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                        disabled={isTransitioning}
+                                    >
+                                        FLY
                                     </button>
                                 </div>
                                 {!selectedGame && <p className="text-primary-text">select a game to play!</p>}
@@ -324,6 +333,15 @@ export default function ActiveGame() {
                                 {selectedGame === 'shoot' && (
                                     <div className="w-full animate-fade-in">
                                         <Shoot
+                                            gameId={Number(gameState.game.gameId)}
+                                            existingHighScore={Number(gameState.game.highScore)}
+                                            updateTickets={refreshTickets}
+                                        />
+                                    </div>
+                                )}
+                                {selectedGame === 'fly' && (
+                                    <div className="w-full animate-fade-in">
+                                        <FlyGame
                                             gameId={Number(gameState.game.gameId)}
                                             existingHighScore={Number(gameState.game.highScore)}
                                             updateTickets={refreshTickets}

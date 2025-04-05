@@ -8,7 +8,7 @@ import { useAccount } from 'wagmi';
 import { publicClient, contractABI, contractAddress, gameMasterAddress } from 'src/constants';
 import WalletWrapper from 'src/components/WalletWrapper';
 import WinnerWithdrawWrapper from 'src/components/WinnerWithdrawWrapper';
-import Asteroids from 'src/components/Asteroids';
+import Shoot from 'src/components/Shoot';
 import Jump from 'src/components/Jump';
 import { useTicketContext } from 'src/context/TicketContext';
 import Button from 'src/components/Button';
@@ -170,7 +170,7 @@ export default function ActiveGame() {
     const { address } = useAccount();
     const { refreshTickets } = useTicketContext();
     const createGameRef = useRef<{ createGame: () => Promise<void> } | null>(null);
-    const [selectedGame, setSelectedGame] = useState< 'jump' | 'asteroids' | null>(null);
+    const [selectedGame, setSelectedGame] = useState< 'jump' | 'shoot' | null>(null);
     const [isTransitioning, setIsTransitioning] = useState(false);
 
     const fetchGame = useCallback(async (gameId: number) => {
@@ -245,7 +245,7 @@ export default function ActiveGame() {
         initializeGameFlow();
     }, [initializeGameFlow]);
 
-    const handleGameSelection = (game: 'jump' | 'asteroids') => {
+    const handleGameSelection = (game: 'jump' | 'shoot') => {
         if (isTransitioning) return;
         setIsTransitioning(true);
         setSelectedGame(game);
@@ -304,11 +304,11 @@ export default function ActiveGame() {
                                         JUMP
                                     </button>
                                     <button
-                                        onClick={() => handleGameSelection('asteroids')}
-                                        className={`${selectedGame === 'asteroids' ? 'btn-menu-selected' : 'btn-menu-idle'} ${isTransitioning ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                        onClick={() => handleGameSelection('shoot')}
+                                        className={`${selectedGame === 'shoot' ? 'btn-menu-selected' : 'btn-menu-idle'} ${isTransitioning ? 'opacity-60 cursor-not-allowed' : ''}`}
                                         disabled={isTransitioning}
                                     >
-                                        ASTEROIDS
+                                        SHOOT
                                     </button>
                                 </div>
                                 {!selectedGame && <p className="text-primary-text">select a game to play!</p>}
@@ -321,9 +321,9 @@ export default function ActiveGame() {
                                         />
                                     </div>
                                 )}
-                                {selectedGame === 'asteroids' && (
+                                {selectedGame === 'shoot' && (
                                     <div className="w-full animate-fade-in">
-                                        <Asteroids
+                                        <Shoot
                                             gameId={Number(gameState.game.gameId)}
                                             existingHighScore={Number(gameState.game.highScore)}
                                             updateTickets={refreshTickets}

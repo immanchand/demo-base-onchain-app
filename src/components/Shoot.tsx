@@ -166,6 +166,15 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         };
     }, []);
 
+    const drawBackground = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, stars: { x: number; y: number }[]) => {
+        ctx.fillStyle = '#000000'; // Black space background
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#FFFFFF'; // White stars
+        stars.forEach(star => {
+            ctx.fillRect(star.x, star.y, 2, 2); // 2x2 pixel stars
+        });
+    };
+
     const drawShip = (ctx: CanvasRenderingContext2D, ship: { x: number; y: number; angle: number }) => {
         ctx.save();
         ctx.translate(ship.x, ship.y);
@@ -272,7 +281,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             const distance = Math.sqrt(dx * dx + dy * dy);
             if (distance < (ENEMY_SIZE / 2 + SHIP_SIZE / 2)) {
                 setGameOver(true);
-                cancelAnimationFrame(animationFrameIdRef.current); // Stop the game loop immediately
+                cancelAnimationFrame(animationFrameIdRef.current);
             }
         });
     }, [spawnEnemy]);
@@ -313,14 +322,23 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         }));
         let enemyPool: Enemy[] = Array(INITIAL_ENEMY_COUNT).fill(null).map(() => spawnEnemy(canvas, 1));
         let enemySpeedMultiplier = 1;
+        // Initialize static stars
+        const stars: { x: number; y: number }[] = [];
+        const starCount = 100; // Number of stars
+        for (let i = 0; i < starCount; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+            });
+        }
 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
         const draw = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground(ctx, canvas, stars); // Replace clearRect with starry background
             if (!gameOver) {
-                drawShip(ctx, ship); // Only draw ship if game is not over
+                drawShip(ctx, ship);
             }
             drawBullets(ctx, bulletPool);
             drawEnemy(ctx, enemyPool);
@@ -381,7 +399,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             resizeObserver.disconnect();
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mousedown', handleMouseDown);
-            cancelAnimationFrame(animationFrameIdRef.current); // Cleanup any running animation
+            cancelAnimationFrame(animationFrameIdRef.current);
         };
     }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnEnemy, updateShip, checkCollisions]);
 
@@ -411,7 +429,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             setGameStarted(true);
             setGameOver(false);
             setScore(0);
-            setEndGameStatus('idle'); // Reset end game state
+            setEndGameStatus('idle');
             setEndGameError('');
             setEndGameMessage('');
             containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });

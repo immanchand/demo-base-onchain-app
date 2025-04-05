@@ -157,7 +157,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         resizeObserver.observe(container);
 
         let ship = {
-            x: 100,
+            x: 200,
             y: canvas.height / 2 - SHIP_SIZE / 2,
             width: SHIP_SIZE,
             height: SHIP_SIZE,

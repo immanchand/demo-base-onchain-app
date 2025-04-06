@@ -36,6 +36,7 @@ const GROUND_HEIGHT = 100;
 const DOUBLE_PRESS_THRESHOLD = 300; // 300ms for double press detection
 const SOIL_PARTICLE_COUNT = 100; // Number of soil particles for scrolling effect
 const SOIL_PARTICLE_SIZE = 2; // Size of each soil particle
+const BACKGROUND_SPEED = 0.3; // Speed for background scrolling (slower than soil)
 
 const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -48,6 +49,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const [imagesLoaded, setImagesLoaded] = useState<boolean>(false);
     const [enemyImages, setEnemyImages] = useState<Record<EnemyType, HTMLImageElement>>({} as Record<EnemyType, HTMLImageElement>);
     const [shipImages, setShipImages] = useState<Record<ShipType, HTMLImageElement>>({} as Record<ShipType, HTMLImageElement>);
+    const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null); // State for background image
     const lastFrameTimeRef = useRef<number>(performance.now());
     const animationFrameIdRef = useRef<number>(0);
     const lastKeyPressRef = useRef<number>(0);
@@ -74,6 +76,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             runner: new Image(),
             eth: new Image(),
             base: new Image(),
+            background: new Image(), // Add background image
         };
         images.obstacle.src = '/images/obstacle.png';
         images.bitcoin.src = '/images/bitcoin_sq.png';
@@ -83,6 +86,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         images.runner.src = '/images/runner.png';
         images.eth.src = '/images/ethereum_up.png';
         images.base.src = '/images/base.png';
+        images.background.src = '/images/clouds.png'; // Your 1024x600px image
 
         let loadedCount = 0;
         const totalImages = Object.keys(images).length;
@@ -102,6 +106,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     eth: images.eth,
                     base: images.base,
                 });
+                setBackgroundImage(images.background); // Set the background image
                 setImagesLoaded(true);
             }
         };
@@ -143,20 +148,26 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         return obstacles;
     }, []);
 
-    const drawBackground = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
-        ctx.fillStyle = '#000000'; // Black sky
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const drawBackground = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, offset: number) => {
+        if (!backgroundImage) return; // Wait for image to load
+        const bgWidth = backgroundImage.width; // 1024px
+        const bgHeight = canvas.height - GROUND_HEIGHT; // Fit sky area
+        let x = -offset % bgWidth; // Loop the image
+
+        // Draw the image twice for seamless tiling
+        ctx.drawImage(backgroundImage, x, 0, bgWidth, bgHeight);
+        ctx.drawImage(backgroundImage, x + bgWidth, 0, bgWidth, bgHeight);
     };
 
     const drawGround = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, soilParticles: { x: number; y: number }[], offset: number) => {
-        // Simple solid ground
         ctx.fillStyle = '#8B4513'; // Brown soil color
         ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
-        
-        // Draw scrolling soil particles
+
         ctx.fillStyle = '#5D2E0A'; // Darker brown for particles
         soilParticles.forEach(particle => {
-            const x = (particle.x - offset) % canvas.width;
+            let x = particle.x - offset;
+            while (x < 0) x += canvas.width; // Ensure x stays positive
+            x = x % canvas.width; // Wrap around
             ctx.fillRect(x, particle.y, SOIL_PARTICLE_SIZE, SOIL_PARTICLE_SIZE);
         });
     };
@@ -177,7 +188,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     useEffect(() => {
         const canvas = canvasRef.current;
         const container = containerRef.current;
-        if (!canvas || !container || !imagesLoaded) return;
+        if (!canvas || !container || !imagesLoaded || !backgroundImage) return;
 
         const resizeCanvas = () => {
             const { width, height } = container.getBoundingClientRect();
@@ -199,7 +210,8 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         let obstaclePool: Obstacle[] = [];
         let lastObstacleSpawnX = canvas.width;
         let backgroundOffset = 0;
-        
+        let cloudOffset = 0; // Used for background image scrolling
+
         // Initialize soil particles
         const soilParticles: { x: number; y: number; dx: number }[] = [];
         for (let i = 0; i < SOIL_PARTICLE_COUNT; i++) {
@@ -213,22 +225,8 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        const drawGround = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, soilParticles: { x: number; y: number }[], offset: number) => {
-            ctx.fillStyle = '#8B4513';
-            ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
-            
-            ctx.fillStyle = '#5D2E0A';
-            soilParticles.forEach(particle => {
-                // Adjust x position with negative offset and wrap properly
-                let x = particle.x - offset;
-                while (x < 0) x += canvas.width; // Ensure x stays positive
-                x = x % canvas.width; // Wrap around to stay within canvas
-                ctx.fillRect(x, particle.y, SOIL_PARTICLE_SIZE, SOIL_PARTICLE_SIZE);
-            });
-        };
-    
         const draw = () => {
-            drawBackground(ctx, canvas);
+            drawBackground(ctx, canvas, cloudOffset); // Draw scrolling background
             drawGround(ctx, canvas, soilParticles, backgroundOffset);
             if (!gameOver) {
                 drawShip(ctx, ship);
@@ -242,13 +240,16 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             const speedMultiplier = 1 + timeLevel * 0.05;
             const obstacleSpeed = BASE_OBSTACLE_SPEED * speedMultiplier;
             const minGap = OBSTACLE_SIZE * (50 - timeLevel * 4);
-    
-            // Update soil particles (moving right-to-left)
+
+            // Update background (clouds)
+            cloudOffset += BACKGROUND_SPEED * deltaTime * 60; // Scroll slower than soil
+
+            // Update soil particles
             backgroundOffset += Math.abs(obstacleSpeed) * deltaTime * 60; // Still positive offset
             soilParticles.forEach(particle => {
                 particle.x += particle.dx * deltaTime * 60; // Move right
                 if (particle.x > canvas.width) {
-                    particle.x = 0; // Respawn on left when past right edge
+                    particle.x = 0; // Respawn on left
                     particle.y = canvas.height - GROUND_HEIGHT + Math.random() * GROUND_HEIGHT;
                 }
             });
@@ -339,6 +340,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             lastObstacleSpawnX = canvas.width;
             startTimeRef.current = performance.now();
             backgroundOffset = 0;
+            cloudOffset = 0; // Reset background offset
 
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('mousedown', handleMouseDown);
@@ -352,7 +354,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             window.removeEventListener('mousedown', handleMouseDown);
             cancelAnimationFrame(animationFrameIdRef.current);
         };
-    }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnObstacles]);
+    }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnObstacles, backgroundImage]);
 
     const startGame = useCallback(async () => {
         if (ticketCount > 0 && startGameRef.current) {
@@ -427,7 +429,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 gameId={gameId.toString()}
                 playerAddress={address || '0x0'}
                 onStatusChange={handleStartGameStatusChange}
-		/>
+            />
             <EndGameWrapper
                 ref={endGameRef}
                 gameId={gameId.toString()}

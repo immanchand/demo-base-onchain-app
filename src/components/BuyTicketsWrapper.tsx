@@ -17,6 +17,7 @@ import {
   contractABI,
   contractAddress,
   GAME_PRICE_WEI,
+  ethPrice,
 } from '../constants';
 import { QuantitySelector } from '../../node_modules/@coinbase/onchainkit/esm/internal/components/QuantitySelector';
 import { useState } from 'react';
@@ -67,8 +68,8 @@ export default function BuyTicketsWrapper({ updateTickets }: BuyTicketsWrapperPr
         </TransactionToast>
         <TransactionToastAction />
       </Transaction>
-      <p className="text-center text-accent-yellow">
-        TOTAL COST: {formatEther(BigInt(GAME_PRICE_WEI * quantity))} ETH
+      <p className="text-center">
+        TOTAL COST: ${(Number(formatEther(BigInt(GAME_PRICE_WEI * quantity))) * ethPrice).toFixed(2)} / {formatEther(BigInt(GAME_PRICE_WEI * quantity))} ETH
       </p>
     </div>
   );

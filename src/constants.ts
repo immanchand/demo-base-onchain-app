@@ -2,6 +2,7 @@ import { createPublicClient, http } from "viem";
 import { baseSepolia } from "viem/chains";
 
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
+export const ethPrice = 1700;
 
 export const GAME_COUNT = 3;
 export const GAME_PRICE_WEI = 100000000000000; 

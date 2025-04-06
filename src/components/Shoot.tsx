@@ -40,7 +40,8 @@ const SHIP_SIZE = 30;
 const BULLET_SIZE = 4;
 const ENEMY_SIZE = 40;
 const INITIAL_BULLET_COUNT = 10;
-const INITIAL_ENEMY_COUNT = 5;
+const INITIAL_ENEMY_COUNT = 2; // Starting with 2 enemies
+const MAX_ENEMY_COUNT = 10; // Max of 10 enemies
 const BULLET_SPEED = 5;
 const ENEMY_SPEED_BASE = 2;
 
@@ -56,9 +57,10 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
     const [enemyImages, setEnemyImages] = useState<Record<EnemyType, HTMLImageElement>>({} as Record<EnemyType, HTMLImageElement>);
     const [shipImages, setShipImages] = useState<Record<ShipType, HTMLImageElement>>({} as Record<ShipType, HTMLImageElement>);
     const lastFrameTimeRef = useRef<number>(performance.now());
+    const startTimeRef = useRef<number>(0); // Track game start time
     const animationFrameIdRef = useRef<number>(0);
     const mousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-    const { ticketCount, refreshTickets } = useTicketContext();
+    const { ticketCount } = useTicketContext();
     const startGameRef = useRef<{ startGame: () => Promise<void> }>(null);
     const endGameRef = useRef<{ endGame: () => Promise<void> }>(null);
     const [startGameStatus, setStartGameStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
@@ -68,7 +70,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
     const [endGameMessage, setEndGameMessage] = useState<string>('');
     const { address } = useAccount();
 
-    // Preload images
+    // Preload images (unchanged)
     useEffect(() => {
         const images = {
             alien: new Image(),
@@ -167,11 +169,11 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
     }, []);
 
     const drawBackground = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, stars: { x: number; y: number }[]) => {
-        ctx.fillStyle = '#000000'; // Black space background
+        ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#FFFFFF'; // White stars
+        ctx.fillStyle = '#FFFFFF';
         stars.forEach(star => {
-            ctx.fillRect(star.x, star.y, 2, 2); // 2x2 pixel stars
+            ctx.fillRect(star.x, star.y, 2, 2);
         });
     };
 
@@ -322,10 +324,8 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         }));
         let enemyPool: Enemy[] = Array(INITIAL_ENEMY_COUNT).fill(null).map(() => spawnEnemy(canvas, 1));
         let enemySpeedMultiplier = 1;
-        // Initialize static stars
         const stars: { x: number; y: number }[] = [];
-        const starCount = 100; // Number of stars
-        for (let i = 0; i < starCount; i++) {
+        for (let i = 0; i < 100; i++) {
             stars.push({
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
@@ -336,7 +336,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         if (!ctx) return;
 
         const draw = () => {
-            drawBackground(ctx, canvas, stars); // Replace clearRect with starry background
+            drawBackground(ctx, canvas, stars);
             if (!gameOver) {
                 drawShip(ctx, ship);
             }
@@ -346,10 +346,22 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
 
         const update = (deltaTime: number) => {
             if (gameOver) return;
+
             updateShip(ship, deltaTime, canvas);
             updateBullets(bulletPool, deltaTime, canvas);
             updateEnemy(enemyPool, deltaTime, canvas);
             checkCollisions(bulletPool, enemyPool, ship, enemySpeedMultiplier, canvas);
+
+            // Simple time-based enemy count increase
+            const elapsedTime = (performance.now() - startTimeRef.current) / 1000; // Time in seconds
+            const targetEnemyCount = Math.min(
+                INITIAL_ENEMY_COUNT + Math.floor(elapsedTime / 15), // Add 1 enemy every 15 seconds
+                MAX_ENEMY_COUNT
+            );
+            const activeEnemies = enemyPool.filter(e => e.active).length;
+            if (activeEnemies < targetEnemyCount) {
+                enemyPool.push(spawnEnemy(canvas, enemySpeedMultiplier));
+            }
         };
 
         const gameLoop = (time: number) => {
@@ -388,10 +400,10 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             enemySpeedMultiplier = 1;
             bulletPool.forEach(b => b.active = false);
             enemyPool = Array(INITIAL_ENEMY_COUNT).fill(null).map(() => spawnEnemy(canvas, enemySpeedMultiplier));
-
+            startTimeRef.current = performance.now(); // Set start time when game begins
+            lastFrameTimeRef.current = performance.now();
             window.addEventListener('mousemove', handleMouseMove);
             window.addEventListener('mousedown', handleMouseDown);
-            lastFrameTimeRef.current = performance.now();
             animationFrameIdRef.current = requestAnimationFrame(gameLoop);
         }
 

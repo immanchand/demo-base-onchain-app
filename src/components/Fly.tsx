@@ -109,7 +109,9 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
     // Game logic
     const spawnObstacle = useCallback((canvas: HTMLCanvasElement, speed: number): Obstacle => {
-        const y = Math.random() * (canvas.height - OBSTACLE_SIZE);
+        // Bias towards top: use a power function to weight lower Y values (top of screen)
+        const randomFactor = Math.pow(Math.random(), 2); // Square to bias towards 0
+        const y = randomFactor * (canvas.height - OBSTACLE_SIZE);
         return {
             x: canvas.width,
             y,
@@ -158,10 +160,10 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
         let ship = {
             x: 200,
-            y: canvas.height / 2 - SHIP_SIZE / 2,
+            y: canvas.height / 2 + SHIP_SIZE / 2,
             width: SHIP_SIZE,
             height: SHIP_SIZE,
-            vy: 0,
+            vy: FLAP_VELOCITY*2,
         };
         let obstaclePool: Obstacle[] = [];
         // Initialize scrolling stars
@@ -189,7 +191,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         const update = (deltaTime: number) => {
             const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
             const difficultyFactor = Math.min(elapsedTime / 60, 1);
-            const spawnInterval = 2500 * (1 - difficultyFactor) + 500;
+            const spawnInterval = 2500 * (1 - difficultyFactor) + 400;
             const obstacleSpeed = BASE_OBSTACLE_SPEED * (1 + difficultyFactor * 0.5);
             const clusterChance = difficultyFactor * 0.3;
             const obstacleSize = OBSTACLE_SIZE * (1 + difficultyFactor * 0.1);
@@ -271,9 +273,6 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         };
 
         if (gameStarted && !gameOver) {
-            ship.x = 100;
-            ship.y = canvas.height / 2 - SHIP_SIZE / 2;
-            ship.vy = 0;
             obstaclePool = [spawnObstacle(canvas, BASE_OBSTACLE_SPEED)];
             lastSpawnTimeRef.current = performance.now();
             startTimeRef.current = performance.now();

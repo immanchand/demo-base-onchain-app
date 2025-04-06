@@ -145,7 +145,7 @@ export default function Games() {
     setShowSpecificGame(false);
     setGameIdInput('');
     const latestId = await getLatestGameId();
-    const startId = Math.max(1, latestId - 1);
+    const startId = Math.max(1, latestId);
     if (startId >= 1) {
       await fetchGames(startId, GAME_COUNT);
     } else {

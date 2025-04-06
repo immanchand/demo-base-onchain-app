@@ -29,7 +29,7 @@ type ShipType = 'runner' | 'lady' | 'eth' | 'base';
 // Constants
 const SHIP_SIZE = 50;
 const OBSTACLE_SIZE = 50;
-const GRAVITY = 0.5;
+const GRAVITY = 0.4;
 const JUMP_VELOCITY = -12;
 const BASE_OBSTACLE_SPEED = -3;
 const GROUND_HEIGHT = 150;
@@ -205,7 +205,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         resizeObserver.observe(container);
 
         let ship = {
-            x: 200,
+            x: 200, //stating position
             y: canvas.height - GROUND_HEIGHT - SHIP_SIZE,
             width: SHIP_SIZE,
             height: SHIP_SIZE,

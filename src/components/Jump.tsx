@@ -32,10 +32,10 @@ const OBSTACLE_SIZE = 40;
 const GRAVITY = 0.5;
 const JUMP_VELOCITY = -12;
 const BASE_OBSTACLE_SPEED = -3;
-const GROUND_HEIGHT = 200;
+const GROUND_HEIGHT = 100;
 const DOUBLE_PRESS_THRESHOLD = 300; // 300ms for double press detection
-const BUILDING_COUNT = 20; // Number of buildings
-const BRICK_SIZE = 20; // Size of each brick in the pattern
+const SOIL_PARTICLE_COUNT = 100; // Number of soil particles for scrolling effect
+const SOIL_PARTICLE_SIZE = 2; // Size of each soil particle
 
 const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -63,7 +63,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const [endGameMessage, setEndGameMessage] = useState<string>('');
     const { address } = useAccount();
 
-    // Preload images (unchanged)
+    // Preload images
     useEffect(() => {
         const images = {
             obstacle: new Image(),
@@ -76,10 +76,10 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             base: new Image(),
         };
         images.obstacle.src = '/images/obstacle.png';
-        images.bitcoin.src = '/images/bitcoin.png';
-        images.xrp.src = '/images/xrp.png';
+        images.bitcoin.src = '/images/bitcoin_sq.png';
+        images.xrp.src = '/images/xrp_sq.png';
         images.solana.src = '/images/solana.png';
-        images.gensler.src = '/images/gensler.png';
+        images.gensler.src = '/images/gensler_sq.png';
         images.runner.src = '/images/runner.png';
         images.eth.src = '/images/ethereum_up.png';
         images.base.src = '/images/base.png';
@@ -143,33 +143,22 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         return obstacles;
     }, []);
 
-    const drawBackground = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, buildings: { x: number; width: number; height: number }[], offset: number) => {
+    const drawBackground = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
         ctx.fillStyle = '#000000'; // Black sky
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = '#FFFFFF'; // White outlines for buildings
-        ctx.lineWidth = 2;
-        buildings.forEach(building => {
-            const x = (building.x + offset) % (canvas.width * 2) - canvas.width; // Seamless looping
-            ctx.strokeRect(x, canvas.height - GROUND_HEIGHT - building.height, building.width, building.height);
-        });
     };
 
-    const drawGround = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, offset: number) => {
-        ctx.fillStyle = '#000000'; // Black base ground
+    const drawGround = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, soilParticles: { x: number; y: number }[], offset: number) => {
+        // Simple solid ground
+        ctx.fillStyle = '#8B4513'; // Brown soil color
         ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
-        ctx.strokeStyle = '#FFFFFF'; // White outlines for bricks
-        ctx.lineWidth = 1;
-        const brickRows = Math.ceil(GROUND_HEIGHT / BRICK_SIZE);
-        const brickCols = Math.ceil(canvas.width / BRICK_SIZE) + 1; // Extra column for seamless scroll
-        for (let row = 0; row < brickRows; row++) {
-            for (let col = 0; col < brickCols; col++) {
-                const x = (col * BRICK_SIZE + offset) % (canvas.width + BRICK_SIZE) - BRICK_SIZE;
-                const y = canvas.height - GROUND_HEIGHT + row * BRICK_SIZE;
-                const isOffsetRow = row % 2 === 1; // Stagger every other row
-                const brickX = isOffsetRow ? x + BRICK_SIZE / 2 : x;
-                ctx.strokeRect(brickX, y, BRICK_SIZE - 2, BRICK_SIZE - 2); // Small gap for definition
-            }
-        }
+        
+        // Draw scrolling soil particles
+        ctx.fillStyle = '#5D2E0A'; // Darker brown for particles
+        soilParticles.forEach(particle => {
+            const x = (particle.x - offset) % canvas.width;
+            ctx.fillRect(x, particle.y, SOIL_PARTICLE_SIZE, SOIL_PARTICLE_SIZE);
+        });
     };
 
     const drawShip = (ctx: CanvasRenderingContext2D, ship: { x: number; y: number }) => {
@@ -209,23 +198,38 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         };
         let obstaclePool: Obstacle[] = [];
         let lastObstacleSpawnX = canvas.width;
-        let backgroundOffset = 0; // Offset for scrolling background and ground
-
-        // Initialize buildings
-        const buildings: { x: number; width: number; height: number }[] = [];
-        for (let i = 0; i < BUILDING_COUNT; i++) {
-            const width = 50 + Math.random() * 50; // 50-100px wide
-            const height = 100 + Math.random() * 150; // 100-250px tall
-            const x = (i * canvas.width * 2) / BUILDING_COUNT; // Spread across double width for loop
-            buildings.push({ x, width, height });
+        let backgroundOffset = 0;
+        
+        // Initialize soil particles
+        const soilParticles: { x: number; y: number; dx: number }[] = [];
+        for (let i = 0; i < SOIL_PARTICLE_COUNT; i++) {
+            soilParticles.push({
+                x: Math.random() * canvas.width,
+                y: canvas.height - GROUND_HEIGHT + Math.random() * GROUND_HEIGHT,
+                dx: 0.5, // Positive dx for right-to-left movement
+            });
         }
 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
+        const drawGround = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, soilParticles: { x: number; y: number }[], offset: number) => {
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
+            
+            ctx.fillStyle = '#5D2E0A';
+            soilParticles.forEach(particle => {
+                // Adjust x position with negative offset and wrap properly
+                let x = particle.x - offset;
+                while (x < 0) x += canvas.width; // Ensure x stays positive
+                x = x % canvas.width; // Wrap around to stay within canvas
+                ctx.fillRect(x, particle.y, SOIL_PARTICLE_SIZE, SOIL_PARTICLE_SIZE);
+            });
+        };
+    
         const draw = () => {
-            drawBackground(ctx, canvas, buildings, backgroundOffset);
-            drawGround(ctx, canvas, backgroundOffset);
+            drawBackground(ctx, canvas);
+            drawGround(ctx, canvas, soilParticles, backgroundOffset);
             if (!gameOver) {
                 drawShip(ctx, ship);
             }
@@ -238,10 +242,16 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             const speedMultiplier = 1 + timeLevel * 0.05;
             const obstacleSpeed = BASE_OBSTACLE_SPEED * speedMultiplier;
             const minGap = OBSTACLE_SIZE * (50 - timeLevel * 4);
-
-            // Update background offset (scrolls right-to-left)
-            backgroundOffset += Math.abs(obstacleSpeed) * deltaTime * 60; // Positive to move right-to-left
-            if (backgroundOffset >= canvas.width) backgroundOffset -= canvas.width; // Reset for seamless loop
+    
+            // Update soil particles (moving right-to-left)
+            backgroundOffset += Math.abs(obstacleSpeed) * deltaTime * 60; // Still positive offset
+            soilParticles.forEach(particle => {
+                particle.x += particle.dx * deltaTime * 60; // Move right
+                if (particle.x > canvas.width) {
+                    particle.x = 0; // Respawn on left when past right edge
+                    particle.y = canvas.height - GROUND_HEIGHT + Math.random() * GROUND_HEIGHT;
+                }
+            });
 
             // Update ship
             if (!gameOver) {
@@ -417,7 +427,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 gameId={gameId.toString()}
                 playerAddress={address || '0x0'}
                 onStatusChange={handleStartGameStatusChange}
-            />
+		/>
             <EndGameWrapper
                 ref={endGameRef}
                 gameId={gameId.toString()}

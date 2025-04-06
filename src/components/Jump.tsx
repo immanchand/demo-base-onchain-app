@@ -27,12 +27,12 @@ type EnemyType = 'obstacle' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
 type ShipType = 'runner' | 'lady' | 'eth' | 'base';
 
 // Constants
-const SHIP_SIZE = 40;
-const OBSTACLE_SIZE = 40;
+const SHIP_SIZE = 50;
+const OBSTACLE_SIZE = 50;
 const GRAVITY = 0.5;
 const JUMP_VELOCITY = -12;
 const BASE_OBSTACLE_SPEED = -3;
-const GROUND_HEIGHT = 100;
+const GROUND_HEIGHT = 150;
 const DOUBLE_PRESS_THRESHOLD = 300; // 300ms for double press detection
 const SOIL_PARTICLE_COUNT = 100; // Number of soil particles for scrolling effect
 const SOIL_PARTICLE_SIZE = 2; // Size of each soil particle
@@ -130,12 +130,13 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
         const timeLevel = Math.floor(elapsedTime / 10);
         if (timeLevel >= 1) heightCount = 2; // 1x2 at 10s
-        if (timeLevel >= 2) widthCount = 2;   // 2x1 at 20s
-        if (timeLevel >= 3) {                // 2x2 at 30s
+        if (timeLevel >= 3) widthCount = 2;   // 2x1 at 30s
+        if (timeLevel >= 4) {                // 2x2 at 40s
             widthCount = 2;
             heightCount = 2;
         }
-        if (timeLevel >= 4 && Math.random() < 0.3) heightCount = 3; // 1x3 or 2x3 at 40s+
+        if (timeLevel >= 5 && Math.random() < 0.3) heightCount = 3; // 1x3 or 2x3 at 50s+
+        if (timeLevel >= 6 && Math.random() < 0.2) heightCount = 4; // 1x3 or 2x3 at 60s+
 
         for (let w = 0; w < widthCount; w++) {
             for (let h = 0; h < heightCount; h++) {
@@ -239,10 +240,10 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
         const update = (deltaTime: number) => {
             const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
-            const timeLevel = Math.min(Math.floor(elapsedTime / 5), 10);
+            const timeLevel = Math.floor(elapsedTime / 10); //Math.min(Math.floor(elapsedTime / 5), 10);
             const speedMultiplier = 1 + timeLevel * 0.05;
             const obstacleSpeed = BASE_OBSTACLE_SPEED * speedMultiplier;
-            const minGap = OBSTACLE_SIZE * (50 - timeLevel * 4);
+            const minGap = OBSTACLE_SIZE * (50 - Math.min(timeLevel, 10) * 4);
 
             // Update background (clouds)
             cloudOffset += BACKGROUND_SPEED * deltaTime * 60; // Scroll slower than soil

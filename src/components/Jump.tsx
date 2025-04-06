@@ -24,7 +24,7 @@ interface Obstacle extends Entity {
 }
 
 type EnemyType = 'obstacle' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
-type ShipType = 'runner' | 'eth' | 'base';
+type ShipType = 'runner' | 'lady' | 'eth' | 'base';
 
 // Constants
 const SHIP_SIZE = 40;
@@ -74,6 +74,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             solana: new Image(),
             gensler: new Image(),
             runner: new Image(),
+            lady: new Image(),
             eth: new Image(),
             base: new Image(),
             background: new Image(), // Add background image
@@ -84,6 +85,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         images.solana.src = '/images/solana.png';
         images.gensler.src = '/images/gensler_sq.png';
         images.runner.src = '/images/runner.png';
+        images.lady.src = '/images/runner_female.png';
         images.eth.src = '/images/ethereum_up.png';
         images.base.src = '/images/base.png';
         images.background.src = '/images/clouds.png'; // Your 1024x600px image
@@ -103,6 +105,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 });
                 setShipImages({
                     runner: images.runner,
+                    lady: images.lady,
                     eth: images.eth,
                     base: images.base,
                 });
@@ -458,7 +461,8 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                             onChange={(e) => setShipType(e.target.value as ShipType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="runner">DEFAULT</option>
+                            <option value="runner">BROSKI</option>
+                            <option value="lady">LADY</option>
                             <option value="eth">ETHEREUM</option>
                             <option value="base">BASE</option>
                         </select>

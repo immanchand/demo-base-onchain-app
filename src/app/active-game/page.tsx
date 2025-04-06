@@ -5,7 +5,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { Address } from 'viem';
 import { formatEther } from 'viem';
 import { useAccount } from 'wagmi';
-import { publicClient, contractABI, contractAddress, gameMasterAddress } from 'src/constants';
+import { publicClient, contractABI, contractAddress, gameMasterAddress, ethPrice } from 'src/constants';
 import WalletWrapper from 'src/components/WalletWrapper';
 import WinnerWithdrawWrapper from 'src/components/WinnerWithdrawWrapper';
 import Shoot from 'src/components/Shoot';
@@ -120,35 +120,40 @@ const GameCard = React.memo(
                                 )}
                             </div>
                         </div>
-                        <div className="col-span-1 text-right relative group">
-                            <p className="text-primary-text">
-                                <span className="font-bold">{isGameOver ? 'WINNER' : 'LEADER'}</span>{' '}
-                                <a
-                                    href="#"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        navigator.clipboard
-                                            .writeText(game.leader)
-                                            .then(() => setIsCopied(true))
-                                            .then(() => setTimeout(() => setIsCopied(false), 2000));
-                                    }}
-                                    className={`${isUserLeader || isGMLeader ? 'text-success-green' : 'text-accent-yellow'} hover:underline cursor-pointer font-bold`}
-                                >
-                                    {isUserLeader ? 'YOU!' : isGMLeader ? 'NO ONE YET' : `${game.leader.slice(0, 5)}...${game.leader.slice(-3)}`}
-                                </a>
-                                <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-primary-bg text-accent-yellow text-xs py-1 px-2 border border-primary-border">
-                                    {game.leader}
-                                </span>
-                                {isCopied && (
-                                    <span className="absolute left-1/2 -translate-x-1/2 top-full mt-1 text-accent-yellow text-xs animate-fade-in-out">
-                                        COPIED!
+                        <div className="col-span-1 text-right">
+                            <div className="relative group">
+                                <p className="text-primary-text">
+                                    <span className="font-bold">{isGameOver ? 'WINNER' : 'LEADER'}</span>{' '}
+                                    <a
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            navigator.clipboard
+                                                .writeText(game.leader)
+                                                .then(() => setIsCopied(true))
+                                                .then(() => setTimeout(() => setIsCopied(false), 2000));
+                                        }}
+                                        className={`${isUserLeader || isGMLeader ? 'text-success-green' : 'text-accent-yellow'} hover:underline cursor-pointer font-bold`}
+                                    >
+                                        {isUserLeader ? 'YOU!' : isGMLeader ? 'NO ONE YET' : `${game.leader.slice(0, 5)}...${game.leader.slice(-3)}`}
+                                    </a>
+                                    <span className="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-primary-bg text-accent-yellow text-xs py-1 px-2 border border-primary-border z-10">
+                                        {game.leader}
                                     </span>
-                                )}
-                            </p>
-                            <div className="mt-4">
+                                    {isCopied && (
+                                        <span className="absolute left-0 top-full mt-1 text-accent-yellow text-xs animate-fade-in-out">
+                                            COPIED!
+                                        </span>
+                                    )}
+                                </p>
+                            </div>
+                            <div className="mt-4 relative group">
                                 <p className="font-bold text-primary-text">PRIZE</p>
                                 <p className="text-accent-yellow text-2xl font-bold">
-                                    {formatEther(game.pot > game.potHistory ? game.pot : game.potHistory)} ETH
+                                    ${(Number(formatEther(game.pot > game.potHistory ? game.pot : game.potHistory)) * ethPrice).toFixed(2)}
+                                    <span className="absolute right-0 bottom-full mb-2 hidden group-hover:block bg-primary-bg text-accent-yellow text-xs py-1 px-2 border border-primary-border z-10">
+                                        {formatEther(game.pot > game.potHistory ? game.pot : game.potHistory)} ETH
+                                    </span>
                                 </p>
                             </div>
                         </div>

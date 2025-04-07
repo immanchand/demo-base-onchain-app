@@ -37,6 +37,8 @@ type ShipType = 'ship' | 'eth' | 'base';
 
 // Constants
 const SHIP_SIZE = 30;
+const SHIP_WIDTH = 30;  // Define width explicitly
+const SHIP_HEIGHT = SHIP_WIDTH * (3/4);  // Height is 3/4 of width
 const BULLET_SIZE = 4;
 const ENEMY_SIZE = 40;
 const INITIAL_BULLET_COUNT = 10;
@@ -82,14 +84,14 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             eth: new Image(),
             base: new Image(),
         };
-        images.alien.src = '/images/alien.png';
-        images.bitcoin.src = '/images/bitcoin.png';
-        images.xrp.src = '/images/xrp.png';
-        images.solana.src = '/images/solana.png';
-        images.gensler.src = '/images/gensler.png';
-        images.ship.src = '/images/spaceship.png';
-        images.eth.src = '/images/ethereum.png';
-        images.base.src = '/images/base.png';
+        images.alien.src = '/images/ALIEN.png';
+        images.bitcoin.src = '/images/BTC.png';
+        images.xrp.src = '/images/XRP.png';
+        images.solana.src = '/images/SOLANA.png';
+        images.gensler.src = '/images/CLOWN_CIRCLE.png';
+        images.ship.src = '/images/SPACEROCKET.png';
+        images.eth.src = '/images/ETH_SHOOT.png';
+        images.base.src = '/images/BASE_SHOOT.png';
 
         let loadedCount = 0;
         const totalImages = Object.keys(images).length;
@@ -182,7 +184,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         ctx.translate(ship.x, ship.y);
         ctx.rotate(ship.angle);
         const image = shipImages[shipType] || shipImages.ship;
-        ctx.drawImage(image, -SHIP_SIZE / 2, -SHIP_SIZE / 2, SHIP_SIZE, SHIP_SIZE);
+        ctx.drawImage(image, -SHIP_WIDTH / 2, -SHIP_HEIGHT / 2, SHIP_WIDTH, SHIP_HEIGHT);
         ctx.restore();
     };
 
@@ -281,7 +283,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             const dx = ship.x - enemy.x;
             const dy = ship.y - enemy.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < (ENEMY_SIZE / 2 + SHIP_SIZE / 2)) {
+            if (distance < (ENEMY_SIZE / 2 + SHIP_WIDTH / 2)) {
                 setGameOver(true);
                 cancelAnimationFrame(animationFrameIdRef.current);
             }
@@ -307,8 +309,8 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         let ship = {
             x: canvas.width / 2,
             y: canvas.height / 2,
-            width: SHIP_SIZE,
-            height: SHIP_SIZE,
+            width: SHIP_WIDTH,
+            height: SHIP_HEIGHT,
             angle: 0,
             dx: 0,
             dy: 0,
@@ -384,8 +386,8 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             if (gameOver) return;
             const inactiveBullet = bulletPool.find((b) => !b.active);
             if (inactiveBullet) {
-                inactiveBullet.x = ship.x + Math.cos(ship.angle) * (SHIP_SIZE / 2);
-                inactiveBullet.y = ship.y + Math.sin(ship.angle) * (SHIP_SIZE / 2);
+                inactiveBullet.x = ship.x + Math.cos(ship.angle) * (SHIP_WIDTH / 2);
+                inactiveBullet.y = ship.y + Math.sin(ship.angle) * (SHIP_HEIGHT / 2);
                 inactiveBullet.dx = Math.cos(ship.angle) * BULLET_SPEED;
                 inactiveBullet.dy = Math.sin(ship.angle) * BULLET_SPEED;
                 inactiveBullet.active = true;
@@ -501,14 +503,14 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                 <div className="text-center text-primary-text font-mono">
                     <h1 className="text-3xl text-accent-yellow mb-4">SHOOT</h1>
                     <p className="text-xl mb-2">INSTRUCTIONS:</p>
-                    <p className="mb-2">Move your mouse to steer the ship towards the pointer.</p>
+                    <p className="mb-2">Move your mouse to steer the space craft towards the pointer.</p>
                     <p className="mb-2">Click to shoot aliens and score points!</p>
                     <p className="mb-4">Avoid collisions with aliens or the game ends.</p>
                     <p className="mb-2">CONTROLS:</p>
                     <p className="mb-2">Mouse Move: Steer Ship</p>
                     <p className="mb-4">Mouse Click: Shoot</p>
                     <div className="mb-4 flex items-center justify-center">
-                        <p className="mr-2">CHOOSE SPACE SHIP:</p>
+                        <p className="mr-2">CHOOSE SPACE CRAFT:</p>
                         {imagesLoaded && shipImages[shipType] && (
                             <img src={shipImages[shipType].src} alt={shipType} className="w-10 h-10 mr-2" />
                         )}
@@ -517,7 +519,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                             onChange={(e) => setShipType(e.target.value as ShipType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="ship">DEFAULT</option>
+                            <option value="ship">SPACEROCKET</option>
                             <option value="eth">ETHEREUM</option>
                             <option value="base">BASE</option>
                         </select>
@@ -532,11 +534,11 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                             onChange={(e) => setEnemyType(e.target.value as EnemyType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="alien">DEFAULT</option>
+                            <option value="alien">ALIEN</option>
                             <option value="bitcoin">BITCOIN</option>
                             <option value="xrp">XRP</option>
                             <option value="solana">SOLANA</option>
-                            <option value="gensler">GENSLER</option>
+                            <option value="gensler">CLOWN GARY</option>
                         </select>
                     </div>
                     <Button onClick={startGame} disabled={startGameStatus === 'pending' || !imagesLoaded}>

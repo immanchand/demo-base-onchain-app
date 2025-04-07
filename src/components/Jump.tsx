@@ -27,7 +27,8 @@ type EnemyType = 'obstacle' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
 type ShipType = 'runner' | 'lady' | 'eth' | 'base';
 
 // Constants
-const SHIP_SIZE = 50;
+const SHIP_HEIGHT = 50;  // Define height explicitly
+const SHIP_WIDTH = SHIP_HEIGHT * (3/4);  // Width is 3/4 of height
 const OBSTACLE_SIZE = 50;
 const GRAVITY = 0.4;
 const JUMP_VELOCITY = -12;
@@ -86,8 +87,8 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         images.gensler.src = '/images/gensler_sq.png';
         images.runner.src = '/images/runner.png';
         images.lady.src = '/images/runner_female.png';
-        images.eth.src = '/images/ethereum_up.png';
-        images.base.src = '/images/base.png';
+        images.eth.src = '/images/ethereum_running.png';
+        images.base.src = '/images/base_running.png';
         images.background.src = '/images/clouds.png'; // Your 1024x600px image
 
         let loadedCount = 0;
@@ -178,7 +179,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
     const drawShip = (ctx: CanvasRenderingContext2D, ship: { x: number; y: number }) => {
         const image = shipImages[shipType] || shipImages.runner;
-        ctx.drawImage(image, ship.x, ship.y, SHIP_SIZE, SHIP_SIZE);
+        ctx.drawImage(image, ship.x, ship.y, SHIP_WIDTH, SHIP_HEIGHT);
     };
 
     const drawObstacles = (ctx: CanvasRenderingContext2D, obstaclePool: Obstacle[]) => {
@@ -206,9 +207,9 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
         let ship = {
             x: 200, //stating position
-            y: canvas.height - GROUND_HEIGHT - SHIP_SIZE,
-            width: SHIP_SIZE,
-            height: SHIP_SIZE,
+            y: canvas.height - GROUND_HEIGHT - SHIP_HEIGHT,
+            width: SHIP_WIDTH,
+            height: SHIP_HEIGHT,
             vy: 0,
         };
         let obstaclePool: Obstacle[] = [];
@@ -262,8 +263,8 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             if (!gameOver) {
                 ship.vy += GRAVITY;
                 ship.y += ship.vy;
-                if (ship.y > canvas.height - GROUND_HEIGHT - SHIP_SIZE) {
-                    ship.y = canvas.height - GROUND_HEIGHT - SHIP_SIZE;
+                if (ship.y > canvas.height - GROUND_HEIGHT - SHIP_HEIGHT) {
+                    ship.y = canvas.height - GROUND_HEIGHT - SHIP_HEIGHT;
                     ship.vy = 0;
                     jumpCountRef.current = 0;
                 }
@@ -287,10 +288,10 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             // Check collisions
             if (!gameOver) {
                 obstaclePool.forEach((obstacle) => {
-                    const dx = ship.x + SHIP_SIZE / 2 - (obstacle.x + OBSTACLE_SIZE / 2);
-                    const dy = ship.y + SHIP_SIZE / 2 - (obstacle.y + OBSTACLE_SIZE / 2);
+                    const dx = ship.x + SHIP_WIDTH / 2 - (obstacle.x + OBSTACLE_SIZE / 2);
+                    const dy = ship.y + SHIP_HEIGHT / 2 - (obstacle.y + OBSTACLE_SIZE / 2);
                     const distance = Math.sqrt(dx * dx + dy * dy);
-                    if (distance < (SHIP_SIZE + OBSTACLE_SIZE) / 2) {
+                    if (distance < (SHIP_WIDTH + OBSTACLE_SIZE) / 2) {
                         setGameOver(true);
                     }
                 });
@@ -337,7 +338,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         };
 
         if (gameStarted && !gameOver) {
-            ship.y = canvas.height - GROUND_HEIGHT - SHIP_SIZE;
+            ship.y = canvas.height - GROUND_HEIGHT - SHIP_HEIGHT;
             ship.vy = 0;
             jumpCountRef.current = 0;
             obstaclePool = spawnObstacles(canvas, BASE_OBSTACLE_SPEED, 0);
@@ -462,7 +463,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                             onChange={(e) => setShipType(e.target.value as ShipType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="runner">BROSKI</option>
+                            <option value="runner">DUDE</option>
                             <option value="lady">LADY</option>
                             <option value="eth">ETHEREUM</option>
                             <option value="base">BASE</option>

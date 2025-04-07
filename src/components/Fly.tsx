@@ -27,12 +27,12 @@ type EnemyType = 'alien' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
 type ShipType = 'ship' | 'eth' | 'base';
 
 // Constants
-const SHIP_SIZE = 40;
+const SHIP_WIDTH = 40;  // Define width explicitly (original size)
+const SHIP_HEIGHT = SHIP_WIDTH * (3/4);  // Height is 3/4 of width
 const OBSTACLE_SIZE = 50;
 const GRAVITY = 0.2;
 const FLAP_VELOCITY = -5; // Upward velocity on flap
 const BASE_OBSTACLE_SPEED = -3;
-
 
 const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -132,7 +132,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
     const drawShip = (ctx: CanvasRenderingContext2D, ship: { x: number; y: number }) => {
         const image = shipImages[shipType] || shipImages.ship;
-        ctx.drawImage(image, ship.x, ship.y, SHIP_SIZE, SHIP_SIZE);
+        ctx.drawImage(image, ship.x, ship.y, SHIP_WIDTH, SHIP_HEIGHT);
     };
 
     const drawObstacles = (ctx: CanvasRenderingContext2D, obstaclePool: Obstacle[]) => {
@@ -160,9 +160,9 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
         let ship = {
             x: 200,
-            y: canvas.height / 2 + SHIP_SIZE / 2,
-            width: SHIP_SIZE,
-            height: SHIP_SIZE,
+            y: canvas.height / 2 + SHIP_HEIGHT / 2,
+            width: SHIP_WIDTH,
+            height: SHIP_HEIGHT,
             vy: FLAP_VELOCITY*2,
         };
         let obstaclePool: Obstacle[] = [];
@@ -203,11 +203,11 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                     ship.y = 0;
                     ship.vy = 0;
                 }
-                if (ship.y > canvas.height - SHIP_SIZE) {
+                if (ship.y > canvas.height - SHIP_HEIGHT) {
                     setGameOver(true);
                 }
                 if (ship.x > canvas.width) {
-                    ship.x = -SHIP_SIZE;
+                    ship.x = -SHIP_WIDTH;
                 }
                 setScore((prev) => prev + deltaTime * 10 * (1 + difficultyFactor));
             }
@@ -238,10 +238,10 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
             if (!gameOver) {
                 obstaclePool.forEach((obstacle) => {
-                    const dx = ship.x + SHIP_SIZE / 2 - (obstacle.x + obstacleSize / 2);
-                    const dy = ship.y + SHIP_SIZE / 2 - (obstacle.y + obstacleSize / 2);
+                    const dx = ship.x + SHIP_WIDTH / 2 - (obstacle.x + obstacleSize / 2);
+                    const dy = ship.y + SHIP_HEIGHT / 2 - (obstacle.y + obstacleSize / 2);
                     const distance = Math.sqrt(dx * dx + dy * dy);
-                    if (distance < (SHIP_SIZE + obstacleSize) / 2) {
+                    if (distance < (SHIP_WIDTH + obstacleSize) / 2) {
                         setGameOver(true);
                     }
                 });

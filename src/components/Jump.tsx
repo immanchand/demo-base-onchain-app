@@ -129,7 +129,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         let widthCount = 1;
         let heightCount = 1;
 
-        const timeLevel = Math.min(Math.floor(elapsedTime / 10), 20); // Caps at 20 (speed = -6)
+        const timeLevel = Math.floor(elapsedTime / 10);
         if (timeLevel >= 1) heightCount = 2; // 1x2 at 10s
         if (timeLevel >= 3) widthCount = 2;   // 2x1 at 30s
         if (timeLevel >= 4) {                // 2x2 at 40s
@@ -241,7 +241,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
         const update = (deltaTime: number) => {
             const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
-            const timeLevel = Math.min(Math.floor(elapsedTime / 10), 20); // Caps at 20 (speed = -6)
+            const timeLevel = Math.floor(elapsedTime / 10);
             const speedMultiplier = 1 + timeLevel * 0.05;
             const obstacleSpeed = BASE_OBSTACLE_SPEED * speedMultiplier;
             const minGap = OBSTACLE_SIZE * (50 - Math.min(timeLevel, 10) * 4);

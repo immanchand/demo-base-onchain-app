@@ -512,7 +512,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                     <div className="mb-4 flex items-center justify-center">
                         <p className="mr-2">CHOOSE SPACE CRAFT:</p>
                         {imagesLoaded && shipImages[shipType] && (
-                            <img src={shipImages[shipType].src} alt={shipType} className="w-10 h-10 mr-2" />
+                            <img src={shipImages[shipType].src} alt={shipType} className="w-15 h-10 mr-2" />
                         )}
                         <select
                             value={shipType}

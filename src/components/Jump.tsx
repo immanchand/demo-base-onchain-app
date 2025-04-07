@@ -80,15 +80,15 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             base: new Image(),
             background: new Image(), // Add background image
         };
-        images.obstacle.src = '/images/obstacle.png';
-        images.bitcoin.src = '/images/bitcoin_sq.png';
-        images.xrp.src = '/images/xrp_sq.png';
-        images.solana.src = '/images/solana.png';
-        images.gensler.src = '/images/gensler_sq.png';
-        images.runner.src = '/images/runner.png';
-        images.lady.src = '/images/runner_female.png';
-        images.eth.src = '/images/ethereum_running.png';
-        images.base.src = '/images/base_running.png';
+        images.obstacle.src = '/images/OBSTACLE.png';
+        images.bitcoin.src = '/images/BTC_SQ.png';
+        images.xrp.src = '/images/XRP_SQ.png';
+        images.solana.src = '/images/SOLANA.png';
+        images.gensler.src = '/images/CLOWN_SQ.png';
+        images.runner.src = '/images/RUNNER_DEF.png';
+        images.lady.src = '/images/RUNNER_LADY.png';
+        images.eth.src = '/images/ETH_RUNNING.png';
+        images.base.src = '/images/BASE_RUNNING.png';
         images.background.src = '/images/clouds.png'; // Your 1024x600px image
 
         let loadedCount = 0;
@@ -456,7 +456,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     <div className="mb-4 flex items-center justify-center">
                         <p className="mr-2">CHOOSE RUNNER:</p>
                         {imagesLoaded && shipImages[shipType] && (
-                            <img src={shipImages[shipType].src} alt={shipType} className="w-10 h-10 mr-2" />
+                            <img src={shipImages[shipType].src} alt={shipType} className="w-10 h-15 mr-2" />
                         )}
                         <select
                             value={shipType}
@@ -479,11 +479,11 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                             onChange={(e) => setEnemyType(e.target.value as EnemyType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="obstacle">DEFAULT</option>
+                            <option value="obstacle">CRATE</option>
                             <option value="bitcoin">BITCOIN</option>
                             <option value="xrp">XRP</option>
                             <option value="solana">SOLANA</option>
-                            <option value="gensler">GENSLER</option>
+                            <option value="gensler">CLOWN GARY</option>
                         </select>
                     </div>
                     <Button onClick={startGame} disabled={startGameStatus === 'pending' || !imagesLoaded}>

@@ -23,7 +23,7 @@ interface Obstacle extends Entity {
     dx: number;
 }
 
-type EnemyType = 'obstacle' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
+type EnemyType = 'obstacle' | 'barrel' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
 type ShipType = 'runner' | 'lady' | 'eth' | 'base';
 
 // Constants
@@ -69,6 +69,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     useEffect(() => {
         const images = {
             obstacle: new Image(),
+            barrel: new Image(),
             bitcoin: new Image(),
             xrp: new Image(),
             solana: new Image(),
@@ -80,7 +81,8 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             background: new Image(),
             ground: new Image(),
         };
-        images.obstacle.src = '/images/OBSTACLE.png';
+        images.obstacle.src = '/images/WOODEN_CRATE.png';
+        images.barrel.src = '/images/BARREL.png';
         images.bitcoin.src = '/images/BTC_SQ.png';
         images.xrp.src = '/images/XRP_SQ.png';
         images.solana.src = '/images/SOLANA.png';
@@ -90,7 +92,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         images.eth.src = '/images/ETH_RUNNING.png';
         images.base.src = '/images/BASE_RUNNING.png';
         images.background.src = '/images/clouds.png';
-        images.ground.src = '/images/ground_bricks.png';
+        images.ground.src = '/images/ground_bricksred.png';
 
         let loadedCount = 0;
         const totalImages = Object.keys(images).length;
@@ -100,6 +102,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             if (loadedCount === totalImages) {
                 setEnemyImages({
                     obstacle: images.obstacle,
+                    barrel: images.barrel,
                     bitcoin: images.bitcoin,
                     xrp: images.xrp,
                     solana: images.solana,
@@ -463,6 +466,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
                             <option value="obstacle">CRATE</option>
+                            <option value="barrel">BARREL</option>
                             <option value="bitcoin">BITCOIN</option>
                             <option value="xrp">XRP</option>
                             <option value="solana">SOLANA</option>

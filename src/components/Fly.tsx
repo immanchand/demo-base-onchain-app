@@ -190,8 +190,8 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
         const update = (deltaTime: number) => {
             const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
-            const difficultyFactor = Math.min(elapsedTime / 60, 1);
-            const spawnInterval = 2500 * (1 - difficultyFactor) + 400;
+            const difficultyFactor = Math.min(elapsedTime / 90, 1);
+            const spawnInterval = 2500 * (1 - difficultyFactor) + 300;
             const obstacleSpeed = BASE_OBSTACLE_SPEED * (1 + difficultyFactor * 0.5);
             const clusterChance = difficultyFactor * 0.3;
             const obstacleSize = OBSTACLE_SIZE * (1 + difficultyFactor * 0.1);

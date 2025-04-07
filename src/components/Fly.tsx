@@ -71,14 +71,14 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             eth: new Image(),
             base: new Image(),
         };
-        images.alien.src = '/images/alien.png';
-        images.bitcoin.src = '/images/bitcoin.png';
-        images.xrp.src = '/images/xrp.png';
-        images.solana.src = '/images/solana.png';
-        images.gensler.src = '/images/gensler.png';
-        images.ship.src = '/images/spaceship.png';
-        images.eth.src = '/images/ethereum.png';
-        images.base.src = '/images/base.png';
+        images.alien.src = '/images/ALIEN.png';
+        images.bitcoin.src = '/images/BTC.png';
+        images.xrp.src = '/images/XRP.png';
+        images.solana.src = '/images/SOLANA.png';
+        images.gensler.src = '/images/CLOWN_CIRCLE.png';
+        images.ship.src = '/images/SPACEROCKET.png';
+        images.eth.src = '/images/ETH_SHOOT.png';
+        images.base.src = '/images/BASE_SHOOT.png';
 
         let loadedCount = 0;
         const totalImages = Object.keys(images).length;
@@ -378,20 +378,20 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                     <h1 className="text-3xl text-accent-yellow mb-4">FLY</h1>
                     <p className="text-xl mb-2">INSTRUCTIONS:</p>
                     <p className="mb-2">Use the spacebar or mouse click to fly upward.</p>
-                    <p className="mb-4">Avoid hitting obstacles!</p>
+                    <p className="mb-4">Avoid hitting obstacles and avoid hitting the ground!</p>
                     <p className="mb-2">CONTROLS:</p>
-                    <p className="mb-4">Spacebar or Mouse Click: Fly</p>
+                    <p className="mb-4">Spacebar or Mouse Click: Fly Upward</p>
                     <div className="mb-4 flex items-center justify-center">
-                        <p className="mr-2">CHOOSE SHIP:</p>
+                        <p className="mr-2">CHOOSE AIRCRAFT:</p>
                         {imagesLoaded && shipImages[shipType] && (
-                            <img src={shipImages[shipType].src} alt={shipType} className="w-10 h-10 mr-2" />
+                            <img src={shipImages[shipType].src} alt={shipType} className="w-15 h-10 mr-2" />
                         )}
                         <select
                             value={shipType}
                             onChange={(e) => setShipType(e.target.value as ShipType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="ship">DEFAULT</option>
+                            <option value="ship">SPACE ROCKET</option>
                             <option value="eth">ETHEREUM</option>
                             <option value="base">BASE</option>
                         </select>
@@ -406,11 +406,11 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                             onChange={(e) => setEnemyType(e.target.value as EnemyType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="alien">DEFAULT</option>
+                            <option value="alien">ALIEN</option>
                             <option value="bitcoin">BITCOIN</option>
                             <option value="xrp">XRP</option>
                             <option value="solana">SOLANA</option>
-                            <option value="gensler">GENSLER</option>
+                            <option value="gensler">CLOWN GARY</option>
                         </select>
                     </div>
                     <Button onClick={startGame} disabled={startGameStatus === 'pending' || !imagesLoaded}>

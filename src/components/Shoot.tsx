@@ -382,8 +382,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             };
         };
 
-        const handleMouseDown = () => {
-            if (gameOver) return;
+        const handleShoot = () => {
             const inactiveBullet = bulletPool.find((b) => !b.active);
             if (inactiveBullet) {
                 inactiveBullet.x = ship.x + Math.cos(ship.angle) * (SHIP_WIDTH / 2);
@@ -392,6 +391,18 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                 inactiveBullet.dy = Math.sin(ship.angle) * BULLET_SPEED;
                 inactiveBullet.active = true;
             }
+        };
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (gameOver) return;
+            if (e.code === 'Space') {
+                handleShoot();
+            }
+        };
+
+        const handleMouseDown = () => {
+            if (gameOver) return;
+            handleShoot();
         };
 
         if (gameStarted && !gameOver) {
@@ -406,6 +417,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             lastFrameTimeRef.current = performance.now();
             window.addEventListener('mousemove', handleMouseMove);
             window.addEventListener('mousedown', handleMouseDown);
+            window.addEventListener('keydown', handleKeyDown);
             animationFrameIdRef.current = requestAnimationFrame(gameLoop);
         }
 
@@ -503,14 +515,14 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                 <div className="text-center text-primary-text font-mono">
                     <h1 className="text-3xl text-accent-yellow mb-4">SHOOT</h1>
                     <p className="text-xl mb-2">INSTRUCTIONS:</p>
-                    <p className="mb-2">Move your mouse to steer the space craft towards the pointer.</p>
-                    <p className="mb-2">Click to shoot aliens and score points!</p>
+                    <p className="mb-2">Move your mouse to steer the space rocket towards the pointer.</p>
+                    <p className="mb-2">Use the spacebar or mouse click to shoot aliens and score points!</p>
                     <p className="mb-4">Avoid collisions with aliens or the game ends.</p>
                     <p className="mb-2">CONTROLS:</p>
-                    <p className="mb-2">Mouse Move: Steer Ship</p>
-                    <p className="mb-4">Mouse Click: Shoot</p>
+                    <p className="mb-2">Mouse Move: Steer Space Rocket</p>
+                    <p className="mb-4">Spacebar or Mouse Click: Shoot</p>
                     <div className="mb-4 flex items-center justify-center">
-                        <p className="mr-2">CHOOSE SPACE CRAFT:</p>
+                        <p className="mr-2">CHOOSE SPACE ROCKET:</p>
                         {imagesLoaded && shipImages[shipType] && (
                             <img src={shipImages[shipType].src} alt={shipType} className="w-15 h-10 mr-2" />
                         )}
@@ -519,7 +531,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                             onChange={(e) => setShipType(e.target.value as ShipType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="ship">SPACEROCKET</option>
+                            <option value="ship">SPACE ROCKET</option>
                             <option value="eth">ETHEREUM</option>
                             <option value="base">BASE</option>
                         </select>

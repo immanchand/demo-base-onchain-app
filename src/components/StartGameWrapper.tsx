@@ -1,11 +1,5 @@
 'use client';
 import { useCallback, useImperativeHandle, forwardRef } from 'react';
-import { Address, encodeFunctionData, Hex } from 'viem';
-import { BASE_SEPOLIA_CHAIN_ID, contractABI, contractAddress, publicClient } from 'src/constants';
-import { createWalletClient, http } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { baseSepolia } from 'viem/chains';
-
 
 interface StartGameWrapperProps {
   gameId: string;
@@ -13,72 +7,28 @@ interface StartGameWrapperProps {
   onStatusChange: (status: 'idle' | 'pending' | 'success' | 'error', errorMessage?: string) => void;
 }
 
-const gameMasterPrivateKey = process.env.NEXT_PUBLIC_GAME_MASTER_PRIVATE_KEY;
-const gameMasterClient = gameMasterPrivateKey
-  ? createWalletClient({
-      chain: baseSepolia,
-      transport: http(),
-      account: privateKeyToAccount(gameMasterPrivateKey as Hex),
-    })
-  : null;
-
 const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGameWrapperProps>(
   ({ gameId, playerAddress, onStatusChange }, ref) => {
-    const parseErrorMessage = (error: unknown): string => {
-      if (error instanceof Error) {
-        const fullMessage = error.message;
-        const detailsIndex = fullMessage.indexOf('Details:');
-        if (detailsIndex !== -1) {
-          const detailsStart = detailsIndex + 'Details:'.length;
-          const nextNewline = fullMessage.indexOf('\n', detailsStart);
-          const detailsEnd = nextNewline !== -1 ? nextNewline : fullMessage.length;
-          return fullMessage.slice(detailsStart, detailsEnd).trim();
-        }
-        return fullMessage.split('\n')[0] || 'An unknown error occurred';
-      }
-      return 'An unknown error occurred';
-    };
-
-    const handleStartGame = useCallback(async () => {
-      if (!gameMasterClient || !gameId || !playerAddress) {
-        onStatusChange('error', 'Missing required data');
-        return;
-      }
-
+    const startGame = useCallback(async () => {
       try {
         onStatusChange('pending');
-
-        const callData = encodeFunctionData({
-          abi: contractABI,
-          functionName: 'startGame',
-          args: [BigInt(gameId), playerAddress as Address],
+        const response = await fetch('/api/game', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'start', gameId, playerAddress }),
         });
-
-        const hash = await gameMasterClient.sendTransaction({
-          to: contractAddress as Hex,
-          data: callData,
-          chainId: BASE_SEPOLIA_CHAIN_ID,
-        });
-
-        // Wait for transaction confirmation
-        await publicClient.waitForTransactionReceipt({ hash });
-
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to start game');
         onStatusChange('success');
-        console.log('Game started successfully, tx hash:', hash);
       } catch (error) {
-        console.error('Start game error:', error);
-        onStatusChange('error', parseErrorMessage(error));
+        onStatusChange('error', error instanceof Error ? error.message : 'Unknown error');
       }
     }, [gameId, playerAddress, onStatusChange]);
 
-    useImperativeHandle(ref, () => ({
-      startGame: handleStartGame,
-    }));
-
-    return null; // No UI elements
+    useImperativeHandle(ref, () => ({ startGame }));
+    return null;
   }
 );
 
 StartGameWrapper.displayName = 'StartGameWrapper';
-
 export default StartGameWrapper;

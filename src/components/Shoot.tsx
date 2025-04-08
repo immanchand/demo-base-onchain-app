@@ -266,7 +266,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                 if (distance < ENEMY_SIZE / 2) {
                     bullet.active = false;
                     enemy.active = false;
-                    setScore((prev) => prev + 26);
+                    setScore((prev) => prev + 31);
                     enemyPool.forEach((a) => {
                         if (a.active) {
                             a.dx *= 1.1;

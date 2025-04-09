@@ -9,7 +9,7 @@ import { publicClient, contractABI, contractAddress, gameMasterAddress, ethPrice
 import WalletWrapper from 'src/components/WalletWrapper';
 import FlyGame from 'src/components/Fly';
 import { useTicketContext } from 'src/context/TicketContext';
-import { handleGameAction } from 'src/app/actions/gameActions';
+import { handleGameAction } from 'src/app/actions/gameActions'; // Import Server Action
 
 interface GameData {
   gameId: number;
@@ -60,6 +60,15 @@ const GameCard = React.memo(
     const isGMLeader = gameMasterAddress && game.leader.toLowerCase() === gameMasterAddress.toLowerCase();
     const isGameWithdrawn = game.potHistory > game.pot;
 
+    const handleWithdraw = useCallback(async () => {
+      try {
+        await handleGameAction('withdraw', game.gameId.toString());
+        refreshGame(); // Refresh to update potHistory
+      } catch (error) {
+        console.error('Withdraw failed:', error);
+      }
+    }, [game.gameId, refreshGame]);
+
     return (
       <div className="card-container">
         {game.error ? (
@@ -83,7 +92,7 @@ const GameCard = React.memo(
               <p className="text-xl font-bold text-primary-text">HIGH SCORE {game.highScore.toString()}</p>
               <div className="mt-4 flex justify-center items-center">
                 {isGameOver && !isGameWithdrawn && isUserLeader && (
-                  <button onClick={() => handleGameAction('withdraw', game.gameId.toString())}>
+                  <button onClick={handleWithdraw} className="btn">
                     Withdraw Winnings
                   </button>
                 )}
@@ -106,14 +115,23 @@ const GameCard = React.memo(
                   >
                     {isUserLeader ? 'YOU!' : isGMLeader ? 'NO ONE YET' : `${game.leader.slice(0, 5)}...${game.leader.slice(-3)}`}
                   </a>
-                  {/* Tooltip and copied logic unchanged */}
+                  <span className="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-primary-bg text-accent-yellow text-xs py-1 px-2 border border-primary-border z-10">
+                    {game.leader}
+                  </span>
+                  {isCopied && (
+                    <span className="absolute left-0 top-full mt-1 text-accent-yellow text-xs animate-fade-in-out">
+                      COPIED!
+                    </span>
+                  )}
                 </p>
               </div>
               <div className="mt-4 relative group">
                 <p className="font-bold text-primary-text">PRIZE</p>
                 <p className="text-accent-yellow text-2xl font-bold">
                   ${(Number(formatEther(game.pot > game.potHistory ? game.pot : game.potHistory)) * ethPrice).toFixed(2)}
-                  {/* Tooltip unchanged */}
+                  <span className="absolute right-0 bottom-full mb-2 hidden group-hover:block bg-primary-bg text-accent-yellow text-xs py-1 px-2 border border-primary-border z-10">
+                    {formatEther(game.pot > game.potHistory ? game.pot : game.potHistory)} ETH
+                  </span>
                 </p>
               </div>
             </div>
@@ -243,7 +261,6 @@ export default function ActiveGame() {
                   gameId={Number(gameState.game.gameId)}
                   existingHighScore={Number(gameState.game.highScore)}
                   updateTickets={refreshTickets}
-                  handleGameAction={handleGameAction}
                 />
               </section>
             ) : (

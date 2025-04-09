@@ -1,4 +1,4 @@
-'use server';
+
 // src/lib/gameActions.ts
 import { createWalletClient, http, encodeFunctionData } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';

@@ -5,12 +5,13 @@ import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import { useAccount } from 'wagmi';
 import Button from './Button';
+import { handleGameAction } from 'src/app/actions/gameActions'; // Import Server Action
 
 interface FlyProps {
     gameId: number;
     existingHighScore: number;
     updateTickets: () => void;
-}
+  }
 
 interface Entity {
     x: number;
@@ -292,21 +293,54 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
     }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnObstacle]);
 
     const startGame = useCallback(async () => {
-        if (ticketCount > 0 && startGameRef.current) {
-            setStartGameStatus('pending');
-            await startGameRef.current.startGame();
-        } else if (ticketCount < 1) {
+        if (ticketCount > 0) {
+          setStartGameStatus('pending');
+          try {
+            await handleGameAction('start', gameId.toString(), address);
+            setStartGameStatus('success');
+            updateTickets();
+            setGameStarted(true);
+            setGameOver(false);
+            setScore(0);
+            setEndGameStatus('idle');
+            setEndGameError('');
+            setEndGameMessage('');
+            containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            canvasRef.current?.focus();
+          } catch (error) {
             setStartGameStatus('error');
-            setStartGameError('You need one ticket to play!');
+            setStartGameError(error instanceof Error ? error.message : 'Failed to start game');
+          }
+        } else {
+          setStartGameStatus('error');
+          setStartGameError('You need one ticket to play!');
         }
-    }, [ticketCount]);
-
-    const endGame = useCallback(async () => {
-        if (endGameRef.current && gameStarted) {
-            setEndGameStatus('pending');
-            await endGameRef.current.endGame();
+      }, [ticketCount, gameId, address, updateTickets]);
+    
+      const endGame = useCallback(async () => {
+        if (gameStarted) {
+          setEndGameStatus('pending');
+          try {
+            if (Math.floor(score) <= existingHighScore) {
+              setEndGameStatus('loser');
+              setEndGameMessage(`YOU DID NOT BEAT THE HIGH SCORE: ${existingHighScore}!`);
+              return;
+            }
+            await handleGameAction('end', gameId.toString(), address, Math.floor(score).toString());
+            setEndGameStatus('leader');
+            setEndGameMessage('CONGRATULATIONS! YOU SET A NEW HIGH SCORE!');
+          } catch (error) {
+            setEndGameStatus('error');
+            setEndGameError(error instanceof Error ? error.message : 'Failed to end game');
+          }
         }
-    }, [gameStarted]);
+      }, [gameStarted, gameId, address, score, existingHighScore]);
+    
+      useEffect(() => {
+        if (gameOver && gameStarted && endGameStatus === 'idle') {
+          endGame();
+        }
+      }, [gameOver, gameStarted, endGameStatus, endGame]);
 
     const handleStartGameStatusChange = useCallback((status: 'idle' | 'pending' | 'success' | 'error', errorMessage?: string) => {
         setStartGameStatus(status);

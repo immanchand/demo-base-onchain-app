@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
-import { useAccount } from 'wagmi';
 import Button from './Button';
 
 interface ShootProps {
@@ -36,7 +35,6 @@ type EnemyType = 'alien' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
 type ShipType = 'ship' | 'eth' | 'base';
 
 // Constants
-const SHIP_SIZE = 30;
 const SHIP_WIDTH = 30;  // Define width explicitly
 const SHIP_HEIGHT = SHIP_WIDTH * (3/4);  // Height is 3/4 of width
 const BULLET_SIZE = 4;
@@ -70,7 +68,6 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
     const [startGameError, setStartGameError] = useState<string>('');
     const [endGameError, setEndGameError] = useState<string>('');
     const [endGameMessage, setEndGameMessage] = useState<string>('');
-    const { address } = useAccount();
 
     // Preload images (unchanged)
     useEffect(() => {
@@ -500,14 +497,12 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             <StartGameWrapper
                 ref={startGameRef}
                 gameId={gameId.toString()}
-                playerAddress={address || '0x0'}
                 onStatusChange={handleStartGameStatusChange}
             />
             <EndGameWrapper
                 ref={endGameRef}
                 gameId={gameId.toString()}
-                playerAddress={address || '0x0'}
-                score={score.toString()}
+                score={Math.floor(score).toString()}
                 highScore={existingHighScore.toString()}
                 onStatusChange={handleEndGameStatusChange}
             />

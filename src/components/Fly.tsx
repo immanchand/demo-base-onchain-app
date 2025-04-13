@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
-import { useAccount } from 'wagmi';
 import Button from './Button';
 
 interface FlyProps {
@@ -57,7 +56,6 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
     const [startGameError, setStartGameError] = useState<string>('');
     const [endGameError, setEndGameError] = useState<string>('');
     const [endGameMessage, setEndGameMessage] = useState<string>('');
-    const { address } = useAccount();
 
     // Preload images
     useEffect(() => {
@@ -362,13 +360,11 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             <StartGameWrapper
                 ref={startGameRef}
                 gameId={gameId.toString()}
-                playerAddress={address || '0x0'}
                 onStatusChange={handleStartGameStatusChange}
             />
             <EndGameWrapper
                 ref={endGameRef}
                 gameId={gameId.toString()}
-                playerAddress={address || '0x0'}
                 score={Math.floor(score).toString()}
                 highScore={existingHighScore.toString()}
                 onStatusChange={handleEndGameStatusChange}

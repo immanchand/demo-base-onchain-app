@@ -42,7 +42,7 @@ export async function POST(request) {
     });
   }
 
-  const { action, gameId, address } = await request.json();
+  const { action, gameId, address, score } = await request.json();
   if (!action) {
     return new Response(JSON.stringify({ status: 'error', message: 'Missing action' }), {
       status: 400,
@@ -68,9 +68,43 @@ export async function POST(request) {
         receipt = await tx.wait();
         rateLimitStore.set(sessionId, now);
         return new Response(
-          JSON.stringify({ status: 'success', txHash: tx.hash, gameId: receipt.logs[0].args.gameId.toString() }),
+          JSON.stringify({ status: 'success', txHash: tx.hash }),
           { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
         );
+      
+      case 'end-game':
+        if (!gameId) {
+          return new Response(
+            JSON.stringify({ status: 'error', message: 'Missing gameId' }),
+            { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
+          );
+        }
+        if (!address) {
+          return new Response(
+            JSON.stringify({ status: 'error', message: 'Missing player address' }),
+            { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
+          );
+        }
+        if (!score) {
+          return new Response(
+            JSON.stringify({ status: 'error', message: 'Missing player score' }),
+            { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
+          );
+        }
+
+        tx = await contract.endGame(BigInt(gameId), address, BigInt(score));
+        receipt = await tx.wait();
+        let isHighScore = false;
+        try {
+          isHighScore = receipt.logs[1].args[3]? true : false;
+          // code after new contract deployment is:
+          // isHighScore = receipt.logs[0].args[3];
+        } catch (error) {}
+                
+        return new Response(
+           JSON.stringify({ status: 'success', txHash: tx.hash,  isHighScore}),
+           { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
+         );
 
       case 'start-game':
         if (!gameId) {
@@ -119,7 +153,7 @@ export async function POST(request) {
           JSON.stringify({ status: 'success', txHash: tx.hash }),
           { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
         );
-
+      
       default:
         return new Response(
           JSON.stringify({ status: 'error', message: 'Invalid action' }),

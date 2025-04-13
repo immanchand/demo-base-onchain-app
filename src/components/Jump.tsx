@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
-import { useAccount } from 'wagmi';
 import Button from './Button';
 
 interface JumpProps {
@@ -63,7 +62,6 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const [startGameError, setStartGameError] = useState<string>('');
     const [endGameError, setEndGameError] = useState<string>('');
     const [endGameMessage, setEndGameMessage] = useState<string>('');
-    const { address } = useAccount();
 
     // Preload images
     useEffect(() => {
@@ -234,7 +232,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
         const update = (deltaTime: number) => {
             const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
-            const timeLevel = Math.floor(elapsedTime / 10);
+            const timeLevel = Math.floor(elapsedTime / 8);
             const speedMultiplier = 1 + timeLevel * 0.05;
             const obstacleSpeed = BASE_OBSTACLE_SPEED * speedMultiplier;
             const minGap = OBSTACLE_SIZE * (50 - Math.min(timeLevel, 10) * 4);
@@ -418,13 +416,11 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             <StartGameWrapper
                 ref={startGameRef}
                 gameId={gameId.toString()}
-                playerAddress={address || '0x0'}
                 onStatusChange={handleStartGameStatusChange}
             />
             <EndGameWrapper
                 ref={endGameRef}
                 gameId={gameId.toString()}
-                playerAddress={address || '0x0'}
                 score={Math.floor(score).toString()}
                 highScore={existingHighScore.toString()}
                 onStatusChange={handleEndGameStatusChange}

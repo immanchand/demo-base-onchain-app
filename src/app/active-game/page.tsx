@@ -5,12 +5,11 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { Address } from 'viem';
 import { formatEther } from 'viem';
 import { useAccount } from 'wagmi';
-import { publicClient, contractABI, contractAddress, gameMasterAddress, ethPrice } from 'src/constants';
+import { publicClient, contractABI, CONTRACT_ADDRESS, gameMasterAddress, ethPrice } from 'src/constants';
 import WalletWrapper from 'src/components/WalletWrapper';
 import WinnerWithdrawWrapper from 'src/components/WinnerWithdrawWrapper';
 import Shoot from 'src/components/Shoot';
 import Jump from 'src/components/Jump';
-import Fly from 'src/components/Fly';
 import { useTicketContext } from 'src/context/TicketContext';
 import Button from 'src/components/Button';
 import FlyGame from 'src/components/Fly';
@@ -183,7 +182,7 @@ export default function ActiveGame() {
     const fetchGame = useCallback(async (gameId: number) => {
         try {
             const { endTime, highScore, leader, pot, potHistory } = await publicClient.readContract({
-                address: contractAddress,
+                address: CONTRACT_ADDRESS,
                 abi: contractABI,
                 functionName: 'getGame',
                 args: [BigInt(gameId)],
@@ -198,7 +197,7 @@ export default function ActiveGame() {
         setGameState(prev => ({ ...prev, flowStatus: 'loading', errorMessage: '' }));
         try {
             const latestGameId = await publicClient.readContract({
-                address: contractAddress,
+                address: CONTRACT_ADDRESS,
                 abi: contractABI,
                 functionName: 'getLatestGameId',
             });

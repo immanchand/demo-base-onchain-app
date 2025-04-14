@@ -60,14 +60,15 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
             console.log('Signature mismatch. Clearing cookies.');
             Cookies.remove('gameSig'); // Clear invalid signature
             setHasSigned(false); // Reset signed state
-            getSignature(); // Request new signature
+            onStatusChange('error', 'Player address changed. Please refresh and try again.');
+            return;
           }
         }
         catch (error) {
           console.log('Signature error. Clearing cookies.');
           Cookies.remove('gameSig'); // Clear invalid signature
           setHasSigned(false); // Reset signed state
-          getSignature(); // Request new signature
+          onStatusChange('error', 'Signature error. Please refresh and try again.');
         }
         
         if (!address) {
@@ -75,11 +76,15 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
           return;
         }
         if (!gameSigRaw || gameSigRaw === '') {
-          onStatusChange('error', 'Game signature not found');
+          Cookies.remove('gameSig'); // Clear invalid signature
+          setHasSigned(false); // Reset signed state
+          onStatusChange('error', 'Game signature not found. Sign then refresh or try again.');
           return;
         }
         if (!gameSigRaw.includes('signature')) {
-          onStatusChange('error', 'Invalid game signature');
+          Cookies.remove('gameSig'); // Clear invalid signature
+          setHasSigned(false); // Reset signed state
+          onStatusChange('error', 'Invalid game signature. Sign then refresh or try again.');
           return;
         }
         

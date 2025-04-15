@@ -4,6 +4,7 @@ import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
+import { GameStats } from 'src/constants';
 
 interface ShootProps {
     gameId: number;
@@ -16,7 +17,6 @@ interface Entity {
     y: number;
     width: number;
     height: number;
-    active: boolean;
 }
 
 interface Enemy extends Entity {
@@ -24,24 +24,33 @@ interface Enemy extends Entity {
     dy: number;
     rotation: number;
     rotationSpeed: number;
+    active: boolean;
 }
 
 interface Bullet extends Entity {
     dx: number;
     dy: number;
+    active: boolean;
 }
+
+interface TelemetryEvent {
+    event: 'shot' | 'spawn' | 'kill' | 'collision';
+    time: number;
+    data?: { x?: number; y?: number; speedMultiplier?: number };
+}
+
 
 type EnemyType = 'alien' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
 type ShipType = 'ship' | 'eth' | 'base';
 
 // Constants
-const SHIP_WIDTH = 30;  // Define width explicitly
-const SHIP_HEIGHT = SHIP_WIDTH * (3/4);  // Height is 3/4 of width
+const SHIP_WIDTH = 30;
+const SHIP_HEIGHT = SHIP_WIDTH * (3/4);
 const BULLET_SIZE = 4;
 const ENEMY_SIZE = 40;
 const INITIAL_BULLET_COUNT = 10;
-const INITIAL_ENEMY_COUNT = 1; // Starting with 2 enemies
-const MAX_ENEMY_COUNT = 10; // Max of 10 enemies
+const INITIAL_ENEMY_COUNT = 1;
+const MAX_ENEMY_COUNT = 10;
 const BULLET_SPEED = 5;
 const ENEMY_SPEED_BASE = 2;
 
@@ -57,7 +66,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
     const [enemyImages, setEnemyImages] = useState<Record<EnemyType, HTMLImageElement>>({} as Record<EnemyType, HTMLImageElement>);
     const [shipImages, setShipImages] = useState<Record<ShipType, HTMLImageElement>>({} as Record<ShipType, HTMLImageElement>);
     const lastFrameTimeRef = useRef<number>(performance.now());
-    const startTimeRef = useRef<number>(0); // Track game start time
+    const startTimeRef = useRef<number>(0);
     const animationFrameIdRef = useRef<number>(0);
     const mousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
     const { ticketCount } = useTicketContext();
@@ -68,8 +77,22 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
     const [startGameError, setStartGameError] = useState<string>('');
     const [endGameError, setEndGameError] = useState<string>('');
     const [endGameMessage, setEndGameMessage] = useState<string>('');
+    const [telemetry, setTelemetry] = useState<TelemetryEvent[]>([]);
+    const [stats, setStats] = useState<GameStats>({
+        game: 'shoot',
+        shots: 0,
+        kills: 0,
+        time: 0,
+        hitRate: 0,
+        jumps: 0,
+        obstaclesCleared: 0,
+        jumpsPerSec: 0,
+        flaps: 0,
+        obstaclesDodged: 0,
+        flapsPerSec: 0,
+    });
 
-    // Preload images (unchanged)
+    // Preload images
     useEffect(() => {
         const images = {
             alien: new Image(),
@@ -123,25 +146,25 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         let x: number, y: number, dx: number, dy: number;
 
         switch (edge) {
-            case 0: // Top
+            case 0:
                 x = Math.random() * canvas.width;
                 y = -ENEMY_SIZE;
                 dx = (Math.random() - 0.5) * ENEMY_SPEED_BASE * speedMultiplier;
                 dy = Math.random() * ENEMY_SPEED_BASE * speedMultiplier;
                 break;
-            case 1: // Right
+            case 1:
                 x = canvas.width + ENEMY_SIZE;
                 y = Math.random() * canvas.height;
                 dx = -Math.random() * ENEMY_SPEED_BASE * speedMultiplier;
                 dy = (Math.random() - 0.5) * ENEMY_SPEED_BASE * speedMultiplier;
                 break;
-            case 2: // Bottom
+            case 2:
                 x = Math.random() * canvas.width;
                 y = canvas.height + ENEMY_SIZE;
                 dx = (Math.random() - 0.5) * ENEMY_SPEED_BASE * speedMultiplier;
                 dy = -Math.random() * ENEMY_SPEED_BASE * speedMultiplier;
                 break;
-            case 3: // Left
+            case 3:
                 x = -ENEMY_SIZE;
                 y = Math.random() * canvas.height;
                 dx = Math.random() * ENEMY_SPEED_BASE * speedMultiplier;
@@ -153,6 +176,11 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                 dx = 0;
                 dy = 0;
         }
+
+        setTelemetry((prev) => {
+            if (prev.length >= 1000) return [...prev.slice(1), { event: 'spawn', time: performance.now(), data: { x, y, speedMultiplier } }];
+            return [...prev, { event: 'spawn', time: performance.now(), data: { x, y, speedMultiplier } }];
+        });
 
         return {
             x,
@@ -264,6 +292,15 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                     bullet.active = false;
                     enemy.active = false;
                     setScore((prev) => prev + 31);
+                    setTelemetry((prev) => {
+                        if (prev.length >= 1000) return [...prev.slice(1), { event: 'kill', time: performance.now() }];
+                        return [...prev, { event: 'kill', time: performance.now() }];
+                    });
+                    setStats((prev) => ({
+                        ...prev,
+                        kills: prev.kills + 1,
+                        hitRate: prev.kills / (prev.shots || 1),
+                    }));
                     enemyPool.forEach((a) => {
                         if (a.active) {
                             a.dx *= 1.1;
@@ -282,6 +319,10 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             const distance = Math.sqrt(dx * dx + dy * dy);
             if (distance < (ENEMY_SIZE / 2 + SHIP_WIDTH / 2)) {
                 setGameOver(true);
+                setTelemetry((prev) => {
+                    if (prev.length >= 1000) return [...prev.slice(1), { event: 'collision', time: performance.now() }];
+                    return [...prev, { event: 'collision', time: performance.now() }];
+                });
                 cancelAnimationFrame(animationFrameIdRef.current);
             }
         });
@@ -351,10 +392,15 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             updateEnemy(enemyPool, deltaTime, canvas);
             checkCollisions(bulletPool, enemyPool, ship, enemySpeedMultiplier, canvas);
 
-            // Simple time-based enemy count increase
-            const elapsedTime = (performance.now() - startTimeRef.current) / 1000; // Time in seconds
+            setStats((prev) => ({
+                ...prev,
+                time: performance.now() - startTimeRef.current,
+                hitRate: prev.kills / (prev.shots || 1),
+            }));
+
+            const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
             const targetEnemyCount = Math.min(
-                INITIAL_ENEMY_COUNT + Math.floor(elapsedTime / 15), // Add 1 enemy every 15 seconds
+                INITIAL_ENEMY_COUNT + Math.floor(elapsedTime / 15),
                 MAX_ENEMY_COUNT
             );
             const activeEnemies = enemyPool.filter(e => e.active).length;
@@ -387,6 +433,11 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                 inactiveBullet.dx = Math.cos(ship.angle) * BULLET_SPEED;
                 inactiveBullet.dy = Math.sin(ship.angle) * BULLET_SPEED;
                 inactiveBullet.active = true;
+                setTelemetry((prev) => {
+                    if (prev.length >= 1000) return [...prev.slice(1), { event: 'shot', time: performance.now() }];
+                    return [...prev, { event: 'shot', time: performance.now() }];
+                });
+                setStats((prev) => ({ ...prev, shots: prev.shots + 1 }));
             }
         };
 
@@ -410,11 +461,26 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             enemySpeedMultiplier = 1;
             bulletPool.forEach(b => b.active = false);
             enemyPool = Array(INITIAL_ENEMY_COUNT).fill(null).map(() => spawnEnemy(canvas, enemySpeedMultiplier));
-            startTimeRef.current = performance.now(); // Set start time when game begins
-            lastFrameTimeRef.current = performance.now();
+            startTimeRef.current = performance.now();
+            setTelemetry([]);
+            setStats({
+                game: 'shoot',
+                shots: 0,
+                kills: 0,
+                time: 0,
+                hitRate: 0,
+                jumps: 0,
+                obstaclesCleared: 0,
+                jumpsPerSec: 0,
+                flaps: 0,
+                obstaclesDodged: 0,
+                flapsPerSec: 0,
+            });
+
             window.addEventListener('mousemove', handleMouseMove);
             window.addEventListener('mousedown', handleMouseDown);
             window.addEventListener('keydown', handleKeyDown);
+            lastFrameTimeRef.current = performance.now();
             animationFrameIdRef.current = requestAnimationFrame(gameLoop);
         }
 
@@ -422,6 +488,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             resizeObserver.disconnect();
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mousedown', handleMouseDown);
+            window.removeEventListener('keydown', handleKeyDown);
             cancelAnimationFrame(animationFrameIdRef.current);
         };
     }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnEnemy, updateShip, checkCollisions]);
@@ -505,6 +572,8 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                 score={Math.floor(score).toString()}
                 highScore={existingHighScore.toString()}
                 onStatusChange={handleEndGameStatusChange}
+                telemetry={score >= 2000 ? telemetry : []}
+                stats={score >= 2000 ? stats : null}
             />
             {!gameStarted ? (
                 <div className="text-center text-primary-text font-mono">

@@ -11,7 +11,7 @@ import {
   TransactionToastLabel,
 } from '@coinbase/onchainkit/transaction';
 import { encodeFunctionData, Hex } from 'viem';
-import { BASE_SEPOLIA_CHAIN_ID, contractABI, contractAddress } from 'src/constants';
+import { BASE_SEPOLIA_CHAIN_ID, contractABI, CONTRACT_ADDRESS } from 'src/constants';
 import WalletWrapper from './WalletWrapper';
 
 interface WinnerWithdrawWrapperProps {
@@ -28,7 +28,7 @@ export default function WinnerWithdrawWrapper({ gameId, onSuccess, userAddress }
   });
 
   const calls = [{
-    to: contractAddress as Hex,
+    to: CONTRACT_ADDRESS as Hex,
     data: data as Hex,
     value: 0n,
   }];

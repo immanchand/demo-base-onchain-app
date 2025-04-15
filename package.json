@@ -3,7 +3,8 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "build": "next build",
+    "build": "next build && [ \"$OBFUSCATE\" = \"true\" ] && npm run build:obfuscate || true",
+    "build:obfuscate": "javascript-obfuscator .next/static/chunks --output .next/static/chunks",
     "check": "biome check --write .",
     "ci:check": "biome ci --formatter-enabled=false --linter-enabled=false",
     "ci:format": "biome ci --linter-enabled=false --organize-imports-enabled=false",
@@ -18,6 +19,9 @@
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.35.6",
+    "@types/js-cookie": "^3.0.6",
+    "install": "^0.13.0",
+    "js-cookie": "^3.0.5",
     "next": "^14.2.5",
     "permissionless": "^0.1.26",
     "react": "^18",

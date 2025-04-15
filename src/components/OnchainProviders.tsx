@@ -8,6 +8,7 @@ import { WagmiProvider } from 'wagmi';
 import { NEXT_PUBLIC_CDP_API_KEY } from '../config';
 import { useWagmiConfig } from '../wagmi';
 import { TicketProvider } from 'src/context/TicketContext';
+import { CsrfProvider } from 'src/context/CsrfContext';
 
 type Props = { children: ReactNode };
 
@@ -21,7 +22,9 @@ function OnchainProviders({ children }: Props) {
       <QueryClientProvider client={queryClient}>
         <OnchainKitProvider apiKey={NEXT_PUBLIC_CDP_API_KEY} chain={base}>
           <RainbowKitProvider modalSize="compact">
-            <TicketProvider>{children}</TicketProvider>
+            <CsrfProvider>
+              <TicketProvider>{children}</TicketProvider>
+            </CsrfProvider>
           </RainbowKitProvider>
         </OnchainKitProvider>
       </QueryClientProvider>

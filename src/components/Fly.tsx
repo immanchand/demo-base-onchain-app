@@ -4,6 +4,7 @@ import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
+import { GameStats, Entity } from 'src/constants';
 
 interface FlyProps {
     gameId: number;
@@ -11,26 +12,25 @@ interface FlyProps {
     updateTickets: () => void;
 }
 
-interface Entity {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-}
-
 interface Obstacle extends Entity {
     dx: number;
+}
+
+interface TelemetryEvent {
+    event: 'flap' | 'spawn' | 'collision' | 'frame';
+    time: number;
+    data?: { deltaTime?: number; difficulty?: number; y?: number; speed?: number };
 }
 
 type EnemyType = 'alien' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
 type ShipType = 'ship' | 'eth' | 'base';
 
 // Constants
-const SHIP_WIDTH = 40;  // Define width explicitly (original size)
-const SHIP_HEIGHT = SHIP_WIDTH * (3/4);  // Height is 3/4 of width
+const SHIP_WIDTH = 40;
+const SHIP_HEIGHT = SHIP_WIDTH * (3/4);
 const OBSTACLE_SIZE = 50;
 const GRAVITY = 0.2;
-const FLAP_VELOCITY = -5; // Upward velocity on flap
+const FLAP_VELOCITY = -5;
 const BASE_OBSTACLE_SPEED = -3;
 
 const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets }) => {
@@ -56,6 +56,20 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
     const [startGameError, setStartGameError] = useState<string>('');
     const [endGameError, setEndGameError] = useState<string>('');
     const [endGameMessage, setEndGameMessage] = useState<string>('');
+    const [telemetry, setTelemetry] = useState<TelemetryEvent[]>([]);
+    const [stats, setStats] = useState<GameStats>({
+        game: 'fly',
+        shots: 0,
+        kills: 0,
+        time: 0,
+        hitRate: 0,
+        jumps: 0,
+        obstaclesCleared: 0,
+        jumpsPerSec: 0,
+        flaps: 0,
+        obstaclesDodged: 0,
+        flapsPerSec: 0,
+    });
 
     // Preload images
     useEffect(() => {
@@ -107,9 +121,12 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
     // Game logic
     const spawnObstacle = useCallback((canvas: HTMLCanvasElement, speed: number): Obstacle => {
-        // Bias towards top: use a power function to weight lower Y values (top of screen)
-        const randomFactor = Math.pow(Math.random(), 2); // Square to bias towards 0
+        const randomFactor = Math.pow(Math.random(), 2);
         const y = randomFactor * (canvas.height - OBSTACLE_SIZE);
+        setTelemetry((prev) => {
+            if (prev.length >= 1000) return [...prev.slice(1), { event: 'spawn', time: performance.now(), data: { y, speed } }];
+            return [...prev, { event: 'spawn', time: performance.now(), data: { y, speed } }];
+        });
         return {
             x: canvas.width,
             y,
@@ -124,7 +141,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#FFFFFF';
         stars.forEach(star => {
-            ctx.fillRect(star.x, star.y, 2, 2); // 2x2 pixel stars
+            ctx.fillRect(star.x, star.y, 2, 2);
         });
     };
 
@@ -164,14 +181,13 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             vy: FLAP_VELOCITY*2,
         };
         let obstaclePool: Obstacle[] = [];
-        // Initialize scrolling stars
         const stars: { x: number; y: number; dx: number }[] = [];
-        const starCount = 100; // Number of stars
+        const starCount = 100;
         for (let i = 0; i < starCount; i++) {
             stars.push({
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
-                dx: -0.5, // Speed of star movement (pixels per frame, normalized later)
+                dx: -0.5,
             });
         }
 
@@ -203,19 +219,31 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 }
                 if (ship.y > canvas.height - SHIP_HEIGHT) {
                     setGameOver(true);
+                    setTelemetry((prev) => {
+                        if (prev.length >= 1000) return [...prev.slice(1), { event: 'collision', time: performance.now() }];
+                        return [...prev, { event: 'collision', time: performance.now() }];
+                    });
                 }
                 if (ship.x > canvas.width) {
                     ship.x = -SHIP_WIDTH;
                 }
                 setScore((prev) => prev + deltaTime * 10 * (1 + difficultyFactor));
+                setTelemetry((prev) => {
+                    if (prev.length >= 1000) return [...prev.slice(1), { event: 'frame', time: performance.now(), data: { deltaTime, difficulty: difficultyFactor } }];
+                    return [...prev, { event: 'frame', time: performance.now(), data: { deltaTime, difficulty: difficultyFactor } }];
+                });
+                setStats((prev) => ({
+                    ...prev,
+                    time: performance.now() - startTimeRef.current,
+                    flapsPerSec: prev.flaps / (prev.time / 1000 || 1),
+                }));
             }
 
-            // Update stars
             stars.forEach(star => {
-                star.x += star.dx * deltaTime * 60; // Normalize to 60 FPS
+                star.x += star.dx * deltaTime * 60;
                 if (star.x < 0) {
-                    star.x = canvas.width; // Respawn on right
-                    star.y = Math.random() * canvas.height; // Randomize y for variety
+                    star.x = canvas.width;
+                    star.y = Math.random() * canvas.height;
                 }
             });
 
@@ -241,6 +269,10 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     if (distance < (SHIP_WIDTH + obstacleSize) / 2) {
                         setGameOver(true);
+                        setTelemetry((prev) => {
+                            if (prev.length >= 1000) return [...prev.slice(1), { event: 'collision', time: performance.now() }];
+                            return [...prev, { event: 'collision', time: performance.now() }];
+                        });
                     }
                 });
             }
@@ -257,6 +289,11 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         const handleFlap = () => {
             if (!gameOver) {
                 ship.vy = FLAP_VELOCITY;
+                setTelemetry((prev) => {
+                    if (prev.length >= 1000) return [...prev.slice(1), { event: 'flap', time: performance.now() }];
+                    return [...prev, { event: 'flap', time: performance.now() }];
+                });
+                setStats((prev) => ({ ...prev, flaps: prev.flaps + 1 }));
             }
         };
 
@@ -274,6 +311,20 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             obstaclePool = [spawnObstacle(canvas, BASE_OBSTACLE_SPEED)];
             lastSpawnTimeRef.current = performance.now();
             startTimeRef.current = performance.now();
+            setTelemetry([]);
+            setStats({
+                game: 'fly',
+                shots: 0,
+                kills: 0,
+                time: 0,
+                hitRate: 0,
+                jumps: 0,
+                obstaclesCleared: 0,
+                jumpsPerSec: 0,
+                flaps: 0,
+                obstaclesDodged: 0,
+                flapsPerSec: 0,
+            });
 
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('mousedown', handleMouseDown);
@@ -368,6 +419,8 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 score={Math.floor(score).toString()}
                 highScore={existingHighScore.toString()}
                 onStatusChange={handleEndGameStatusChange}
+                telemetry={score >= 2000 ? telemetry : []}
+                stats={score >= 2000 ? stats : null}
             />
             {!gameStarted ? (
                 <div className="text-center text-primary-text font-mono">

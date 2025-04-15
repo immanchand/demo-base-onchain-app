@@ -1,9 +1,9 @@
 'use client';
-import ArcadeCasinoSvg from '../svg/ArcadeCasinoSvg';
+import ArcadeCasinoSvg from 'src/svg/ArcadeCasinoSvg';
 import { useAccount } from 'wagmi';
-import LoginButton from '../components/LoginButton';
+import LoginButton from 'src/components/LoginButton';
 import Link from 'next/link';
-import { useTicketContext } from '../context/TicketContext';
+import { useTicketContext } from 'src/context/TicketContext';
 import React from 'react';
 
 const Navbar = React.memo(() => {

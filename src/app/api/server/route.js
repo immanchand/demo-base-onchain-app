@@ -150,7 +150,7 @@ export async function POST(request) {
                 }
                 computedScore = stats.kills * 31; // Override telemetry for Shoot
               } else if (stats.game === 'jump') {
-                if (stats.jumpsPerSec > 3 || stats.obstaclesCleared > stats.time / 1000) {
+                if (stats.jumpsPerSec > 1 || stats.obstaclesCleared > stats.time / 10) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {
                     status: 400,
                   });

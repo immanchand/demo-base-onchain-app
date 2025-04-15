@@ -121,6 +121,9 @@ export async function POST(request) {
 
             // Telemetry validation
             if (telemetry && telemetry.length > 0) {
+
+              console.log('telemetry: ', telemetry);
+
               for (const event of telemetry) {
                 if (event.event === 'frame' && event.data?.deltaTime && event.data?.difficulty !== undefined) {
                   computedScore += event.data.deltaTime * 10 * (1 + event.data.difficulty);
@@ -129,6 +132,9 @@ export async function POST(request) {
             }
             // Stats validation
             if (stats) {
+
+              console.log('stats: ', stats);
+
               if (stats.game === 'fly') {
                 if (stats.flapsPerSec > 5 || stats.obstaclesDodged > stats.time / 1000) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {

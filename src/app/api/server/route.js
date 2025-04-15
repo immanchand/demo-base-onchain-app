@@ -16,7 +16,7 @@ const wallet = new ethers.Wallet(GAME_MASTER_PRIVATE_KEY, provider);
 const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, wallet);
 
 export async function POST(request) {
-  //const body = await request.json(); // Parse JSON body
+  const body = await request.json(); // Parse JSON body
   const appOrigin = request.headers.get('x-app-origin');
   const allowedOrigin = process.env.APP_ORIGIN;
 
@@ -43,7 +43,7 @@ export async function POST(request) {
     });
   }
 
-  const { body, action, gameId, address, score } = await request.json();
+  const { action, gameId, address, score, recaptchaToken } = await request.json();
   if (!action) {
     return new Response(JSON.stringify({ status: 'error', message: 'Missing action' }), {
       status: 400,
@@ -198,7 +198,7 @@ export async function POST(request) {
             { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
           );
         }
-        const { recaptchaToken } = body;
+        //const { recaptchaToken } = body;
         try {
           const recaptchaResponse = await fetch(
             `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`

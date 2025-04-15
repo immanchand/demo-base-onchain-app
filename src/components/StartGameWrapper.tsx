@@ -57,10 +57,10 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
           onStatusChange('error', 'Missing gameId');
           return;
         }
-        if (!window.ethereum) {
-          onStatusChange('error', 'Wallet not detected. Please connect wallet.');
-          return;
-        }
+        //if (!window.ethereum) {
+        //  onStatusChange('error', 'Wallet not detected. Please connect wallet.');
+        //  return;
+        //}
         if (!isConnected) {
           onStatusChange('error', 'Wallet not connected. Please connect wallet.');
           return;

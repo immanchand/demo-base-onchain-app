@@ -1,0 +1,15 @@
+// vercel.json
+{
+    "builds": [
+      {
+        "src": "next.config.js",
+        "use": "@vercel/next",
+        "config": {
+          "commands": [
+            "npm run build",
+            "rm -rf .next/static/chunks/*.map"
+          ]
+        }
+      }
+    ]
+  }

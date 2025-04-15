@@ -66,7 +66,7 @@ export async function POST(request) {
         }
         tx = await contract.createGame();
         receipt = await tx.wait();
-        rateLimitStore.set(sessionId, now);
+        rateLimitStore.set(sessionId, nowCreate);
         return new Response(
           JSON.stringify({ status: 'success', txHash: tx.hash }),
           { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }

@@ -3,7 +3,7 @@ import Navbar from 'src/components/Navbar';
 import React, { useState, useCallback } from 'react';
 import type { Address } from 'viem';
 import { formatEther } from 'viem';
-import { publicClient, contractABI, contractAddress, GAME_COUNT, ethPrice } from 'src/constants';
+import { publicClient, contractABI, CONTRACT_ADDRESS, GAME_COUNT, ethPrice } from 'src/constants';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import WinnerWithdrawWrapper from 'src/components/WinnerWithdrawWrapper';
@@ -26,6 +26,7 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
   const isGameOver = game.endTime <= currentTime;
   const isGameNotExist = game.endTime === 0n;
   const isGameWithdrawn = game.potHistory > game.pot;
+
 
   return (
     <div className="card-container">

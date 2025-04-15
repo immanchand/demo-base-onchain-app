@@ -42,6 +42,6 @@ export async function GET(request) {
       'Access-Control-Allow-Credentials': 'true',
     },
   });
-  response.headers.set('Set-Cookie', `sessionId=${sessionId}; HttpOnly; Path=/; SameSite=Strict`);
+  response.headers.set('Set-Cookie', `sessionId=${sessionId}; secure: true; HttpOnly; Path=/; SameSite=Strict`);
   return response;
 }

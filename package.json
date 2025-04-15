@@ -3,8 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "build": "next build && [ \"$OBFUSCATE\" = \"true\" ] && npm run build:obfuscate || true",
-    "build:obfuscate": "javascript-obfuscator .next/static/chunks --output .next/static/chunks",
+    "build": "next build",
     "check": "biome check --write .",
     "ci:check": "biome ci --formatter-enabled=false --linter-enabled=false",
     "ci:format": "biome ci --linter-enabled=false --organize-imports-enabled=false",

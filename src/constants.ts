@@ -11,7 +11,7 @@ export const publicClient = createPublicClient({
         transport: http(),
       });
 export const gameMasterAddress = '0xcfd97f78e1c225b4569edbafb950026247f67faf';
-export const contractAddress = '0x40200F717BfDEceF133C3E9C49ae007Fd15C9586';
+export const CONTRACT_ADDRESS = '0x40200F717BfDEceF133C3E9C49ae007Fd15C9586';
 export const contractABI = [
   {
     "type": "constructor",
@@ -424,3 +424,22 @@ export const contractABI = [
     "anonymous": false
   }
 ] as const;
+export interface GameStats {
+  game: string;
+  shots: number;
+  kills: number;
+  time: number;
+  hitRate: number;
+  jumps: number;
+  obstaclesCleared: number;
+  jumpsPerSec: number;
+  flaps: number;
+  obstaclesDodged: number;
+  flapsPerSec: number;
+};
+export interface Entity {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};

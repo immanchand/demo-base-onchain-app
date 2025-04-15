@@ -86,6 +86,8 @@ const EndGameWrapper = forwardRef<{ endGame: () => Promise<void> }, EndGameWrapp
             const updatedHighScore = data.highScore || highScore;
             console.log('Game ended successfully, tx hash:', data.txHash, 'isNewHighScore:', isNewHighScore);
             onStatusChange(isNewHighScore ? 'leader' : 'loser', undefined, updatedHighScore.toString());
+          } else if (data.status.includes('Fail')) {
+            throw new Error(data.status);
           } else {
             throw new Error(data.message || 'Failed to end game');
           }

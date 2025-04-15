@@ -10,7 +10,7 @@ import {
   TransactionToastLabel,
 } from '@coinbase/onchainkit/transaction';
 import { encodeFunctionData, Hex } from 'viem';
-import { BASE_SEPOLIA_CHAIN_ID, contractABI, contractAddress, GAME_PRICE_WEI } from '../constants';
+import { BASE_SEPOLIA_CHAIN_ID, contractABI, CONTRACT_ADDRESS, GAME_PRICE_WEI } from '../constants';
 import { QuantitySelector } from '../../node_modules/@coinbase/onchainkit/esm/internal/components/QuantitySelector';
 import { useState } from 'react';
 
@@ -23,7 +23,7 @@ export default function TransactionWrapper() {
   });
 
   const calls = [{
-    to: contractAddress as Hex,
+    to: CONTRACT_ADDRESS as Hex,
     data,
     value: BigInt(GAME_PRICE_WEI * quantity),
   }];

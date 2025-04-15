@@ -110,7 +110,7 @@ export default function Games() {
       for (let gameId = startGameId; gameId >= endId && gameId >= 1; gameId--) {
         try {
           const { endTime, highScore, leader, pot, potHistory } = await publicClient.readContract({
-            address: contractAddress,
+            address: CONTRACT_ADDRESS,
             abi: contractABI,
             functionName: 'getGame',
             args: [BigInt(gameId)],
@@ -134,7 +134,7 @@ export default function Games() {
 
   const getLatestGameId = useCallback(async () => {
     const latestGameId = await publicClient.readContract({
-      address: contractAddress,
+      address: CONTRACT_ADDRESS,
       abi: contractABI,
       functionName: 'getLatestGameId',
     });

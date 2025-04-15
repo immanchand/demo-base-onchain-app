@@ -16,6 +16,7 @@ const wallet = new ethers.Wallet(GAME_MASTER_PRIVATE_KEY, provider);
 const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, wallet);
 
 export async function POST(request) {
+  //const body = await request.json(); // Parse JSON body
   const appOrigin = request.headers.get('x-app-origin');
   const allowedOrigin = process.env.APP_ORIGIN;
 
@@ -42,7 +43,7 @@ export async function POST(request) {
     });
   }
 
-  const { action, gameId, address, score } = await request.json();
+  const { body, action, gameId, address, score } = await request.json();
   if (!action) {
     return new Response(JSON.stringify({ status: 'error', message: 'Missing action' }), {
       status: 400,

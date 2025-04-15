@@ -4,6 +4,7 @@ import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
+import { GameStats } from 'src/constants';
 
 interface JumpProps {
     gameId: number;
@@ -22,6 +23,12 @@ interface Obstacle extends Entity {
     dx: number;
 }
 
+interface TelemetryEvent {
+    event: 'jump' | 'spawn' | 'collision' | 'frame';
+    time: number;
+    data?: { deltaTime?: number; speed?: number; x?: number; y?: number; heightCount?: number; widthCount?: number };
+}
+
 type EnemyType = 'obstacle' | 'barrel' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
 type ShipType = 'runner' | 'lady' | 'eth' | 'base';
 
@@ -32,9 +39,9 @@ const OBSTACLE_SIZE = 50;
 const GRAVITY = 0.4;
 const JUMP_VELOCITY = -12;
 const BASE_OBSTACLE_SPEED = -3;
-const GROUND_HEIGHT = 150; 
-const DOUBLE_PRESS_THRESHOLD = 300; // 300ms for double press detection
-const SKY_SPEED = 0.3; // Speed for background scrolling (slower than ground)
+const GROUND_HEIGHT = 150;
+const DOUBLE_PRESS_THRESHOLD = 300;
+const SKY_SPEED = 0.3;
 
 const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -48,7 +55,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const [enemyImages, setEnemyImages] = useState<Record<EnemyType, HTMLImageElement>>({} as Record<EnemyType, HTMLImageElement>);
     const [shipImages, setShipImages] = useState<Record<ShipType, HTMLImageElement>>({} as Record<ShipType, HTMLImageElement>);
     const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
-    const [groundImage, setGroundImage] = useState<HTMLImageElement | null>(null); // New state for ground image
+    const [groundImage, setGroundImage] = useState<HTMLImageElement | null>(null);
     const lastFrameTimeRef = useRef<number>(performance.now());
     const animationFrameIdRef = useRef<number>(0);
     const lastKeyPressRef = useRef<number>(0);
@@ -62,6 +69,20 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const [startGameError, setStartGameError] = useState<string>('');
     const [endGameError, setEndGameError] = useState<string>('');
     const [endGameMessage, setEndGameMessage] = useState<string>('');
+    const [telemetry, setTelemetry] = useState<TelemetryEvent[]>([]);
+    const [stats, setStats] = useState<GameStats>({
+        game: 'jump',
+        shots: 0,
+        kills: 0,
+        time: 0,
+        hitRate: 0,
+        jumps: 0,
+        obstaclesCleared: 0,
+        jumpsPerSec: 0,
+        flaps: 0,
+        obstaclesDodged: 0,
+        flapsPerSec: 0,
+    });
 
     // Preload images
     useEffect(() => {
@@ -133,14 +154,14 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         let heightCount = 1;
 
         const timeLevel = Math.floor(elapsedTime / 10);
-        if (timeLevel >= 1) heightCount = 2; // 1x2 at 10s
-        if (timeLevel >= 3) widthCount = 2;   // 2x1 at 30s
-        if (timeLevel >= 4) {                // 2x2 at 40s
+        if (timeLevel >= 1) heightCount = 2;
+        if (timeLevel >= 3) widthCount = 2;
+        if (timeLevel >= 4) {
             widthCount = 2;
             heightCount = 2;
         }
-        if (timeLevel >= 5 && Math.random() < 0.3) heightCount = 3; // 1x3 or 2x3 at 50s+
-        if (timeLevel >= 6 && Math.random() < 0.2) heightCount = 4; // 1x3 or 2x3 at 60s+
+        if (timeLevel >= 5 && Math.random() < 0.3) heightCount = 3;
+        if (timeLevel >= 6 && Math.random() < 0.2) heightCount = 4;
 
         for (let w = 0; w < widthCount; w++) {
             for (let h = 0; h < heightCount; h++) {
@@ -153,27 +174,27 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 });
             }
         }
+        setTelemetry((prev) => {
+            if (prev.length >= 1000) return [...prev.slice(1), { event: 'spawn', time: performance.now(), data: { speed, x: baseX, heightCount, widthCount } }];
+            return [...prev, { event: 'spawn', time: performance.now(), data: { speed, x: baseX, heightCount, widthCount } }];
+        });
         return obstacles;
     }, []);
 
     const drawBackground = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, offset: number) => {
         if (!backgroundImage) return;
-        const bgWidth = backgroundImage.width; // 1024px
-        const bgHeight = canvas.height - GROUND_HEIGHT; // Fit sky area
-        let x = -offset % bgWidth; // Loop the image
-
-        // Draw the image twice for seamless tiling
+        const bgWidth = backgroundImage.width;
+        const bgHeight = canvas.height - GROUND_HEIGHT;
+        let x = -offset % bgWidth;
         ctx.drawImage(backgroundImage, x, 0, bgWidth, bgHeight);
         ctx.drawImage(backgroundImage, x + bgWidth, 0, bgWidth, bgHeight);
     };
 
     const drawGround = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, offset: number) => {
         if (!groundImage) return;
-        const groundWidth = groundImage.width; // 1024px
-        const groundHeight = GROUND_HEIGHT; // 186px
-        let x = -offset % groundWidth; // Loop the image
-
-        // Draw the image twice for seamless tiling
+        const groundWidth = groundImage.width;
+        const groundHeight = GROUND_HEIGHT;
+        let x = -offset % groundWidth;
         ctx.drawImage(groundImage, x, canvas.height - groundHeight, groundWidth, groundHeight);
         ctx.drawImage(groundImage, x + groundWidth, canvas.height - groundHeight, groundWidth, groundHeight);
     };
@@ -237,13 +258,9 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             const obstacleSpeed = BASE_OBSTACLE_SPEED * speedMultiplier;
             const minGap = OBSTACLE_SIZE * (50 - Math.min(timeLevel, 10) * 4);
 
-            // Update background (clouds)
             cloudOffset += SKY_SPEED * deltaTime * 60;
-
-            // Update ground (scrolls at obstacle speed)
             backgroundOffset += Math.abs(obstacleSpeed) * deltaTime * 60;
 
-            // Update ship
             if (!gameOver) {
                 ship.vy += GRAVITY;
                 ship.y += ship.vy;
@@ -253,23 +270,29 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     jumpCountRef.current = 0;
                 }
                 setScore((prev) => prev + deltaTime * 10 * speedMultiplier);
+                setTelemetry((prev) => {
+                    if (prev.length >= 1000) return [...prev.slice(1), { event: 'frame', time: performance.now(), data: { deltaTime, speed: speedMultiplier } }];
+                    return [...prev, { event: 'frame', time: performance.now(), data: { deltaTime, speed: speedMultiplier } }];
+                });
+                setStats((prev) => ({
+                    ...prev,
+                    time: performance.now() - startTimeRef.current,
+                    jumpsPerSec: prev.jumps / (prev.time / 1000 || 1),
+                }));
             }
 
-            // Update obstacles
             obstaclePool.forEach((obstacle) => {
                 obstacle.dx = obstacleSpeed;
                 obstacle.x += obstacle.dx;
             });
             obstaclePool = obstaclePool.filter((obstacle) => obstacle.x + OBSTACLE_SIZE > 0);
 
-            // Spawn new obstacles
             const rightmostObstacle = obstaclePool.reduce((max, obs) => Math.max(max, obs.x), -minGap);
             if (canvas.width - rightmostObstacle >= minGap && !gameOver) {
                 obstaclePool.push(...spawnObstacles(canvas, obstacleSpeed, elapsedTime));
                 lastObstacleSpawnX = canvas.width;
             }
 
-            // Check collisions
             if (!gameOver) {
                 obstaclePool.forEach((obstacle) => {
                     const dx = ship.x + SHIP_WIDTH / 2 - (obstacle.x + OBSTACLE_SIZE / 2);
@@ -277,6 +300,13 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     if (distance < (SHIP_WIDTH + OBSTACLE_SIZE) / 2) {
                         setGameOver(true);
+                        setTelemetry((prev) => {
+                            if (prev.length >= 1000) return [...prev.slice(1), { event: 'collision', time: performance.now() }];
+                            return [...prev, { event: 'collision', time: performance.now() }];
+                        });
+                    } else if (obstacle.x + OBSTACLE_SIZE < ship.x) {
+                        setStats((prev) => ({ ...prev, obstaclesCleared: prev.obstaclesCleared + 1 }));
+                        //obstacle.scored = true;
                     }
                 });
             }
@@ -290,35 +320,39 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             animationFrameIdRef.current = requestAnimationFrame(gameLoop);
         };
 
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.code === 'Space' && !gameOver && jumpCountRef.current < 2) {
-                const now = Date.now();
-                const timeSinceLastPress = now - lastKeyPressRef.current;
-                if (timeSinceLastPress < DOUBLE_PRESS_THRESHOLD && lastKeyPressRef.current !== 0 && jumpCountRef.current === 1) {
-                    ship.vy = JUMP_VELOCITY;
-                    jumpCountRef.current += 1;
-                } else if (jumpCountRef.current === 0) {
-                    ship.vy = JUMP_VELOCITY;
-                    jumpCountRef.current += 1;
-                }
-                lastKeyPressRef.current = now;
-            }
-        };
-
-        const handleMouseDown = () => {
-            if (gameOver) return;
+        const handleJump = () => {
             if (!gameOver && jumpCountRef.current < 2) {
                 const now = Date.now();
                 const timeSinceLastPress = now - lastKeyPressRef.current;
                 if (timeSinceLastPress < DOUBLE_PRESS_THRESHOLD && lastKeyPressRef.current !== 0 && jumpCountRef.current === 1) {
                     ship.vy = JUMP_VELOCITY;
                     jumpCountRef.current += 1;
+                    setTelemetry((prev) => {
+                        if (prev.length >= 1000) return [...prev.slice(1), { event: 'jump', time: performance.now() }];
+                        return [...prev, { event: 'jump', time: performance.now() }];
+                    });
+                    setStats((prev) => ({ ...prev, jumps: prev.jumps + 1 }));
                 } else if (jumpCountRef.current === 0) {
                     ship.vy = JUMP_VELOCITY;
                     jumpCountRef.current += 1;
+                    setTelemetry((prev) => {
+                        if (prev.length >= 1000) return [...prev.slice(1), { event: 'jump', time: performance.now() }];
+                        return [...prev, { event: 'jump', time: performance.now() }];
+                    });
+                    setStats((prev) => ({ ...prev, jumps: prev.jumps + 1 }));
                 }
                 lastKeyPressRef.current = now;
             }
+        };
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.code === 'Space') {
+                handleJump();
+            }
+        };
+
+        const handleMouseDown = () => {
+            handleJump();
         };
 
         if (gameStarted && !gameOver) {
@@ -330,6 +364,20 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             startTimeRef.current = performance.now();
             backgroundOffset = 0;
             cloudOffset = 0;
+            setTelemetry([]);
+            setStats({
+                game: 'jump',
+                shots: 0,
+                kills: 0,
+                time: 0,
+                hitRate: 0,
+                jumps: 0,
+                obstaclesCleared: 0,
+                jumpsPerSec: 0,
+                flaps: 0,
+                obstaclesDodged: 0,
+                flapsPerSec: 0,
+            });
 
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('mousedown', handleMouseDown);
@@ -424,6 +472,8 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 score={Math.floor(score).toString()}
                 highScore={existingHighScore.toString()}
                 onStatusChange={handleEndGameStatusChange}
+                telemetry={score >= 2000 ? telemetry : []}
+                stats={score >= 2000 ? stats : null}
             />
             {!gameStarted ? (
                 <div className="text-center text-primary-text font-mono">

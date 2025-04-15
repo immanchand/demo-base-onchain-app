@@ -1,6 +1,16 @@
 // StartGameWrapper.tsx
 'use client';
-import { useCallback, useImperativeHandle, forwardRef, useState } from 'react';
+import { useCallback, useImperativeHandle, forwardRef, useState, useEffect } from 'react';
+
+// Extend the Window interface to include grecaptcha
+declare global {
+  interface Window {
+    grecaptcha: {
+      ready: (callback: () => void) => void;
+      execute: (siteKey: string, options: { action: string }) => Promise<string>;
+    };
+  }
+}
 import { useCsrf } from 'src/context/CsrfContext';
 import { useAccount } from 'wagmi';
 import { createWalletClient, custom } from 'viem';
@@ -21,6 +31,16 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
     let gameSigRaw = '';
     const { csrfToken, refreshCsrfToken } = useCsrf();
     const xapporigin = process.env.NEXT_PUBLIC_APP_ORIGIN;
+
+    useEffect(() => {
+      const script = document.createElement('script');
+      script.src = `https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`;
+      script.async = true;
+      document.body.appendChild(script);
+      return () => {
+        document.body.removeChild(script);
+      };
+    }, []);
 
     const startGame = useCallback(
       async (isRetry = false): Promise<void> => {
@@ -45,11 +65,27 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
           onStatusChange('error', 'Wallet not connected. Please connect wallet.');
           return;
         }
+
+        // Get reCAPTCHA token
+        let recaptchaToken = '';
+        try {
+          recaptchaToken = await new Promise((resolve) => {
+            window.grecaptcha.ready(() => {
+              window.grecaptcha
+                .execute(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || (() => { throw new Error('RECAPTCHA_SITE_KEY is not defined'); })(), { action: 'startGame' })
+                .then(resolve);
+            });
+          });
+        } catch (error) {
+          onStatusChange('error', 'CAPTCHA initialization failed');
+          return;
+        }
+
         if (hasSigned){
           gameSigRaw = decodeURIComponent(Cookies.get('gameSig') || '');
         }
         if (!hasSigned) {
-          getSignature();
+          await getSignature();
         }
 
         // Validate the cookie signature with logged in player account address
@@ -57,11 +93,10 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
           const { message, signature } = JSON.parse(gameSigRaw);
           const playerAddress = ethers.verifyMessage(message, signature);
           if (!address || playerAddress.toLowerCase() !== address.toLowerCase()) {
-            console.log('Signature mismatch. Clearing cookies.');
+            console.log('Signature and player mismatch. Clearing cookies.');
             Cookies.remove('gameSig'); // Clear invalid signature
             setHasSigned(false); // Reset signed state
-            onStatusChange('error', 'Player address changed. Please refresh and try again.');
-            return;
+            await getSignature();
           }
         }
         catch (error) {
@@ -100,7 +135,7 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
               'X-App-Origin': xapporigin,
             },
             credentials: 'include', // Sends gameSig and sessionId cookies
-            body: JSON.stringify({ action: 'start-game', gameId, address }),
+            body: JSON.stringify({ action: 'start-game', gameId, address, recaptchaToken }),
           });
           const data = await response.json();
           if (data.status === 'success') {
@@ -148,7 +183,7 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
         }
 
       },
-      [setHasSigned, csrfToken, refreshCsrfToken]
+      [csrfToken, refreshCsrfToken, gameId, isConnected, address, hasSigned, onStatusChange]
     );
 
     useImperativeHandle(ref, () => ({

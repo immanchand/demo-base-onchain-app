@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useAccount } from 'wagmi';
-import { publicClient, contractABI, contractAddress } from '../constants';
+import { publicClient, contractABI, CONTRACT_ADDRESS } from '../constants';
 
 interface TicketContextType {
   ticketCount: number;
@@ -25,7 +25,7 @@ export function TicketProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const playerTicketsResult = await publicClient.readContract({
-        address: contractAddress,
+        address: CONTRACT_ADDRESS,
         abi: contractABI,
         functionName: 'getTickets',
         args: [address],

@@ -210,7 +210,7 @@ export async function POST(request) {
             `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`
           );
           const recaptchaData = await recaptchaResponse.json();
-          const recaptchaThreshold = Number(process.env.RECAPTCHA_THRESHOLD) || 0.5;
+          const recaptchaThreshold = Number(process.env.RECAPTCHA_THRESHOLD) || 0.4;
           if (!recaptchaData.success || recaptchaData.score < recaptchaThreshold) {
             return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA verification failed' }), {
               status: 403,

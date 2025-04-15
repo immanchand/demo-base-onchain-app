@@ -43,7 +43,7 @@ export async function POST(request) {
     });
   }
 
-  const { action, gameId, address, score, recaptchaToken } = await request.json();
+  const { action, gameId, address, score, recaptchaToken } = body;
   if (!action) {
     return new Response(JSON.stringify({ status: 'error', message: 'Missing action' }), {
       status: 400,

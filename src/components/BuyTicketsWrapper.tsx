@@ -15,7 +15,7 @@ import { encodeFunctionData, formatEther, Hex } from 'viem';
 import {
   BASE_SEPOLIA_CHAIN_ID,
   contractABI,
-  contractAddress,
+  CONTRACT_ADDRESS,
   GAME_PRICE_WEI,
   ethPrice,
 } from '../constants';
@@ -36,7 +36,7 @@ export default function BuyTicketsWrapper({ updateTickets }: BuyTicketsWrapperPr
 
   const calls = [
     {
-      to: contractAddress as Hex,
+      to: CONTRACT_ADDRESS as Hex,
       data: data as Hex,
       value: BigInt(GAME_PRICE_WEI * quantity),
     },

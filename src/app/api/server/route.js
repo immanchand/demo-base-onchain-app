@@ -2,6 +2,74 @@
 import { ethers } from 'ethers';
 import { getCsrfTokens } from 'src/lib/csrfStore';
 import { contractABI, CONTRACT_ADDRESS } from '../../../constants';
+import {
+  SCORE_MULTIPLIER_TIME,
+  SCORE_MULTIPLIER_SHOOT,
+  MAX_FLAPS_PER_SEC,
+  MAX_JUMPS_PER_SEC,
+  MAX_HIT_RATE,
+  MAX_KILLS_PER_SEC,
+  TIME_VARIANCE_MS,
+  FPS_VARIANCE,
+} from '../../../constants';
+import fs from 'fs';
+import path from 'path';
+// Define telemetry and stats file paths for each game
+const LOG_DIR = path.join(process.cwd(), 'logs');
+const FILE_PATHS = {
+  fly: {
+    telemetry: path.join(LOG_DIR, 'FLY_TELEMETRY.json'),
+    stats: path.join(LOG_DIR, 'FLY_STATS.json'),
+  },
+  jump: {
+    telemetry: path.join(LOG_DIR, 'JUMP_TELEMETRY.json'),
+    stats: path.join(LOG_DIR, 'JUMP_STATS.json'),
+  },
+  shoot: {
+    telemetry: path.join(LOG_DIR, 'SHOOT_TELEMETRY.json'),
+    stats: path.join(LOG_DIR, 'SHOOT_STATS.json'),
+  },
+};
+// Ensure log directory exists
+if (!fs.existsSync(LOG_DIR)) {
+  fs.mkdirSync(LOG_DIR, { recursive: true });
+}
+// Function to append telemetry and stats to respective files
+function logGameData(game, gameId, address, score, telemetry, stats) {
+  const timestamp = new Date().toISOString();
+  const logEntry = {
+    gameId,
+    address,
+    score,
+    timestamp,
+    telemetry,
+    stats,
+  };
+
+  const filePaths = FILE_PATHS[game];
+  if (!filePaths) {
+    console.error(`Invalid game: ${game}`);
+    return;
+  }
+
+  // Append telemetry
+  let telemetryData = [];
+  if (fs.existsSync(filePaths.telemetry)) {
+    telemetryData = JSON.parse(fs.readFileSync(filePaths.telemetry, 'utf-8'));
+  }
+  telemetryData.push({ ...logEntry, stats: undefined }); // Exclude stats to keep file focused
+  fs.writeFileSync(filePaths.telemetry, JSON.stringify(telemetryData, null, 2));
+
+  // Append stats
+  let statsData = [];
+  if (fs.existsSync(filePaths.stats)) {
+    statsData = JSON.parse(fs.readFileSync(filePaths.stats, 'utf-8'));
+  }
+  statsData.push({ ...logEntry, telemetry: undefined }); // Exclude telemetry to keep file focused
+  fs.writeFileSync(filePaths.stats, JSON.stringify(statsData, null, 2));
+
+  console.log(`Logged data for ${game}: gameId=${gameId}, score=${score}`);
+}
 
 const rateLimitStore = new Map();
 const gameDurationStore = new Map();
@@ -75,21 +143,10 @@ export async function POST(request) {
         );
       
       case 'end-game':
-        if (!gameId) {
+        //for logging telemetry. delete later
+        if (!gameId || !address || !score) {	  
           return new Response(
-            JSON.stringify({ status: 'error', message: 'Missing gameId' }),
-            { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
-          );
-        }
-        if (!address) {
-          return new Response(
-            JSON.stringify({ status: 'error', message: 'Missing player address' }),
-            { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
-          );
-        }
-        if (!score) {
-          return new Response(
-            JSON.stringify({ status: 'error', message: 'Missing player score' }),
+            JSON.stringify({ status: 'error', message: 'Missing gameId, address, or score' }),
             { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
           );
         }
@@ -103,6 +160,13 @@ export async function POST(request) {
           );
         }
         rateLimitStore.set(`${sessionId}:end`, nowEnd);
+		    if (stats?.game) {
+          try {
+            logGameData(stats.game, gameId, address, score, telemetry, stats);
+          } catch (error) {
+            console.error(`Failed to log data for ${stats.game}:`, error);
+          }
+        }
         
         try {
           // Fetch current highScore from contract
@@ -117,87 +181,98 @@ export async function POST(request) {
           }
           // Validate only if score >= 2000 and > contractHighScore//****CHANGE BACK TO 2000 IN PROD */
           if (Number(score) >= 2) {
-            const SCORE_VARIANCE = Number(process.env.SCORE_VARIANCE);
-            let computedScore = 0;
+          const startTime = gameDurationStore.get(address);
+          if (!startTime) {
+            return new Response(JSON.stringify({ status: 'error', message: 'No start time recorded' }), { status: 400 });
+          }
+          const serverDurationMs = nowEnd - startTime;
+          
+          // Time validation (Fly, Jump)
+          if (stats.game === 'fly' || stats.game === 'jump') {
+            const expectedScore = Math.floor((serverDurationMs / 1000) * SCORE_MULTIPLIER_TIME);
+            if (Math.abs(Number(score) - expectedScore) > (TIME_VARIANCE_MS / 1000) * SCORE_MULTIPLIER_TIME) {
+              return new Response(JSON.stringify({ status: 'error', message: 'Time validation failed' }), { status: 400 });
+            }
+          }
 
-            // Telemetry validation
-            //if (telemetry && telemetry.length > 0) { //****CHANGE BACK TO PROD */
-            if (telemetry) {
-              console.log('telemetry: ', telemetry);
-
-              for (const event of telemetry) {
-                if (event.event === 'frame' && event.data?.deltaTime && event.data?.difficulty !== undefined) {
-                  computedScore += event.data.deltaTime * 10 * (1 + event.data.difficulty);
-                }
+          // Stats validation
+          if (stats) {
+            if (stats.game === 'fly') {
+              if (stats.flapsPerSec > MAX_FLAPS_PER_SEC || stats.obstaclesDodged > stats.time / 1000) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Fly stats' }), { status: 400 });
+              }
+            } else if (stats.game === 'jump') {
+              if (stats.jumpsPerSec > MAX_JUMPS_PER_SEC || stats.obstaclesCleared > stats.time / 1000) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Jump stats' }), { status: 400 });
+              }
+            } else if (stats.game === 'shoot') {
+              const hitRate = stats.kills / (stats.shots || 1);
+              if (
+                hitRate > MAX_HIT_RATE ||
+                stats.kills > (stats.time / 1000) * MAX_KILLS_PER_SEC ||
+                Number(score) > stats.kills * SCORE_MULTIPLIER_SHOOT
+              ) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Shoot stats' }), { status: 400 });
               }
             }
-            // Stats validation
-            if (stats) {
+          }
 
-              const startTime = gameDurationStore.get(address);
-              console.log('startTime: ', startTime, ' endTime: ', nowEnd, ' gameDuration: ', nowEnd - startTime);
-              console.log('stats: ', stats);
-              
-
-              if (stats.game === 'fly') {
-                if (stats.flapsPerSec > 5 || stats.obstaclesDodged > stats.time / 1000) {
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {
-                    status: 400,
-                  });
-                }
-              } else if (stats.game === 'shoot') {
-                const hitRate = stats.kills / (stats.shots || 1);
-                if (hitRate > 0.8 || stats.kills > stats.time / 1000 || Number(score) > stats.kills * 31) {
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {
-                    status: 400,
-                  });
-                }
-                computedScore = stats.kills * 31; // Override telemetry for Shoot
-              } else if (stats.game === 'jump') {
-                if (stats.jumpsPerSec > 1 || stats.obstaclesCleared > stats.time / 10) {
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {
-                    status: 400,
-                  });
-                }
+          // Telemetry validation
+          if (telemetry && telemetry.length > 0) {
+            if (stats.game === 'fly') {
+              const flapCount = telemetry.filter((e) => e.event === 'flap').length;
+              if (Math.abs(stats.flaps - flapCount) > 5) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Flap count mismatch' }), { status: 400 });
+              }
+              const frameCount = telemetry.filter((e) => e.event === 'frame').length;
+              const expectedFrames = (stats.time / 1000) * 60;
+              if (frameCount < expectedFrames * (1 - FPS_VARIANCE) || frameCount > expectedFrames * (1 + FPS_VARIANCE)) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Frame count suspicious' }), { status: 400 });
+              }
+            } else if (stats.game === 'jump') {
+              const jumpCount = telemetry.filter((e) => e.event === 'jump').length;
+              if (Math.abs(stats.jumps - jumpCount) > 5) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Jump count mismatch' }), { status: 400 });
+              }
+              const frameCount = telemetry.filter((e) => e.event === 'frame').length;
+              const expectedFrames = (stats.time / 1000) * 60;
+              if (frameCount < expectedFrames * (1 - FPS_VARIANCE) || frameCount > expectedFrames * (1 + FPS_VARIANCE)) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Frame count suspicious' }), { status: 400 });
+              }
+            } else if (stats.game === 'shoot') {
+              const killCount = telemetry.filter((e) => e.event === 'kill').length;
+              if (Math.abs(stats.kills - killCount) > 2) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Kill count mismatch' }), { status: 400 });
               }
             }
-
-           // console.log('startTime: ', startTime, ' endTime: ', nowEnd, ' gameDuration: ', nowEnd - startTime);
-            console.log('stats: ', stats);
-            console.log('computedScore: ', computedScore, ' score: ', score);
-            // Check score variance
-            if (Math.abs(computedScore - Number(score)) > Number(score) * SCORE_VARIANCE) {
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score' }), {
-                status: 400,
-              });
-            }
+          }
         }
-        tx = await contract.endGame(BigInt(gameId), address, BigInt(score));
-        receipt = await tx.wait();
-        let isHighScore = false;
-        try {
-          isHighScore = receipt.logs[1].args[3]? true : false;
-          // code after new contract deployment is:
-          // isHighScore = receipt.logs[0].args[3];
+          tx = await contract.endGame(BigInt(gameId), address, BigInt(score));
+          receipt = await tx.wait();
+          let isHighScore = false;
+          try {
+            isHighScore = receipt.logs[1].args[3]? true : false;
+            // code after new contract deployment is:
+            // isHighScore = receipt.logs[0].args[3];
+          } catch (error) {
+            isHighScore = false;
+          }
+                  
+          return new Response(
+            JSON.stringify({
+              status: 'success',
+              txHash: receipt.hash,
+              isHighScore,
+              highScore: isHighScore ? score : contractHighScore,
+            }),
+            { status: 200 }
+          );
         } catch (error) {
-          isHighScore = false;
+          console.error('End game error:', error);
+          return new Response(JSON.stringify({ status: 'error', message: error.message || 'Failed to end game' }), {
+            status: 500,
+          });
         }
-                
-        return new Response(
-          JSON.stringify({
-            status: 'success',
-            txHash: receipt.hash,
-            isHighScore,
-            highScore: isHighScore ? score : contractHighScore,
-          }),
-          { status: 200 }
-        );
-      } catch (error) {
-        console.error('End game error:', error);
-        return new Response(JSON.stringify({ status: 'error', message: error.message || 'Failed to end game' }), {
-          status: 500,
-        });
-      }
 
       case 'start-game':
         if (!gameId) {

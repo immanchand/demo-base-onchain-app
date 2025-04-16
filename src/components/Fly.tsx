@@ -5,7 +5,6 @@ import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
 import { GameStats, Entity } from 'src/constants';
-import WalletWrapper from './WalletWrapper';
 import { useAccount } from 'wagmi';
 import LoginButton from './LoginButton';
 

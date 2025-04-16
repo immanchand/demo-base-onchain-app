@@ -1,7 +1,7 @@
 // StartGameWrapper.tsx
 'use client';
 import { useCallback, useImperativeHandle, forwardRef, useState, useEffect } from 'react';
-import { signMessage } from 'src/constants'
+import { message } from 'src/constants'
 
 // Extend the Window interface to include grecaptcha
 declare global {
@@ -168,9 +168,9 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
           try {
             const signature = await walletClient.signMessage({ 
               account,
-              message: signMessage,
+              message: message,
             });
-            Cookies.set('gameSig', JSON.stringify({ signMessage, signature }), {
+            Cookies.set('gameSig', JSON.stringify({ message, signature }), {
               expires: 0.01, // 1 day
               secure: true,
               sameSite: 'strict',

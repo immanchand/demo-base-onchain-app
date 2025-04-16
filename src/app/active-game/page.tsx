@@ -6,6 +6,7 @@ import type { Address } from 'viem';
 import { formatEther } from 'viem';
 import { useAccount } from 'wagmi';
 import { publicClient, contractABI, CONTRACT_ADDRESS, gameMasterAddress, ethPrice } from 'src/constants';
+import WalletWrapper from 'src/components/WalletWrapper';
 import WinnerWithdrawWrapper from 'src/components/WinnerWithdrawWrapper';
 import Shoot from 'src/components/Shoot';
 import Jump from 'src/components/Jump';
@@ -298,6 +299,7 @@ export default function ActiveGame() {
                         <div className="gap-4 w-full animate-fade-in">
                             <GameCard game={gameState.game} isLoading={false} refreshGame={initializeGameFlow} userAddress={address} />
                         </div>
+                       
                             <section className="flex w-full flex-col items-center gap-4 px-2 py-4">
                                 <div className="flex w-full justify-center gap-4 mb-4">
                                     <button
@@ -351,6 +353,7 @@ export default function ActiveGame() {
                                     </div>
                                 )}
                             </section>
+                        
                     </>
                 )}
             </section>

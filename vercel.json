@@ -1,17 +1,17 @@
 {
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Cross-Origin-Embedder-Policy",
-          "value": "unsafe-none"
-        },
-        {
-          "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' https://www.google.com https://www.gstatic.com 'unsafe-inline'; img-src 'self' https://demo-base-onchain-app.vercel.app http://www.w3.org/2000/svg data:; connect-src 'self' https://www.google.com https://www.gstatic.com https://cloudflare-eth.com https://sepolia.base.org https://mainnet.base.org https://demo-base-onchain-app.vercel.app; frame-src 'self' https://www.google.com https://www.gstatic.com;"
-        }
-      ]
-    }
-  ]
-}
+	"headers": [
+	  {
+		"source": "/(.*)",
+		"headers": [
+		  {
+			"key": "Cross-Origin-Embedder-Policy",
+			"value": "unsafe-none"
+		  },
+		  {
+			"key": "Content-Security-Policy",
+			"value": "default-src 'self'; script-src 'self' https://www.google.com https://www.gstatic.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https://demo-base-onchain-app.vercel.app http://www.w3.org/2000/svg data:; connect-src 'self' https://www.google.com https://www.gstatic.com https://cloudflare-eth.com https://sepolia.base.org https://mainnet.base.org https://demo-base-onchain-app.vercel.app; frame-src 'self' https://www.google.com https://www.gstatic.com;"
+		  }
+		]
+	  }
+	]
+  }  

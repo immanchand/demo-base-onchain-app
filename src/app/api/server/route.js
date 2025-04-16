@@ -161,6 +161,10 @@ export async function POST(request) {
                 }
               }
             }
+
+           // console.log('startTime: ', startTime, ' endTime: ', nowEnd, ' gameDuration: ', nowEnd - startTime);
+            console.log('stats: ', stats);
+            console.log('computedScore: ', computedScore, ' score: ', score);
             // Check score variance
             if (Math.abs(computedScore - Number(score)) > Number(score) * SCORE_VARIANCE) {
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score' }), {

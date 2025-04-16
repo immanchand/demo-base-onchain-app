@@ -469,8 +469,8 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 score={Math.floor(score).toString()}
                 highScore={existingHighScore.toString()}
                 onStatusChange={handleEndGameStatusChange}
-                telemetry={score >= 2000 ? telemetry : []}
-                stats={score >= 2000 ? stats : null}
+                telemetry={score >= 2 ? telemetry : []}
+                stats={score >= 2 ? stats : null}
             />
             {!gameStarted ? (
                 <div className="text-center text-primary-text font-mono">

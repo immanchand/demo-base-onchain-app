@@ -86,7 +86,9 @@ export async function POST(request) {
       
       case 'end-game':
         //for logging telemetry. delete later
+        console.log('IN HERE 1') ;
         console.log(stats.game, gameId, address, score, telemetry, stats);
+        console.log('IN HERE 2') ;
         if (!gameId || !address || !score) {	  
           return new Response(
             JSON.stringify({ status: 'error', message: 'Missing gameId, address, or score' }),

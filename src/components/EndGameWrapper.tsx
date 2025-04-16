@@ -75,8 +75,8 @@ const EndGameWrapper = forwardRef<{ endGame: () => Promise<void> }, EndGameWrapp
               gameId,
               address,
               score,
-              telemetry: Number(score) >= 2000 ? telemetry : [],
-              stats: Number(score) >= 2000 ? stats : null,
+              telemetry: Number(score) >= 20 ? telemetry : [],   //***CHANGE BACK TO 2000 IN PROD */
+              stats: Number(score) >= 20 ? stats : null,    //***CHANGE BACK TO 2000 IN PROD */
             }),
           });
 

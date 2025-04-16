@@ -5,6 +5,8 @@ import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
 import { GameStats, Entity } from 'src/constants';
+import WalletWrapper from './WalletWrapper';
+import { useAccount } from 'wagmi';
 
 interface FlyProps {
     gameId: number;
@@ -32,6 +34,7 @@ const OBSTACLE_SIZE = 50;
 const GRAVITY = 0.2;
 const FLAP_VELOCITY = -5;
 const BASE_OBSTACLE_SPEED = -3;
+const { address } = useAccount();
 
 const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -462,9 +465,13 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                             <option value="gensler">CLOWN GARY</option>
                         </select>
                     </div>
-                    <Button onClick={startGame} disabled={startGameStatus === 'pending' || !imagesLoaded}>
-                        {startGameStatus === 'pending' ? 'starting...' : !imagesLoaded ? 'Loading...' : 'START GAME'}
-                    </Button>
+                    {address ? (
+                        <Button onClick={startGame} disabled={startGameStatus === 'pending' || !imagesLoaded}>
+                            {startGameStatus === 'pending' ? 'starting...' : !imagesLoaded ? 'Loading...' : 'START GAME'}
+                        </Button>
+                    ) : (
+                        <WalletWrapper className="btn-login" text="LOG IN TO PLAY" withWalletAggregator={true} />
+                    )}
                     <p className="mt-2">COST: 1 TICKET</p>
                     {startGameStatus === 'error' && startGameError && (
                         <p className="text-error-red mt-2">{startGameError}</p>

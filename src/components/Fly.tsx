@@ -34,7 +34,7 @@ const OBSTACLE_SIZE = 50;
 const GRAVITY = 0.2;
 const FLAP_VELOCITY = -5;
 const BASE_OBSTACLE_SPEED = -3;
-const { address } = useAccount();
+
 
 const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -59,6 +59,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
     const [startGameError, setStartGameError] = useState<string>('');
     const [endGameError, setEndGameError] = useState<string>('');
     const [endGameMessage, setEndGameMessage] = useState<string>('');
+    const { address } = useAccount();
     const [telemetry, setTelemetry] = useState<TelemetryEvent[]>([]);
     const [stats, setStats] = useState<GameStats>({
         game: 'fly',

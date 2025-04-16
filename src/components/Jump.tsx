@@ -4,19 +4,14 @@ import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
-import { GameStats } from 'src/constants';
+import { GameStats, Entity } from 'src/constants';
+import { useAccount } from 'wagmi';
+import LoginButton from './LoginButton';
 
 interface JumpProps {
     gameId: number;
     existingHighScore: number;
     updateTickets: () => void;
-}
-
-interface Entity {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
 }
 
 interface Obstacle extends Entity {
@@ -69,6 +64,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const [startGameError, setStartGameError] = useState<string>('');
     const [endGameError, setEndGameError] = useState<string>('');
     const [endGameMessage, setEndGameMessage] = useState<string>('');
+    const { address } = useAccount();
     const [telemetry, setTelemetry] = useState<TelemetryEvent[]>([]);
     const [stats, setStats] = useState<GameStats>({
         game: 'jump',
@@ -519,9 +515,15 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                             <option value="gensler">CLOWN GARY</option>
                         </select>
                     </div>
-                    <Button onClick={startGame} disabled={startGameStatus === 'pending' || !imagesLoaded}>
-                        {startGameStatus === 'pending' ? 'starting...' : !imagesLoaded ? 'Loading...' : 'START GAME'}
-                    </Button>
+                    {address ? (
+                        <Button onClick={startGame} disabled={startGameStatus === 'pending' || !imagesLoaded}>
+                            {startGameStatus === 'pending' ? 'starting...' : !imagesLoaded ? 'Loading...' : 'START GAME'}
+                        </Button>
+                    ) : (
+                        <div className="flex items-center justify-center">
+                            <LoginButton />
+                        </div>
+                    )}
                     <p className="mt-2">COST: 1 TICKET</p>
                     {startGameStatus === 'error' && startGameError && (
                         <p className="text-error-red mt-2">{startGameError}</p>

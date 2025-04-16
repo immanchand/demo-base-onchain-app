@@ -3,6 +3,7 @@ import { baseSepolia } from "viem/chains";
 
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
 export const ethPrice = 1700;
+export const signMessage = 'Please sign this message to approve paying tickets to start the game session. This is not a transaction and there is no fee. It is only used to verify your identity and protect your own tickts.';
 
 export const GAME_COUNT = 3;
 export const GAME_PRICE_WEI = 100000000000000; 

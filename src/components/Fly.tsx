@@ -4,7 +4,7 @@ import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
-import { GameStats, Entity } from 'src/constants';
+import { GameStats, Entity, SCORE_MULTIPLIER_TIME, FLY_PARAMETERS } from 'src/constants';
 import { useAccount } from 'wagmi';
 import LoginButton from './LoginButton';
 
@@ -31,9 +31,10 @@ type ShipType = 'ship' | 'eth' | 'base';
 const SHIP_WIDTH = 40;
 const SHIP_HEIGHT = SHIP_WIDTH * (3/4);
 const OBSTACLE_SIZE = 50;
-const GRAVITY = 0.2;
+const MIN_SPAWN_INTERVAL = 300; // Lower (e.g., 200) = more frequent obstacles, harder; Higher (e.g., 500) = easier
+const GRAVITY = 0.2; // Higher (e.g., 0.3) = faster fall, harder; Lower (e.g., 0.1) = easier
 const FLAP_VELOCITY = -5;
-const BASE_OBSTACLE_SPEED = -3;
+const BASE_OBSTACLE_SPEED = -3; // Higher (e.g., -4) = faster obstacles, harder; Lower (e.g., -2) = easier
 
 
 const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets }) => {
@@ -51,6 +52,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
     const animationFrameIdRef = useRef<number>(0);
     const lastSpawnTimeRef = useRef<number>(0);
     const startTimeRef = useRef<number>(0);
+    const lastTimeRef = useRef<number>(0);
     const { ticketCount } = useTicketContext();
     const startGameRef = useRef<{ startGame: () => Promise<void> }>(null);
     const endGameRef = useRef<{ endGame: () => Promise<void> }>(null);
@@ -209,9 +211,9 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         const update = (deltaTime: number) => {
             const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
             const difficultyFactor = Math.min(elapsedTime / 90, 1);
-            const spawnInterval = 2500 * (1 - difficultyFactor) + 300;
-            const obstacleSpeed = BASE_OBSTACLE_SPEED * (1 + difficultyFactor * 0.5);
-            const clusterChance = difficultyFactor * 0.3;
+            const spawnInterval = Math.max(FLY_PARAMETERS.MIN_SPAWN_INTERVAL, 2500 / (1 + difficultyFactor));
+            const obstacleSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
+            //const clusterChance = difficultyFactor * 0.3;
             const obstacleSize = OBSTACLE_SIZE * (1 + difficultyFactor * 0.1);
 
             if (!gameOver) {
@@ -231,7 +233,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 if (ship.x > canvas.width) {
                     ship.x = -SHIP_WIDTH;
                 }
-                setScore((prev) => prev + deltaTime * 10 * (1 + difficultyFactor));
+                setScore((prev) => prev + deltaTime * SCORE_MULTIPLIER_TIME);
                 setTelemetry((prev) => {
                     if (prev.length >= 1000) return [...prev.slice(1), { event: 'frame', time: performance.now(), data: { deltaTime, difficulty: difficultyFactor } }];
                     return [...prev, { event: 'frame', time: performance.now(), data: { deltaTime, difficulty: difficultyFactor } }];
@@ -258,7 +260,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
             const currentTime = performance.now();
             if (currentTime - lastSpawnTimeRef.current >= spawnInterval && !gameOver) {
-                const numObstacles = Math.random() < clusterChance ? 2 : 1;
+                const numObstacles = Math.random();// < clusterChance ? 2 : 1;
                 for (let i = 0; i < numObstacles; i++) {
                     const y = Math.random() * (canvas.height - obstacleSize) + (i * obstacleSize * 1.5);
                     obstaclePool.push({ x: canvas.width, y, width: obstacleSize, height: obstacleSize, dx: obstacleSpeed });

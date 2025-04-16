@@ -1,6 +1,7 @@
 // StartGameWrapper.tsx
 'use client';
 import { useCallback, useImperativeHandle, forwardRef, useState, useEffect } from 'react';
+import { signMessage } from 'src/constants'
 
 // Extend the Window interface to include grecaptcha
 declare global {
@@ -148,12 +149,12 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
           }
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-          if (errorMsg.includes('Invalid or missing CSRF token') && !isRetry) {
-            console.log('Refreshing CSRF token due to invalid token');
-            await refreshCsrfToken();
-            console.log('Retrying startGame with new CSRF token');
-            return startGame(true);
-          }
+          // if (errorMsg.includes('Invalid or missing CSRF token') && !isRetry) {
+          //   console.log('Refreshing CSRF token due to invalid token');
+          //   await refreshCsrfToken();
+          //   console.log('Retrying startGame with new CSRF token');
+          //   return startGame(true);
+          // }
           onStatusChange('error', errorMsg);
         }
 
@@ -163,13 +164,13 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
             transport: custom(window.ethereum!),
           });
           const [account] = await walletClient.getAddresses();
-          const message = `StartGameSession`;
+          
           try {
             const signature = await walletClient.signMessage({ 
               account,
-              message: message,
+              message: signMessage,
             });
-            Cookies.set('gameSig', JSON.stringify({ message, signature }), {
+            Cookies.set('gameSig', JSON.stringify({ signMessage, signature }), {
               expires: 0.01, // 1 day
               secure: true,
               sameSite: 'strict',

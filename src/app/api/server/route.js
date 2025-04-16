@@ -12,64 +12,6 @@ import {
   TIME_VARIANCE_MS,
   FPS_VARIANCE,
 } from '../../../constants';
-import fs from 'fs';
-import path from 'path';
-// Define telemetry and stats file paths for each game
-const LOG_DIR = path.join(process.cwd(), 'logs');
-const FILE_PATHS = {
-  fly: {
-    telemetry: path.join(LOG_DIR, 'FLY_TELEMETRY.json'),
-    stats: path.join(LOG_DIR, 'FLY_STATS.json'),
-  },
-  jump: {
-    telemetry: path.join(LOG_DIR, 'JUMP_TELEMETRY.json'),
-    stats: path.join(LOG_DIR, 'JUMP_STATS.json'),
-  },
-  shoot: {
-    telemetry: path.join(LOG_DIR, 'SHOOT_TELEMETRY.json'),
-    stats: path.join(LOG_DIR, 'SHOOT_STATS.json'),
-  },
-};
-// Ensure log directory exists
-if (!fs.existsSync(LOG_DIR)) {
-  fs.mkdirSync(LOG_DIR, { recursive: true });
-}
-// Function to append telemetry and stats to respective files
-function logGameData(game, gameId, address, score, telemetry, stats) {
-  const timestamp = new Date().toISOString();
-  const logEntry = {
-    gameId,
-    address,
-    score,
-    timestamp,
-    telemetry,
-    stats,
-  };
-
-  const filePaths = FILE_PATHS[game];
-  if (!filePaths) {
-    console.error(`Invalid game: ${game}`);
-    return;
-  }
-
-  // Append telemetry
-  let telemetryData = [];
-  if (fs.existsSync(filePaths.telemetry)) {
-    telemetryData = JSON.parse(fs.readFileSync(filePaths.telemetry, 'utf-8'));
-  }
-  telemetryData.push({ ...logEntry, stats: undefined }); // Exclude stats to keep file focused
-  fs.writeFileSync(filePaths.telemetry, JSON.stringify(telemetryData, null, 2));
-
-  // Append stats
-  let statsData = [];
-  if (fs.existsSync(filePaths.stats)) {
-    statsData = JSON.parse(fs.readFileSync(filePaths.stats, 'utf-8'));
-  }
-  statsData.push({ ...logEntry, telemetry: undefined }); // Exclude telemetry to keep file focused
-  fs.writeFileSync(filePaths.stats, JSON.stringify(statsData, null, 2));
-
-  console.log(`Logged data for ${game}: gameId=${gameId}, score=${score}`);
-}
 
 const rateLimitStore = new Map();
 const gameDurationStore = new Map();
@@ -144,6 +86,7 @@ export async function POST(request) {
       
       case 'end-game':
         //for logging telemetry. delete later
+        console.log(stats.game, gameId, address, score, telemetry, stats);
         if (!gameId || !address || !score) {	  
           return new Response(
             JSON.stringify({ status: 'error', message: 'Missing gameId, address, or score' }),
@@ -162,9 +105,9 @@ export async function POST(request) {
         rateLimitStore.set(`${sessionId}:end`, nowEnd);
 		    if (stats?.game) {
           try {
-            logGameData(stats.game, gameId, address, score, telemetry, stats);
+            console.log(stats.game, gameId, address, score, telemetry, stats);
           } catch (error) {
-            console.error(`Failed to log data for ${stats.game}:`, error);
+            console.error(`Failed to log game data: `, error);
           }
         }
         

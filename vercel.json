@@ -9,9 +9,10 @@
 		  },
 		  {
 			"key": "Content-Security-Policy",
-			"value": "default-src 'self'; script-src 'self' https://www.google.com https://www.gstatic.com 'unsafe-inline'; img-src 'self' https://demo-base-onchain-app.vercel.app; connect-src 'self' https://www.google.com https://www.gstatic.com https://cloudflare-eth.com https://sepolia.base.org https://mainnet.base.org http://www.w3.org/2000/svg https://demo-base-onchain-app.vercel.app; frame-src 'self' https://www.google.com https://www.gstatic.com;"
+			"value": "default-src 'self'; script-src 'self' https://www.google.com https://www.gstatic.com 'unsafe-inline'; img-src 'self' https://demo-base-onchain-app.vercel.app http://www.w3.org/2000/svg; connect-src 'self' https://www.google.com https://www.gstatic.com https://cloudflare-eth.com https://sepolia.base.org https://mainnet.base.org https://demo-base-onchain-app.vercel.app; frame-src 'self' https://www.google.com https://www.gstatic.com;"
 		  }
 		]
 	  }
 	]
   }
+  

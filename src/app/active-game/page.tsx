@@ -299,7 +299,7 @@ export default function ActiveGame() {
                         <div className="gap-4 w-full animate-fade-in">
                             <GameCard game={gameState.game} isLoading={false} refreshGame={initializeGameFlow} userAddress={address} />
                         </div>
-                        {address ? (
+                        {/* {address ? ( */}
                             <section className="flex w-full flex-col items-center gap-4 px-2 py-4">
                                 <div className="flex w-full justify-center gap-4 mb-4">
                                     <button
@@ -353,9 +353,9 @@ export default function ActiveGame() {
                                     </div>
                                 )}
                             </section>
-                        ) : (
+                        {/* ) : (
                             <WalletWrapper className="btn-login" text="LOG IN TO PLAY" withWalletAggregator={true} />
-                        )}
+                        )} */}
                     </>
                 )}
             </section>

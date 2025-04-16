@@ -4,6 +4,7 @@ import { getCsrfTokens } from 'src/lib/csrfStore';
 import { contractABI, CONTRACT_ADDRESS } from '../../../constants';
 
 const rateLimitStore = new Map();
+const gameDurationStore = new Map();
 const GAME_MASTER_PRIVATE_KEY = process.env.GAME_MASTER_PRIVATE_KEY;
 const PROVIDER_URL = process.env.API_URL;
 
@@ -102,7 +103,7 @@ export async function POST(request) {
           );
         }
         rateLimitStore.set(`${sessionId}:end`, nowEnd);
-
+        
         try {
           // Fetch current highScore from contract
           const gameData = await contract.getGame(gameId);
@@ -114,8 +115,8 @@ export async function POST(request) {
               { status: 200 }
             );
           }
-          // Validate only if score >= 2000 and > contractHighScore
-          if (Number(score) >= 2000) {
+          // Validate only if score >= 2000 and > contractHighScore//****CHANGE BACK TO 2000 IN PROD */
+          if (Number(score) >= 20) {
             const SCORE_VARIANCE = Number(process.env.SCORE_VARIANCE);
             let computedScore = 0;
 
@@ -133,7 +134,10 @@ export async function POST(request) {
             // Stats validation
             if (stats) {
 
+              const startTime = gameDurationStore.get(address);
+              console.log('startTime: ', startTime, ' endTime: ', nowEnd, ' gameDuration: ', nowEnd - startTime);
               console.log('stats: ', stats);
+              
 
               if (stats.game === 'fly') {
                 if (stats.flapsPerSec > 5 || stats.obstaclesDodged > stats.time / 1000) {
@@ -223,11 +227,10 @@ export async function POST(request) {
           });
         }
         // Verify signature and recover address
-        let playerAddress;
         if (gameSigRaw) {
           try {
             const { message, signature } = JSON.parse(gameSigRaw);
-            playerAddress = ethers.verifyMessage(message, signature);
+            const playerAddress = ethers.verifyMessage(message, signature);
             if (playerAddress.toLowerCase() !== address.toLowerCase()) {
               return new Response(JSON.stringify({ status: 'error', message: 'Cookie Signature does not match player address' }), {
                 status: 403,
@@ -249,8 +252,9 @@ export async function POST(request) {
         }
 
 
-        tx = await contract.startGame(BigInt(gameId), playerAddress);
+        tx = await contract.startGame(BigInt(gameId), address);
         receipt = await tx.wait();
+        gameDurationStore.set(address, Date.now());
         return new Response(
           JSON.stringify({ status: 'success', txHash: tx.hash }),
           { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }

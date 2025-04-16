@@ -472,8 +472,9 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                             {startGameStatus === 'pending' ? 'starting...' : !imagesLoaded ? 'Loading...' : 'START GAME'}
                         </Button>
                     ) : (
-                        <LoginButton />
-                        
+                        <div className="flex items-center justify-center">
+                            <LoginButton />
+                        </div>
                     )}
                     <p className="mt-2">COST: 1 TICKET</p>
                     {startGameStatus === 'error' && startGameError && (

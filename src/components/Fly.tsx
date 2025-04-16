@@ -7,6 +7,7 @@ import Button from './Button';
 import { GameStats, Entity } from 'src/constants';
 import WalletWrapper from './WalletWrapper';
 import { useAccount } from 'wagmi';
+import LoginButton from './LoginButton';
 
 interface FlyProps {
     gameId: number;
@@ -471,7 +472,8 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                             {startGameStatus === 'pending' ? 'starting...' : !imagesLoaded ? 'Loading...' : 'START GAME'}
                         </Button>
                     ) : (
-                        <WalletWrapper className="btn-login" text="LOG IN TO PLAY" withWalletAggregator={true} />
+                        <LoginButton />
+                        
                     )}
                     <p className="mt-2">COST: 1 TICKET</p>
                     {startGameStatus === 'error' && startGameError && (

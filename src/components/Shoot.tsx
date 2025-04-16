@@ -4,7 +4,7 @@ import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
-import { GameStats, Entity } from 'src/constants';
+import { GameStats, Entity, SCORE_MULTIPLIER_SHOOT, SHOOT_PARAMETERS } from 'src/constants';
 import { useAccount } from 'wagmi';
 import LoginButton from './LoginButton';
 
@@ -45,9 +45,10 @@ const BULLET_SIZE = 4;
 const ENEMY_SIZE = 40;
 const INITIAL_BULLET_COUNT = 10;
 const INITIAL_ENEMY_COUNT = 1;
-const MAX_ENEMY_COUNT = 10;
+const MAX_ENEMY_COUNT = 10; // Higher (e.g., 15) = more enemies, harder; Lower (e.g., 5) = easier
 const BULLET_SPEED = 5;
-const ENEMY_SPEED_BASE = 2;
+const ENEMY_SPEED_BASE = 2; // Higher (e.g., 3) = faster enemies, harder; Lower (e.g., 1) = easier
+const SPAWN_INTERVAL = 1000; // Lower (e.g., 500) = faster spawns, harder; Higher (e.g., 1500) = easier
 
 const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -287,7 +288,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                 if (distance < ENEMY_SIZE / 2) {
                     bullet.active = false;
                     enemy.active = false;
-                    setScore((prev) => prev + 31);
+                    setScore((prev) => prev + SCORE_MULTIPLIER_SHOOT);
                     setTelemetry((prev) => {
                         if (prev.length >= 1000) return [...prev.slice(1), { event: 'kill', time: performance.now() }];
                         return [...prev, { event: 'kill', time: performance.now() }];

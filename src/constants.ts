@@ -2,7 +2,7 @@ import { createPublicClient, http } from "viem";
 import { baseSepolia } from "viem/chains";
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
 export const ethPrice = 1700;
-export const signMessage = 'Please sign this message to approve paying tickets to start the game session. This is not a transaction and there is no fee. It is only used to verify your identity and protect your own tickts.';
+export const message = 'Please sign this message to approve paying tickets to start the game session. This is not a transaction and there is no fee. It is only used to verify your identity and protect your own tickts.';
 // Scoring multipliers
 export const SCORE_MULTIPLIER_TIME = 10; // Points per second for Fly and Jump
 export const SCORE_MULTIPLIER_SHOOT = 5; // Points per kill for Shoot

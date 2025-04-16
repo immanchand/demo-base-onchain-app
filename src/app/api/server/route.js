@@ -116,13 +116,13 @@ export async function POST(request) {
             );
           }
           // Validate only if score >= 2000 and > contractHighScore//****CHANGE BACK TO 2000 IN PROD */
-          if (Number(score) >= 20) {
+          if (Number(score) >= 2) {
             const SCORE_VARIANCE = Number(process.env.SCORE_VARIANCE);
             let computedScore = 0;
 
             // Telemetry validation
-            if (telemetry && telemetry.length > 0) {
-
+            //if (telemetry && telemetry.length > 0) { //****CHANGE BACK TO PROD */
+            if (telemetry) {
               console.log('telemetry: ', telemetry);
 
               for (const event of telemetry) {

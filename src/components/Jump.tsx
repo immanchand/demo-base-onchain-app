@@ -4,7 +4,7 @@ import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
-import { GameStats, Entity } from 'src/constants';
+import { GameStats, Entity, SCORE_MULTIPLIER_TIME, JUMP_PARAMETERS } from 'src/constants';
 import { useAccount } from 'wagmi';
 import LoginButton from './LoginButton';
 
@@ -31,9 +31,10 @@ type ShipType = 'runner' | 'lady' | 'eth' | 'base';
 const SHIP_HEIGHT = 50;
 const SHIP_WIDTH = SHIP_HEIGHT * (3/4);
 const OBSTACLE_SIZE = 50;
-const GRAVITY = 0.4;
+const MIN_GAP = 300; // Lower (e.g., 200) = tighter gaps, harder; Higher (e.g., 400) = easier
+const GRAVITY = 0.4; // Higher (e.g., 0.5) = faster fall, harder; Lower (e.g., 0.3) = easier
 const JUMP_VELOCITY = -12;
-const BASE_OBSTACLE_SPEED = -3;
+const BASE_OBSTACLE_SPEED = -3; // Higher (e.g., -5) = faster obstacles, harder; Lower (e.g., -2) = easier
 const GROUND_HEIGHT = 150;
 const DOUBLE_PRESS_THRESHOLD = 300;
 const SKY_SPEED = 0.3;
@@ -251,7 +252,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
             const timeLevel = Math.floor(elapsedTime / 8);
             const speedMultiplier = 1 + timeLevel * 0.05;
-            const obstacleSpeed = BASE_OBSTACLE_SPEED * speedMultiplier;
+            const obstacleSpeed = JUMP_PARAMETERS.BASE_OBSTACLE_SPEED * speedMultiplier;
             const minGap = OBSTACLE_SIZE * (50 - Math.min(timeLevel, 10) * 4);
 
             cloudOffset += SKY_SPEED * deltaTime * 60;
@@ -265,7 +266,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     ship.vy = 0;
                     jumpCountRef.current = 0;
                 }
-                setScore((prev) => prev + deltaTime * 10 * speedMultiplier);
+                setScore((prev) => prev + deltaTime * SCORE_MULTIPLIER_TIME);
                 setTelemetry((prev) => {
                     if (prev.length >= 1000) return [...prev.slice(1), { event: 'frame', time: performance.now(), data: { deltaTime, speed: speedMultiplier } }];
                     return [...prev, { event: 'frame', time: performance.now(), data: { deltaTime, speed: speedMultiplier } }];

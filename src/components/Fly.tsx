@@ -4,7 +4,7 @@ import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
-import { GameStats, Entity, SCORE_MULTIPLIER_TIME, FLY_PARAMETERS } from 'src/constants';
+import { GameStats, Entity, FLY_PARAMETERS } from 'src/constants';
 import { useAccount } from 'wagmi';
 import LoginButton from './LoginButton';
 
@@ -21,7 +21,7 @@ interface Obstacle extends Entity {
 interface TelemetryEvent {
     event: 'flap' | 'spawn' | 'collision' | 'frame';
     time: number;
-    data?: { deltaTime?: number; difficulty?: number; y?: number; speed?: number };
+    data?: { deltaTime?: number; obstacleCount?: number; y?: number; speed?: number };
 }
 
 type EnemyType = 'alien' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
@@ -31,11 +31,10 @@ type ShipType = 'ship' | 'eth' | 'base';
 const SHIP_WIDTH = 40;
 const SHIP_HEIGHT = SHIP_WIDTH * (3/4);
 const OBSTACLE_SIZE = 50;
-const MIN_SPAWN_INTERVAL = 300; // Lower (e.g., 200) = more frequent obstacles, harder; Higher (e.g., 500) = easier
-const GRAVITY = 0.2; // Higher (e.g., 0.3) = faster fall, harder; Lower (e.g., 0.1) = easier
+const MAX_OBSTACLE_COUNT = 3;
+const GRAVITY = 0.2;
 const FLAP_VELOCITY = -5;
-const BASE_OBSTACLE_SPEED = -3; // Higher (e.g., -4) = faster obstacles, harder; Lower (e.g., -2) = easier
-
+const BASE_OBSTACLE_SPEED = -3;
 
 const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -52,7 +51,6 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
     const animationFrameIdRef = useRef<number>(0);
     const lastSpawnTimeRef = useRef<number>(0);
     const startTimeRef = useRef<number>(0);
-    const lastTimeRef = useRef<number>(0);
     const { ticketCount } = useTicketContext();
     const startGameRef = useRef<{ startGame: () => Promise<void> }>(null);
     const endGameRef = useRef<{ endGame: () => Promise<void> }>(null);
@@ -77,7 +75,6 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         flapsPerSec: 0,
     });
 
-    // Preload images
     useEffect(() => {
         const images = {
             alien: new Image(),
@@ -125,24 +122,27 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         });
     }, []);
 
-    // Game logic
-    const spawnObstacle = useCallback((canvas: HTMLCanvasElement, speed: number): Obstacle => {
+    const spawnObstacle = useCallback((canvas: HTMLCanvasElement, speed: number, obstacleCount: number): Obstacle[] => {
+        const obstacles: Obstacle[] = [];
         const randomFactor = Math.pow(Math.random(), 2);
         const y = randomFactor * (canvas.height - OBSTACLE_SIZE);
+        for (let i = 0; i < obstacleCount; i++) {
+            obstacles.push({
+                x: canvas.width + i * (OBSTACLE_SIZE + 20),
+                y,
+                width: OBSTACLE_SIZE,
+                height: OBSTACLE_SIZE,
+                dx: speed,
+            });
+        }
         setTelemetry((prev) => {
-            if (prev.length >= 1000) return [...prev.slice(1), { event: 'spawn', time: performance.now(), data: { y, speed } }];
-            return [...prev, { event: 'spawn', time: performance.now(), data: { y, speed } }];
+            if (prev.length >= 1000) return [...prev.slice(1), { event: 'spawn', time: performance.now(), data: { y, speed, obstacleCount } }];
+            return [...prev, { event: 'spawn', time: performance.now(), data: { y, speed, obstacleCount } }];
         });
-        return {
-            x: canvas.width,
-            y,
-            width: OBSTACLE_SIZE,
-            height: OBSTACLE_SIZE,
-            dx: speed,
-        };
+        return obstacles;
     }, []);
 
-    const drawBackground = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, stars: { x: number; y: number }[]) => {
+    const drawBackground = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, stars: { x: number; y: number; dx: number }[]) => {
         ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#FFFFFF';
@@ -163,7 +163,6 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         });
     };
 
-    // Game loop setup
     useEffect(() => {
         const canvas = canvasRef.current;
         const container = containerRef.current;
@@ -209,12 +208,10 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         };
 
         const update = (deltaTime: number) => {
-            const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
-            const difficultyFactor = Math.min(elapsedTime / 90, 1);
-            const spawnInterval = Math.max(FLY_PARAMETERS.MIN_SPAWN_INTERVAL, 2500 / (1 + difficultyFactor));
-            const obstacleSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-            //const clusterChance = difficultyFactor * 0.3;
-            const obstacleSize = OBSTACLE_SIZE * (1 + difficultyFactor * 0.1);
+            const elapsedTime = performance.now() / 1000;
+            const spawnInterval = Math.max(FLY_PARAMETERS.MIN_SPAWN_INTERVAL, 2500 - (elapsedTime / 120) * 2000);
+            const obstacleCount = Math.min(MAX_OBSTACLE_COUNT, Math.floor(elapsedTime / 40) + 1);
+            const obstacleSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + elapsedTime / 60);
 
             if (!gameOver) {
                 ship.vy += GRAVITY;
@@ -233,16 +230,16 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 if (ship.x > canvas.width) {
                     ship.x = -SHIP_WIDTH;
                 }
-                setScore((prev) => prev + deltaTime * SCORE_MULTIPLIER_TIME);
-                setTelemetry((prev) => {
-                    if (prev.length >= 1000) return [...prev.slice(1), { event: 'frame', time: performance.now(), data: { deltaTime, difficulty: difficultyFactor } }];
-                    return [...prev, { event: 'frame', time: performance.now(), data: { deltaTime, difficulty: difficultyFactor } }];
-                });
+                setScore((prev) => prev + deltaTime * 1000);
                 setStats((prev) => ({
                     ...prev,
                     time: performance.now() - startTimeRef.current,
                     flapsPerSec: prev.flaps / (prev.time / 1000 || 1),
                 }));
+                setTelemetry((prev) => {
+                    if (prev.length >= 1000) return [...prev.slice(1), { event: 'frame', time: performance.now(), data: { deltaTime } }];
+                    return [...prev, { event: 'frame', time: performance.now(), data: { deltaTime } }];
+                });
             }
 
             stars.forEach(star => {
@@ -254,26 +251,29 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             });
 
             obstaclePool.forEach((obstacle) => {
-                obstacle.x += obstacle.dx;
+                obstacle.dx = obstacleSpeed;
+                obstacle.x += obstacle.dx * deltaTime * 60;
             });
-            obstaclePool = obstaclePool.filter((obstacle) => obstacle.x + obstacleSize > 0);
+            obstaclePool = obstaclePool.filter((obstacle) => {
+                if (obstacle.x + OBSTACLE_SIZE < 0) {
+                    setStats((prev) => ({ ...prev, obstaclesDodged: prev.obstaclesDodged + 1 }));
+                    return false;
+                }
+                return true;
+            });
 
             const currentTime = performance.now();
             if (currentTime - lastSpawnTimeRef.current >= spawnInterval && !gameOver) {
-                const numObstacles = Math.random();// < clusterChance ? 2 : 1;
-                for (let i = 0; i < numObstacles; i++) {
-                    const y = Math.random() * (canvas.height - obstacleSize) + (i * obstacleSize * 1.5);
-                    obstaclePool.push({ x: canvas.width, y, width: obstacleSize, height: obstacleSize, dx: obstacleSpeed });
-                }
+                obstaclePool.push(...spawnObstacle(canvas, obstacleSpeed, obstacleCount));
                 lastSpawnTimeRef.current = currentTime;
             }
 
             if (!gameOver) {
                 obstaclePool.forEach((obstacle) => {
-                    const dx = ship.x + SHIP_WIDTH / 2 - (obstacle.x + obstacleSize / 2);
-                    const dy = ship.y + SHIP_HEIGHT / 2 - (obstacle.y + obstacleSize / 2);
+                    const dx = ship.x + SHIP_WIDTH / 2 - (obstacle.x + OBSTACLE_SIZE / 2);
+                    const dy = ship.y + SHIP_HEIGHT / 2 - (obstacle.y + OBSTACLE_SIZE / 2);
                     const distance = Math.sqrt(dx * dx + dy * dy);
-                    if (distance < (SHIP_WIDTH + obstacleSize) / 2) {
+                    if (distance < (SHIP_WIDTH + OBSTACLE_SIZE) / 2) {
                         setGameOver(true);
                         setTelemetry((prev) => {
                             if (prev.length >= 1000) return [...prev.slice(1), { event: 'collision', time: performance.now() }];
@@ -296,8 +296,8 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             if (!gameOver) {
                 ship.vy = FLAP_VELOCITY;
                 setTelemetry((prev) => {
-                    if (prev.length >= 1000) return [...prev.slice(1), { event: 'flap', time: performance.now() }];
-                    return [...prev, { event: 'flap', time: performance.now() }];
+                    if (prev.length >= 1000) return [...prev.slice(1), { event: 'flap', time: stats.time }];
+                    return [...prev, { event: 'flap', time: stats.time }];
                 });
                 setStats((prev) => ({ ...prev, flaps: prev.flaps + 1 }));
             }
@@ -314,8 +314,8 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         };
 
         if (gameStarted && !gameOver) {
-            obstaclePool = [spawnObstacle(canvas, BASE_OBSTACLE_SPEED)];
-            lastSpawnTimeRef.current = performance.now();
+            obstaclePool = spawnObstacle(canvas, BASE_OBSTACLE_SPEED, 1);
+            lastSpawnTimeRef.current = 0;
             startTimeRef.current = performance.now();
             setTelemetry([]);
             setStats({
@@ -331,6 +331,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 obstaclesDodged: 0,
                 flapsPerSec: 0,
             });
+            setScore(0);
 
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('mousedown', handleMouseDown);
@@ -344,7 +345,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             window.removeEventListener('mousedown', handleMouseDown);
             cancelAnimationFrame(animationFrameIdRef.current);
         };
-    }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnObstacle]);
+    }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnObstacle, score, performance.now()]);
 
     const startGame = useCallback(async () => {
         if (ticketCount > 0 && startGameRef.current) {
@@ -425,8 +426,8 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 score={Math.floor(score).toString()}
                 highScore={existingHighScore.toString()}
                 onStatusChange={handleEndGameStatusChange}
-                telemetry={score >= 2000 ? telemetry : []}
-                stats={score >= 2000 ? stats : null}
+                telemetry={score >= 2 ? telemetry : []}
+                stats={score >= 2 ? stats : null}
             />
             {!gameStarted ? (
                 <div className="text-center text-primary-text font-mono">

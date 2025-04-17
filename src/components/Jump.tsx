@@ -69,6 +69,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const [telemetry, setTelemetry] = useState<TelemetryEvent[]>([]);
     const [stats, setStats] = useState<GameStats>({
         game: 'jump',
+        score: 0,
         shots: 0,
         kills: 0,
         time: 0,
@@ -364,6 +365,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             setTelemetry([]);
             setStats({
                 game: 'jump',
+                score: 0,
                 shots: 0,
                 kills: 0,
                 time: 0,

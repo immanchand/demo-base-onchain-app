@@ -22,6 +22,7 @@ interface Obstacle extends Entity {
 interface TelemetryEvent {
     event: 'flap' | 'spawn' | 'collision' | 'frame' | 'fps';
     time: number;
+    frameId?: number;
     data?: { deltaTime?: number; difficulty?: number; y?: number; vy?: number; speed?: number; score?: number; fps?: number };
 }
 
@@ -247,6 +248,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                       const newEvent: TelemetryEvent = {
                         event: 'frame',
                         time: performance.now(),
+                        frameId: frameCount,
                         data: { deltaTime: deltaTime * 10, difficulty: difficultyFactor, score, y: ship.y, vy: ship.vy }
                       };
                       if (prev.length >= TELEMETRY_LIMIT) return [...prev.slice(1), newEvent];
@@ -346,6 +348,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
         const handleMouseDown = () => {
             handleFlap();
+            inputCount++;
         };
 
         if (gameStarted && !gameOver) {

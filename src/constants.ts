@@ -469,8 +469,9 @@ export interface GameStats {
   obstaclesCleared: number;
   jumpsPerSec: number;
   flaps: number;
-  obstaclesDodged: number;
   flapsPerSec: number;
+  maxObstacles: number;
+  inputsPerSec: number;
 };
 export interface Entity {
   x: number;

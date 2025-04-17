@@ -16,6 +16,7 @@ interface FlyProps {
 
 interface Obstacle extends Entity {
     dx: number;
+    dodged: boolean;
 }
 
 interface TelemetryEvent {
@@ -139,6 +140,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             width: FLY_PARAMETERS.OBSTACLE_SIZE,
             height: FLY_PARAMETERS.OBSTACLE_SIZE,
             dx: speed,
+            dodged: false,
         };
     }, []);
 
@@ -208,6 +210,8 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             drawObstacles(ctx, obstaclePool);
         };
 
+		let frameCount = 0;
+        let pendingStatsUpdate = { ...stats };									  
         const update = (deltaTime: number) => {
             const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
             const difficultyFactor = Math.min(elapsedTime / 90, 1);
@@ -234,16 +238,19 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                     ship.x = -FLY_PARAMETERS.SHIP_WIDTH;
                 }
                 setScore((prev) => prev + deltaTime * 100);
-                setTelemetry((prev) => {
-                    if (prev.length >= 1000) return [...prev.slice(1), { event: 'frame', time: performance.now(), data: { deltaTime, difficulty: difficultyFactor } }];
-                    return [...prev, { event: 'frame', time: performance.now(), data: { deltaTime, difficulty: difficultyFactor } }];
-                });
-                setStats((prev) => ({
-                    ...prev,
-                    score: score,
+				frameCount++;
+                if (frameCount % 10 === 0) {
+                    setTelemetry((prev) => {
+                        if (prev.length >= 1000) return [...prev.slice(1), { event: 'frame', time: performance.now(), data: { deltaTime: deltaTime * 10, difficulty: difficultyFactor } }];
+                        return [...prev, { event: 'frame', time: performance.now(), data: { deltaTime: deltaTime * 10, difficulty: difficultyFactor } }];
+                    });
+                }
+                pendingStatsUpdate = {
+                    ...pendingStatsUpdate,
+                    score,
                     time: performance.now() - startTimeRef.current,
-                    flapsPerSec: prev.flaps / (prev.time / 1000 || 1),
-                }));
+                    flapsPerSec: pendingStatsUpdate.flaps / (pendingStatsUpdate.time / 1000 || 1),
+                };
             }
 
             stars.forEach(star => {
@@ -256,6 +263,10 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
             obstaclePool.forEach((obstacle) => {
                 obstacle.x += obstacle.dx;
+				if (obstacle.x + obstacleSize < ship.x && !obstacle.dodged) {
+                    pendingStatsUpdate = { ...pendingStatsUpdate, obstaclesDodged: pendingStatsUpdate.obstaclesDodged + 1 };
+                    obstacle.dodged = true;
+                }															 
             });
             obstaclePool = obstaclePool.filter((obstacle) => obstacle.x + obstacleSize > 0);
 
@@ -264,7 +275,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 const numObstacles = Math.random() < clusterChance ? 2 : 1;
                 for (let i = 0; i < numObstacles; i++) {
                     const y = Math.random() * (canvas.height - obstacleSize) + (i * obstacleSize * 1.5);
-                    obstaclePool.push({ x: canvas.width, y, width: obstacleSize, height: obstacleSize, dx: obstacleSpeed });
+                    obstaclePool.push({ x: canvas.width, y, width: obstacleSize, height: obstacleSize, dx: obstacleSpeed, dodged: false });
                 }
                 lastSpawnTimeRef.current = currentTime;
             }
@@ -283,6 +294,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                     }
                 });
             }
+			setStats(pendingStatsUpdate);						 
         };
 
         const gameLoop = (time: number) => {
@@ -297,10 +309,10 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             if (!gameOver) {
                 ship.vy = FLY_PARAMETERS.FLAP_VELOCITY;
                 setTelemetry((prev) => {
-                    if (prev.length >= 1000) return [...prev.slice(1), { event: 'flap', time: performance.now() }];
-                    return [...prev, { event: 'flap', time: performance.now() }];
+                    if (prev.length >= 1000) return [...prev.slice(1), { event: 'flap', time: performance.now(), data: { y: ship.y, vy: ship.vy } }];
+                    return [...prev, { event: 'flap', time: performance.now(), data: { y: ship.y, vy: ship.vy } }];
                 });
-                setStats((prev) => ({ ...prev, flaps: prev.flaps + 1 }));
+                pendingStatsUpdate = { ...pendingStatsUpdate, flaps: pendingStatsUpdate.flaps + 1 };
             }
         };
 
@@ -333,6 +345,20 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 obstaclesDodged: 0,
                 flapsPerSec: 0,
             });
+			pendingStatsUpdate = {
+                game: 'fly',
+                score: 0,
+                shots: 0,
+                kills: 0,
+                time: 0,
+                hitRate: 0,
+                jumps: 0,
+                obstaclesCleared: 0,
+                jumpsPerSec: 0,
+                flaps: 0,
+                obstaclesDodged: 0,
+                flapsPerSec: 0,
+            };
 
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('mousedown', handleMouseDown);

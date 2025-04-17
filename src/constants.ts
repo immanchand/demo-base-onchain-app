@@ -454,6 +454,7 @@ export const contractABI = [
 ] as const;
 export interface GameStats {
   game: string;
+  score: number;
   shots: number;
   kills: number;
   time: number;

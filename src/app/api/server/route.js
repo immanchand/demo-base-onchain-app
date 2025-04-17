@@ -182,14 +182,9 @@ export async function POST(request) {
               if (!frameEventsProcessed) {
                 computedScore = (stats.time / 1000) * 100;
               }
-
-
-              for (const event of telemetry) {
-                if (event.event === 'frame' && event.data?.deltaTime) {
-                  computedScore += event.data.deltaTime * 100;
-                }
-              }
               console.log('first computedScore', computedScore);
+
+              
               // Check score variance
               if (Number(score) > computedScore * 1.1) {
                 console.log('score ', Number(score));
@@ -198,7 +193,14 @@ export async function POST(request) {
                   status: 400,
                 });
               }
-
+              //remove later as repeated code
+              computedScore = 0;
+              for (const event of telemetry) {
+                if (event.event === 'frame' && event.data?.deltaTime) {
+                  computedScore += event.data.deltaTime * 100;
+                }
+              }
+              console.log('second computedScore', computedScore);
             }
             // Telemetry validation
             // Validate collision events
@@ -287,14 +289,6 @@ export async function POST(request) {
               }
             }
             
-            // Check score variance
-            if (Number(score) > computedScore * 1.1) {
-              console.log('score ', Number(score));
-              console.log('computedScore * 1.1', computedScore * 1.1);
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score ' + computedScore.toString() }), {
-                status: 400,
-              });
-            }
         }
         tx = await contract.endGame(BigInt(gameId), address, BigInt(score));
         receipt = await tx.wait();

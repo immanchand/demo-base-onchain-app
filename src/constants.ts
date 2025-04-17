@@ -15,10 +15,14 @@ export const TIME_VARIANCE_MS = 2000; // ±2000ms for gameDurationStore vs stats
 export const FPS_VARIANCE = 0.2; // Allow 20% FPS variance (e.g., 48–72 FPS for 60 FPS target)
 // Difficulty parameters
 export const FLY_PARAMETERS = {
+  SHIP_WIDTH: 40,
+  SHIP_HEIGHT: 40 * (3/4),
+  OBSTACLE_SIZE: 50,
   BASE_OBSTACLE_SPEED: -3, // Higher (e.g., -4) = faster obstacles, harder; Lower (e.g., -2) = easier
   MIN_SPAWN_INTERVAL: 300, // Lower (e.g., 200) = more frequent obstacles, harder; Higher (e.g., 500) = easier
   GRAVITY: 0.2, // Higher (e.g., 0.3) = faster fall, harder; Lower (e.g., 0.1) = easier
   FLAP_VELOCITY: -5, // Higher (e.g., -6) = stronger flaps, easier; Lower (e.g., -4) = harder
+  SCORE_PER_SECOND: 100
 };
 export const JUMP_PARAMETERS = {
   BASE_OBSTACLE_SPEED: -3, // Higher (e.g., -5) = faster obstacles, harder; Lower (e.g., -2) = easier

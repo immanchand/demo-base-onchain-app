@@ -64,6 +64,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
     const [telemetry, setTelemetry] = useState<TelemetryEvent[]>([]);
     const [stats, setStats] = useState<GameStats>({
         game: 'fly',
+        score: 0,
         shots: 0,
         kills: 0,
         time: 0,
@@ -232,13 +233,14 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 if (ship.x > canvas.width) {
                     ship.x = -SHIP_WIDTH;
                 }
-                setScore((prev) => prev + deltaTime * 1000);
+                setScore((prev) => prev + deltaTime * 100);
                 setTelemetry((prev) => {
                     if (prev.length >= 1000) return [...prev.slice(1), { event: 'frame', time: performance.now(), data: { deltaTime, difficulty: difficultyFactor } }];
                     return [...prev, { event: 'frame', time: performance.now(), data: { deltaTime, difficulty: difficultyFactor } }];
                 });
                 setStats((prev) => ({
                     ...prev,
+                    score: score,
                     time: performance.now() - startTimeRef.current,
                     flapsPerSec: prev.flaps / (prev.time / 1000 || 1),
                 }));
@@ -319,6 +321,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             setTelemetry([]);
             setStats({
                 game: 'fly',
+                score: 0,
                 shots: 0,
                 kills: 0,
                 time: 0,

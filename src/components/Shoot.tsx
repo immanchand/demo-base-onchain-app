@@ -77,6 +77,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
     const [telemetry, setTelemetry] = useState<TelemetryEvent[]>([]);
     const [stats, setStats] = useState<GameStats>({
         game: 'shoot',
+        score: 0,
         shots: 0,
         kills: 0,
         time: 0,
@@ -462,6 +463,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             setTelemetry([]);
             setStats({
                 game: 'shoot',
+                score: 0,
                 shots: 0,
                 kills: 0,
                 time: 0,
@@ -569,8 +571,8 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                 score={Math.floor(score).toString()}
                 highScore={existingHighScore.toString()}
                 onStatusChange={handleEndGameStatusChange}
-                telemetry={score >= 2000 ? telemetry : []}
-                stats={score >= 2000 ? stats : null}
+                telemetry={score >= 2 ? telemetry : []}
+                stats={score >= 2 ? stats : null}
             />
             {!gameStarted ? (
                 <div className="text-center text-primary-text font-mono">

@@ -117,22 +117,25 @@ export async function POST(request) {
             console.log('stats: ', stats);
 
             
-            // Check if server game duration is less than client game duration. With network latency, it should always be less.
-            console.log('gameDurationStore Duration: ', nowEnd - gameDurationStore.get(address));
-            console.log('stats.time Duration: ', stats.time);
+            // Check if server game duration is less than client game duration. With network latency, it should never be less.
+            // if less, indicates cheating on client side
             if(nowEnd - gameDurationStore.get(address) < stats.time) {
-              console.log('gameDurationStore Duration: ', nowEnd - gameDurationStore.get(address));
-              console.log('stats.time Duration: ', stats.time);
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: game duration is less than expected' }), {
+              console.log('GameDurationStore Duration Check failed.',
+                  ' Player: ', address,
+                  ' Game Id: ', gameId,
+                  ' Server Game Start: ', gameDurationStore.get(address),
+                  ' Server Game End: ', nowEnd,
+                  ' Server Game Duration: ', nowEnd - gameDurationStore.get(address),
+                  ' Client Game Duration: ', stats.time);
+              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: game duration is more than expected' }), {
                 status: 400,
               });
             }
-            console.log('gameDurationStore check passed');
-
+          
             // Telemetry validation
             for (const event of telemetry) {
               if (event.event === 'frame' && event.data?.deltaTime && event.data?.difficulty !== undefined) {
-                computedScore += event.data.deltaTime * 10 * (1 + event.data.difficulty);
+                computedScore += event.data.deltaTime * 100;
               }
             }
             console.log('computedScore', computedScore);

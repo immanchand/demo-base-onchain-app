@@ -1,7 +1,7 @@
 // src/app/api/server/route.js
 import { ethers } from 'ethers';
 import { getCsrfTokens } from 'src/lib/csrfStore';
-import { contractABI, CONTRACT_ADDRESS } from '../../../constants';
+import { contractABI, CONTRACT_ADDRESS, TELEMETRY_SCORE_THRESHOLD } from '../../../constants';
 
 const rateLimitStore = new Map();
 const gameDurationStore = new Map();
@@ -97,6 +97,7 @@ export async function POST(request) {
           const gameData = await contract.getGame(gameId);
           const contractHighScore = Number(gameData.highScore.toString());
           console.log('contractHighScore', contractHighScore);
+          // early check and return if score is less than contract high score
           if (Number(score) <= contractHighScore) {
             return new Response(
               JSON.stringify({ status: 'success', isHighScore: false, highScore: contractHighScore }),
@@ -104,10 +105,9 @@ export async function POST(request) {
             );
           }
           // Validate only if score >= 20000 and > contractHighScore
-          if (Number(score) >= 2) {
-            const SCORE_VARIANCE = Number(process.env.SCORE_VARIANCE);
-            let computedScore = 0;
-
+          if (Number(score) >= TELEMETRY_SCORE_THRESHOLD) {
+            
+            //make sure stats and telemetry are not empty
             if(!stats || !telemetry) {
               return new Response(JSON.stringify({ status: 'error', message: 'Missing telemetry or stats for high score validation' }), {
                 status: 400,
@@ -116,13 +116,13 @@ export async function POST(request) {
             console.log('telemetry: ', telemetry);
             console.log('stats: ', stats);
 
-            
             // Check if server game duration is less than client game duration. With network latency, it should never be less.
             // if less, indicates cheating on client side
             if(nowEnd - gameDurationStore.get(address) < stats.time) {
-              console.log('GameDurationStore Duration Check failed',
+              console.log('GameDurationStore Duration Check failed for',
                   ' Player: ', address,
                   ' Game Id: ', gameId,
+                  ' Game Name: ', stats.game,
                   ' Server Game Start: ', gameDurationStore.get(address),
                   ' Server Game End: ', nowEnd,
                   ' Server Game Duration: ', nowEnd - gameDurationStore.get(address),
@@ -136,11 +136,54 @@ export async function POST(request) {
             if (stats.game === 'fly' || stats.game === 'jump') {
               // Check if score is less than client side game duration with 1 seconds tolerance for start game
               if (score > (stats.time + 1000)/10) {
+                console.log('Duration and score check failed for',
+                  ' Player: ', address,
+                  ' Game Id: ', gameId,
+                  ' Game Name: ', stats.game,
+                  ' Client Score: ', score,
+                  ' Client Time Score Variance: ', (stats.time + 1000)/10);
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: score and game duration dont match' }), {
                   status: 400,
                 });
               }
+
               // telemetry computed score validation
+              let computedScore = 0;
+              let firstFrameTime = null;
+              let firstFrameScore = null;
+              let frameEventsProcessed = false;
+              for (const event of telemetry) {
+                if (event.event === 'frame' && event.data?.deltaTime && event.data?.score) {
+                  if (firstFrameTime === null) {
+                    firstFrameTime = event.time;
+                    firstFrameScore = event.data.score;
+                    // Estimate score at first frame
+                    const gameStartTime = firstFrameTime - stats.time;
+                    const elapsedTimeSeconds = (firstFrameTime - gameStartTime) / 1000;
+                    computedScore = elapsedTimeSeconds * 100;
+                    // Cross-check with reported score
+                    console.log('firstFrameScore for if if', firstFrameScore);
+                    console.log('computedScore in for if if', computedScore);
+                    console.log('firstFrameTime in for if if', firstFrameTime);
+                    console.log('gameStartTime in for if if', gameStartTime);
+                    console.log('elapsedTimeSeconds in for if if', elapsedTimeSeconds);
+                    if (Math.abs(computedScore - firstFrameScore) > computedScore * 0.1) {
+                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious first frame score' }), {
+                        status: 400,
+                      });
+                    }
+                  } else {
+                    computedScore += event.data.deltaTime * 100;
+                  }
+                  frameEventsProcessed = true;
+                }
+              }
+              // If no frame events, fall back to stats.time
+              if (!frameEventsProcessed) {
+                computedScore = (stats.time / 1000) * 100;
+              }
+
+
               for (const event of telemetry) {
                 if (event.event === 'frame' && event.data?.deltaTime) {
                   computedScore += event.data.deltaTime * 100;
@@ -202,6 +245,12 @@ export async function POST(request) {
               const spawnInterval = 2500 * (1 - stats.time / 90000) + 300;
               if (stats.obstaclesDodged > stats.time / spawnInterval) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: number of obstacles dodged' }), {
+                  status: 400,
+                });
+              }
+
+              if (stats.flapsPerSec < 1) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats: too few flaps per second' }), {
                   status: 400,
                 });
               }

@@ -396,7 +396,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             window.removeEventListener('mousedown', handleMouseDown);
             cancelAnimationFrame(animationFrameIdRef.current);
         };
-    }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnObstacle, score]);
+    }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnObstacle]);
 
     const startGame = useCallback(async () => {
         if (ticketCount > 0 && startGameRef.current) {

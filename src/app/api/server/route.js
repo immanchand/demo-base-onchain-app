@@ -4,6 +4,7 @@ import { getCsrfTokens } from 'src/lib/csrfStore';
 import { contractABI, CONTRACT_ADDRESS } from '../../../constants';
 
 const rateLimitStore = new Map();
+const gameDurationStore = new Map();
 const GAME_MASTER_PRIVATE_KEY = process.env.GAME_MASTER_PRIVATE_KEY;
 const PROVIDER_URL = process.env.API_URL;
 
@@ -102,52 +103,82 @@ export async function POST(request) {
               { status: 200 }
             );
           }
-          // Validate only if score >= 2000 and > contractHighScore
+          // Validate only if score >= 20000 and > contractHighScore
           if (Number(score) >= 2) {
             const SCORE_VARIANCE = Number(process.env.SCORE_VARIANCE);
             let computedScore = 0;
 
+            if(!stats || !telemetry) {
+              return new Response(JSON.stringify({ status: 'error', message: 'Missing telemetry or stats for high score validation' }), {
+                status: 400,
+              });
+            }
+            console.log('telemetry: ', telemetry);
+            console.log('stats: ', stats);
+
+            
+            // Check if server game duration is less than client game duration. With network latency, it should always be less.
+            console.log('gameDurationStore Duration: ', nowEnd - gameDurationStore.get(address));
+            console.log('stats.time Duration: ', stats.time);
+            if(nowEnd - gameDurationStore.get(address) < stats.time) {
+              console.log('gameDurationStore Duration: ', nowEnd - gameDurationStore.get(address));
+              console.log('stats.time Duration: ', stats.time);
+              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: game duration is less than expected' }), {
+                status: 400,
+              });
+            }
+            console.log('gameDurationStore check passed');
+
             // Telemetry validation
-            if (telemetry && telemetry.length > 0) {
-
-              console.log('telemetry: ', telemetry);
-
-              for (const event of telemetry) {
-                if (event.event === 'frame' && event.data?.deltaTime && event.data?.difficulty !== undefined) {
-                  computedScore += event.data.deltaTime * 10 * (1 + event.data.difficulty);
-                }
+            for (const event of telemetry) {
+              if (event.event === 'frame' && event.data?.deltaTime && event.data?.difficulty !== undefined) {
+                computedScore += event.data.deltaTime * 10 * (1 + event.data.difficulty);
               }
             }
+            console.log('computedScore', computedScore);
+            
             // Stats validation
-            if (stats) {
+            if (stats.game === 'fly') {
+              // Check if scocre is less than client side game duration with 1 seconds tolerance for start game
+              if (score > (stats.time + 1000)/10) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: score and game duration dont match' }), {
+                  status: 400,
+                });
+              }
 
-              console.log('stats: ', stats);
+              if (stats.flapsPerSec > 5 || stats.obstaclesDodged > stats.time / 1000) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {
+                  status: 400,
+                });
+              }
+            } else if (stats.game === 'shoot') {
+              const hitRate = stats.kills / (stats.shots || 1);
+              if (hitRate > 0.8 || stats.kills > stats.time / 1000 || Number(score) > stats.kills * 31) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {
+                  status: 400,
+                });
+              }
+              computedScore = stats.kills * 31; // Override telemetry for Shoot
+            } else if (stats.game === 'jump') {
+              // Check if scocre is less than client side game duration with 1 seconds tolerance for start game
+              if (score > (stats.time + 1000)/10) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: score and game duration dont match' }), {
+                  status: 400,
+                });
+              }
 
-              if (stats.game === 'fly') {
-                if (stats.flapsPerSec > 5 || stats.obstaclesDodged > stats.time / 1000) {
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {
-                    status: 400,
-                  });
-                }
-              } else if (stats.game === 'shoot') {
-                const hitRate = stats.kills / (stats.shots || 1);
-                if (hitRate > 0.8 || stats.kills > stats.time / 1000 || Number(score) > stats.kills * 31) {
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {
-                    status: 400,
-                  });
-                }
-                computedScore = stats.kills * 31; // Override telemetry for Shoot
-              } else if (stats.game === 'jump') {
-                if (stats.jumpsPerSec > 1 || stats.obstaclesCleared > stats.time / 10) {
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {
-                    status: 400,
-                  });
-                }
+              if (stats.jumpsPerSec > 1 || stats.obstaclesCleared > stats.time / 10) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {
+                  status: 400,
+                });
               }
             }
+            
             // Check score variance
-            if (Math.abs(computedScore - Number(score)) > Number(score) * SCORE_VARIANCE) {
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score' }), {
+            if (computedScore < Number(score) * 1.1) {
+              console.log('score *1.1', Number(score) * 1.1);
+              console.log('computedScore', computedScore);
+              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score '+computedScore.toString }), {
                 status: 400,
               });
             }
@@ -233,6 +264,7 @@ export async function POST(request) {
 
         tx = await contract.startGame(BigInt(gameId), playerAddress);
         receipt = await tx.wait();
+        gameDurationStore.set(address, Date.now());
         return new Response(
           JSON.stringify({ status: 'success', txHash: tx.hash }),
           { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }

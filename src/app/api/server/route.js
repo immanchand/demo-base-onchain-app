@@ -7,6 +7,7 @@ const rateLimitStore = new Map();
 const gameDurationStore = new Map();
 const GAME_MASTER_PRIVATE_KEY = process.env.GAME_MASTER_PRIVATE_KEY;
 const PROVIDER_URL = process.env.API_URL;
+const TIME_VARIANCE_MS = 1000; // 1 second time variance
 
 if (!GAME_MASTER_PRIVATE_KEY || !PROVIDER_URL) {
   throw new Error('Missing GAME_MASTER_PRIVATE_KEY or PROVIDER_URL in environment');
@@ -107,7 +108,7 @@ export async function POST(request) {
           // Validate only if score >= 20000 and > contractHighScore
           if (Number(score) >= TELEMETRY_SCORE_THRESHOLD) {
             
-            //make sure stats and telemetry are not empty
+            //make sure stats and telemetry are present
             if(!stats || !telemetry) {
               return new Response(JSON.stringify({ status: 'error', message: 'Missing telemetry or stats for high score validation' }), {
                 status: 400,
@@ -131,11 +132,46 @@ export async function POST(request) {
                 status: 400,
               });
             }
+            // all game check timestamp of last telemetry event collision
+            const endEvent = telemetry.find(e => e.event === 'collision');
+            const clientEndTime = endEvent.time;
+            const serverEndTime = nowEnd;
+            const serverDuration = serverEndTime - gameDurationStore.get(address);
+            const clientDuration = stats.time;
+            // Check if client end time is within 2 seconds of server end time
+            if (Math.abs(clientEndTime - nowEnd) > TIME_VARIANCE_MS*2) {
+              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious end time' }), { status: 400 });
+            }
+       
+            // all games common telemetry check for average fps frames per second
+            const fpsEvents = telemetry.filter(e => e.event === 'fps' && e.data?.fps);
+            if (fpsEvents.length > 0) {
+              const fpsValues = fpsEvents.map(e => e.data.fps);
+              const minFps = Math.min(...fpsValues);
+              const maxFps = Math.max(...fpsValues);
+              const avgFps = fpsValues.reduce((a, b) => a + b, 0) / fpsValues.length;
+              // Allow 40–72 FPS for mobile compatibility
+              if (minFps < 40 || maxFps > 72) {
+                return new Response(JSON.stringify({ status: 'error', message: 'FPS out of acceptable range' }), { status: 400 });
+              }
+              // Check for suspicious FPS variance (e.g., >20 FPS change)
+              if (maxFps - minFps > 10) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious FPS variance during game' }), { status: 400 });
+              }
+            }
+            for (const event of telemetry) {
+              if (event.event === 'fps' && event.data?.fps) {
+                if (event.data.fps < 60 * (1 - FPS_VARIANCE) || event.data.fps > 60 * (1 + FPS_VARIANCE)) {
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious FPS' }), { status: 400 });
+                }
+              }
+            }
+            
             
             // common duration and score checks for TIME based games
             if (stats.game === 'fly' || stats.game === 'jump') {
               // Check if score is less than client side game duration with 1 seconds tolerance for start game
-              if (score > (stats.time + 1000)/10) {
+              if (score > (stats.time + TIME_VARIANCE_MS)/10) {
                 console.log('Duration and score check failed for',
                   ' Player: ', address,
                   ' Game Id: ', gameId,
@@ -149,58 +185,75 @@ export async function POST(request) {
 
               // telemetry computed score validation
               let computedScore = 0;
-              let firstFrameTime = null;
-              let firstFrameScore = null;
-              let frameEventsProcessed = false;
-              for (const event of telemetry) {
-                if (event.event === 'frame' && event.data?.deltaTime && event.data?.score) {
-                  if (firstFrameTime === null) {
-                    firstFrameTime = event.time;
-                    firstFrameScore = event.data.score;
-                    // Estimate score at first frame
-                    const gameStartTime = firstFrameTime - stats.time;
-                    const elapsedTimeSeconds = (firstFrameTime - gameStartTime) / 1000;
-                    computedScore = elapsedTimeSeconds * 100;
-                    // Cross-check with reported score
-                    console.log('firstFrameScore for if if', firstFrameScore);
-                    console.log('computedScore in for if if', computedScore);
-                    console.log('firstFrameTime in for if if', firstFrameTime);
-                    console.log('gameStartTime in for if if', gameStartTime);
-                    console.log('elapsedTimeSeconds in for if if', elapsedTimeSeconds);
-                    if (Math.abs(computedScore - firstFrameScore) > computedScore * 0.1) {
-                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious first frame score' }), {
-                        status: 400,
-                      });
-                    }
-                  } else {
+              if (telemetry.length < TELEMETRY_LIMIT) {
+                // Simple sum for games with complete telemetry
+                for (const event of telemetry) {
+                  if (event.event === 'frame' && event.data?.deltaTime && event.data?.score) {
                     computedScore += event.data.deltaTime * 100;
                   }
-                  frameEventsProcessed = true;
+                }
+                console.log('first computedScore', computedScore);
+              } else {
+                // Estimate first frame score for games with truncated telemetry
+                let firstFrameTime = null;
+                let firstFrameScore = null;
+                let frameEventsProcessed = false;
+                for (const event of telemetry) {
+                  if (event.event === 'frame' && event.data?.deltaTime && event.data?.score) {
+                    if (firstFrameTime === null) {
+                      firstFrameTime = event.time;
+                      firstFrameScore = event.data.score;
+                      const gameStartTime = firstFrameTime - stats.time;
+                      const elapsedTimeSeconds = (firstFrameTime - gameStartTime) / 1000;
+                      computedScore = elapsedTimeSeconds * 100;
+                      if (Math.abs(computedScore - firstFrameScore) > computedScore * 0.1) {
+                        return new Response(JSON.stringify({ status: 'error', message: 'Suspicious first frame score' }), { status: 400 });
+                      }
+                    } else {
+                      computedScore += event.data.deltaTime * 100;
+                    }
+                    frameEventsProcessed = true;
+                  }
+                }
+                if (!frameEventsProcessed) {
+                  computedScore = (stats.time / 1000) * 100;
+                  console.log('second computedScore', computedScore);
                 }
               }
-              // If no frame events, fall back to stats.time
-              if (!frameEventsProcessed) {
-                computedScore = (stats.time / 1000) * 100;
-              }
-              console.log('first computedScore', computedScore);
-
-              
-              // Check score variance
+              console.log('computedScore', computedScore);
               if (Number(score) > computedScore * 1.1) {
-                console.log('score ', Number(score));
+                console.log('score', Number(score));
                 console.log('computedScore * 1.1', computedScore * 1.1);
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score: computed events and reported score dont match '  }), {
-                  status: 400,
-                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score: computed events and reported score don’t match' }), { status: 400 });
               }
               //remove later as repeated code
+              //******************* DELETE********* */
               computedScore = 0;
               for (const event of telemetry) {
                 if (event.event === 'frame' && event.data?.deltaTime) {
                   computedScore += event.data.deltaTime * 100;
                 }
               }
-              console.log('second computedScore', computedScore);
+              console.log('last new computedScore', computedScore);
+            }
+            //check between frame actions
+            // Check if frameId is in order and position is plausible
+            let lastFrame = null;
+            for (const event of telemetry) {
+              if (event.event === 'frame' && event.frameId && event.data?.y && event.data?.vy && event.data?.deltaTime) {
+                if (lastFrame) {
+                  const deltaTime = event.data.deltaTime; // Already in seconds
+                  const expectedY = lastFrame.data.y + lastFrame.data.vy * deltaTime + 0.5 * 0.2 * deltaTime * deltaTime; // GRAVITY = 0.2
+                  if (Math.abs(event.data.y - expectedY) > 10) { // Allow 10px variance for floating-point errors
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
+                  }
+                  // Check frameId order
+                  if (event.frameId <= lastFrame.frameId) {
+                    return new Response(JSON.stringify({ status: 'error', message: 'Out-of-order frame IDs' }), { status: 400 });
+                  }
+                }
+                lastFrame = event;
+              }
             }
             // Telemetry validation
             // Validate collision events
@@ -215,6 +268,13 @@ export async function POST(request) {
             // FLY GAME
             if (stats.game === 'fly') {
 							
+              // validate stats.flapsPerSec matches the number of flap and keydown events
+              const flapEvents = telemetry.filter(e => e.event === 'flap').length;
+              const keydownEvents = telemetry.filter(e => e.event === 'keydown').length;
+              const expectedFlapsPerSec = flapEvents / (stats.time / 1000 || 1);
+              if (Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.5 || flapEvents !== keydownEvents) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious input patterns' }), { status: 400 });
+              }
               // Validate flap plausibility
               let lastFlapTime = null;
               let lastY = null;
@@ -245,7 +305,7 @@ export async function POST(request) {
               }
              
               const spawnInterval = 2500 * (1 - stats.time / 90000) + 300;
-              if (stats.obstaclesDodged > stats.time / spawnInterval) {
+              if (stats.obstaclesCleared > stats.time / spawnInterval) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: number of obstacles dodged' }), {
                   status: 400,
                 });

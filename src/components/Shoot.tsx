@@ -86,8 +86,9 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         obstaclesCleared: 0,
         jumpsPerSec: 0,
         flaps: 0,
-        obstaclesDodged: 0,
         flapsPerSec: 0,
+        maxObstacles: 0,
+        inputsPerSec: 0,
     });
 
     // Preload images
@@ -472,8 +473,9 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                 obstaclesCleared: 0,
                 jumpsPerSec: 0,
                 flaps: 0,
-                obstaclesDodged: 0,
                 flapsPerSec: 0,
+                maxObstacles: 0,
+                inputsPerSec: 0,
             });
 
             window.addEventListener('mousemove', handleMouseMove);

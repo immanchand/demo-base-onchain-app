@@ -38,7 +38,7 @@ export async function POST(request) {
   const csrfTokens = getCsrfTokens();
 
   if (!csrfToken || !sessionId || csrfTokens.get(sessionId) !== csrfToken) {
-    return new Response(JSON.stringify({ status: 'error', message: 'Invalid or missing CSRF token. Press f5 to refresh.' }), {
+    return new Response(JSON.stringify({ status: 'error', message: 'Invalid or missing CSRF token. Press f5 to refresh' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
     });
@@ -120,7 +120,7 @@ export async function POST(request) {
             // Check if server game duration is less than client game duration. With network latency, it should never be less.
             // if less, indicates cheating on client side
             if(nowEnd - gameDurationStore.get(address) < stats.time) {
-              console.log('GameDurationStore Duration Check failed.',
+              console.log('GameDurationStore Duration Check failed',
                   ' Player: ', address,
                   ' Game Id: ', gameId,
                   ' Server Game Start: ', gameDurationStore.get(address),
@@ -131,29 +131,88 @@ export async function POST(request) {
                 status: 400,
               });
             }
-          
-            // Telemetry validation
-            for (const event of telemetry) {
-              if (event.event === 'frame' && event.data?.deltaTime) {
-                computedScore += event.data.deltaTime * 100;
-              }
-            }
-            console.log('computedScore', computedScore);
             
-            // Stats validation
-            if (stats.game === 'fly') {
-              // Check if scocre is less than client side game duration with 1 seconds tolerance for start game
+            // common duration and score checks for TIME based games
+            if (stats.game === 'fly' || stats.game === 'jump') {
+              // Check if score is less than client side game duration with 1 seconds tolerance for start game
               if (score > (stats.time + 1000)/10) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: score and game duration dont match' }), {
                   status: 400,
                 });
               }
-
-              if (stats.flapsPerSec > 5 || stats.obstaclesDodged > stats.time / 1000) {
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {
+              // telemetry computed score validation
+              for (const event of telemetry) {
+                if (event.event === 'frame' && event.data?.deltaTime) {
+                  computedScore += event.data.deltaTime * 100;
+                }
+              }
+              console.log('first computedScore', computedScore);
+              // Check score variance
+              if (Number(score) > computedScore * 1.1) {
+                console.log('score ', Number(score));
+                console.log('computedScore * 1.1', computedScore * 1.1);
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score: computed events and reported score dont match '  }), {
                   status: 400,
                 });
               }
+
+            }
+            // Telemetry validation
+            // Validate collision events
+            const collisionEvents = telemetry.filter(e => e.event === 'collision');
+            if (collisionEvents.length > 1) {
+              return new Response(JSON.stringify({ status: 'error', message: 'Multiple collisions detected' }), {
+                status: 400,
+              });
+            }
+
+			      // Stats validation
+            // FLY GAME
+            if (stats.game === 'fly') {
+							
+              // Validate flap plausibility
+              let lastFlapTime = null;
+              let lastY = null;
+              for (const event of telemetry) {
+                if (event.event === 'flap' && event.data?.y && event.data?.vy) {
+                  if (lastFlapTime && lastY) {
+                    const timeDiff = (event.time - lastFlapTime) / 1000;
+                    const expectedY = lastY + event.data.vy * timeDiff + 0.5 * 0.2 * timeDiff * timeDiff; // GRAVITY = 0.2
+                    if (Math.abs(event.data.y - expectedY) > 10) {
+                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: flap position' }), {
+                        status: 400,
+                      });
+                    }
+                  }
+                  lastFlapTime = event.time;
+                  lastY = event.data.y;
+                }
+              }
+
+              // Validate obstacle spawns
+              const spawnEvents = telemetry.filter(e => e.event === 'spawn');
+              const minSpawnInterval = 300;
+              const expectedSpawns = stats.time / minSpawnInterval;
+              if (spawnEvents.length > expectedSpawns) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: Too many obstacle spawns' }), {
+                  status: 400,
+                });
+              }
+             
+              const spawnInterval = 2500 * (1 - stats.time / 90000) + 300;
+              if (stats.obstaclesDodged > stats.time / spawnInterval) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: number of obstacles dodged' }), {
+                  status: 400,
+                });
+              }
+
+              if (stats.flapsPerSec > 5) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats: excessive flaps per second' }), {
+                  status: 400,
+                });
+              }
+
+              // SHOOT GAME
             } else if (stats.game === 'shoot') {
               const hitRate = stats.kills / (stats.shots || 1);
               if (hitRate > 0.8 || stats.kills > stats.time / 1000 || Number(score) > stats.kills * 31) {
@@ -162,8 +221,10 @@ export async function POST(request) {
                 });
               }
               computedScore = stats.kills * 31; // Override telemetry for Shoot
+
+            // JUMP GAME
             } else if (stats.game === 'jump') {
-              // Check if scocre is less than client side game duration with 1 seconds tolerance for start game
+              // Check if score is less than client side game duration with 1 seconds tolerance for start game
               if (score > (stats.time + 1000)/10) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: score and game duration dont match' }), {
                   status: 400,
@@ -181,7 +242,7 @@ export async function POST(request) {
             if (Number(score) > computedScore * 1.1) {
               console.log('score ', Number(score));
               console.log('computedScore * 1.1', computedScore * 1.1);
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score '+computedScore.toString }), {
+              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score ' + computedScore.toString() }), {
                 status: 400,
               });
             }
@@ -220,7 +281,7 @@ export async function POST(request) {
             { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
           );
         }
-        //const { recaptchaToken } = body;
+        
         try {
           const recaptchaResponse = await fetch(
             `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`
@@ -228,7 +289,7 @@ export async function POST(request) {
           const recaptchaData = await recaptchaResponse.json();
           const recaptchaThreshold = Number(process.env.RECAPTCHA_THRESHOLD) || 0.4;
           if (!recaptchaData.success || recaptchaData.score < recaptchaThreshold) {
-            return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA failed. Move mouse around and try again.' }), {
+            return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA failed. Move mouse around and try again' }), {
               status: 403,
             });
           }

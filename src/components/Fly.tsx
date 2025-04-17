@@ -4,7 +4,7 @@ import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
-import { GameStats, Entity, SCORE_MULTIPLIER_TIME, FLY_PARAMETERS } from 'src/constants';
+import { GameStats, Entity, FLY_PARAMETERS } from 'src/constants';
 import { useAccount } from 'wagmi';
 import LoginButton from './LoginButton';
 
@@ -52,7 +52,6 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
     const animationFrameIdRef = useRef<number>(0);
     const lastSpawnTimeRef = useRef<number>(0);
     const startTimeRef = useRef<number>(0);
-    const lastTimeRef = useRef<number>(0);
     const { ticketCount } = useTicketContext();
     const startGameRef = useRef<{ startGame: () => Promise<void> }>(null);
     const endGameRef = useRef<{ endGame: () => Promise<void> }>(null);
@@ -211,7 +210,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         const update = (deltaTime: number) => {
             const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
             const difficultyFactor = Math.min(elapsedTime / 90, 1);
-            const spawnInterval = Math.max(FLY_PARAMETERS.MIN_SPAWN_INTERVAL, 2500 / (1 + difficultyFactor));
+            const spawnInterval = 2500 * (1 - difficultyFactor) + MIN_SPAWN_INTERVAL;
             const obstacleSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
             const clusterChance = difficultyFactor * 0.3;
             const obstacleSize = OBSTACLE_SIZE * (1 + difficultyFactor * 0.1);
@@ -233,7 +232,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 if (ship.x > canvas.width) {
                     ship.x = -SHIP_WIDTH;
                 }
-                setScore((prev) => prev + deltaTime * SCORE_MULTIPLIER_TIME);
+                setScore((prev) => prev + deltaTime);
                 setTelemetry((prev) => {
                     if (prev.length >= 1000) return [...prev.slice(1), { event: 'frame', time: performance.now(), data: { deltaTime, difficulty: difficultyFactor } }];
                     return [...prev, { event: 'frame', time: performance.now(), data: { deltaTime, difficulty: difficultyFactor } }];

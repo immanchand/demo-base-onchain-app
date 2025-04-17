@@ -134,7 +134,7 @@ export async function POST(request) {
           
             // Telemetry validation
             for (const event of telemetry) {
-              if (event.event === 'frame' && event.data?.deltaTime && event.data?.difficulty !== undefined) {
+              if (event.event === 'frame' && event.data?.deltaTime) {
                 computedScore += event.data.deltaTime * 100;
               }
             }
@@ -178,9 +178,9 @@ export async function POST(request) {
             }
             
             // Check score variance
-            if (computedScore < Number(score) * 1.1) {
-              console.log('score *1.1', Number(score) * 1.1);
-              console.log('computedScore', computedScore);
+            if (Number(score) > computedScore * 1.1) {
+              console.log('score ', Number(score));
+              console.log('computedScore * 1.1', computedScore * 1.1);
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score '+computedScore.toString }), {
                 status: 400,
               });

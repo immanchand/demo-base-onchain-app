@@ -117,31 +117,28 @@ export async function POST(request) {
             console.log('telemetry: ', telemetry);
             console.log('stats: ', stats);
 
-            // Check if server game duration is less than client game duration. With network latency, it should never be less.
-            // if less, indicates cheating on client side
-            if(nowEnd - gameDurationStore.get(address) < stats.time) {
-              console.log('GameDurationStore Duration Check failed for',
-                  ' Player: ', address,
-                  ' Game Id: ', gameId,
-                  ' Game Name: ', stats.game,
-                  ' Server Game Start: ', gameDurationStore.get(address),
-                  ' Server Game End: ', nowEnd,
-                  ' Server Game Duration: ', nowEnd - gameDurationStore.get(address),
-                  ' Client Game Duration: ', stats.time);
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: game duration is more than expected' }), {
+            // All game check timestamp of last telemetry event collision
+            const endEvent = telemetry.find(e => e.event === 'collision');
+            if (!endEvent) {
+              console.log('No collision event found for game end');
+              return new Response(JSON.stringify({ status: 'error', message: 'Missing collision event telemetry' }), {
                 status: 400,
               });
             }
-            // all game check timestamp of last telemetry event collision
-            const endEvent = telemetry.find(e => e.event === 'collision');
-            const clientEndTime = endEvent.time;
-            console.log('clientEndTime', clientEndTime);
-            console.log('nowEnd', nowEnd);
-            // Check if client end time is within 2 seconds of server end time
-            if (Math.abs(clientEndTime - nowEnd) > TIME_VARIANCE_MS*2) {
-              console.log('clientEndTime', clientEndTime);
-              console.log('nowEnd', nowEnd);
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious end time' }), { status: 400 });
+            // All gamess Check if server game duration is less than client game duration. With network latency, it should never be less.
+            // if less, indicates cheating on client side
+            if (nowEnd - gameDurationStore.get(address) < stats.time) {
+                console.log('GameDurationStore Duration Check failed for',
+                    ' Player: ', address,
+                    ' Game Id: ', gameId,
+                    ' Game Name: ', stats.game,
+                    ' Server Game Start: ', gameDurationStore.get(address),
+                    ' Server Game End: ', nowEnd,
+                    ' Server Game Duration: ', nowEnd - gameDurationStore.get(address),
+                    ' Client Game Duration: ', stats.time);
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: game duration is more than expected' }), {
+                    status: 400,
+                });
             }
        
             // all games common telemetry check for average fps frames per second
@@ -159,15 +156,7 @@ export async function POST(request) {
               if (maxFps - minFps > 10) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious FPS variance during game' }), { status: 400 });
               }
-            }
-            for (const event of telemetry) {
-              if (event.event === 'fps' && event.data?.fps) {
-                if (event.data.fps < 60 * (1 - FPS_VARIANCE) || event.data.fps > 60 * (1 + FPS_VARIANCE)) {
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious FPS' }), { status: 400 });
-                }
-              }
-            }
-            
+            }          
             
             // common duration and score checks for TIME based games
             if (stats.game === 'fly' || stats.game === 'jump') {
@@ -271,10 +260,9 @@ export async function POST(request) {
 							
               // validate stats.flapsPerSec matches the number of flap and keydown events
               const flapEvents = telemetry.filter(e => e.event === 'flap').length;
-              const keydownEvents = telemetry.filter(e => e.event === 'keydown').length;
               const expectedFlapsPerSec = flapEvents / (stats.time / 1000 || 1);
-              if (Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.5 || flapEvents !== keydownEvents) {
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious input patterns' }), { status: 400 });
+              if (Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.5) {
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious input patterns' }), { status: 400 });
               }
               // Validate flap plausibility
               let lastFlapTime = null;
@@ -305,11 +293,9 @@ export async function POST(request) {
                 });
               }
              
-              const spawnInterval = 2500 * (1 - stats.time / 90000) + 300;
+              const spawnInterval = 2500 * (1 - Math.min(stats.time / 90000, 1)) + 300;
               if (stats.obstaclesCleared > stats.time / spawnInterval) {
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: number of obstacles dodged' }), {
-                  status: 400,
-                });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: number of obstacles dodged' }), { status: 400 });
               }
 
               if (stats.flapsPerSec < 1) {

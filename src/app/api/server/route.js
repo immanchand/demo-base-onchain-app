@@ -135,11 +135,12 @@ export async function POST(request) {
             // all game check timestamp of last telemetry event collision
             const endEvent = telemetry.find(e => e.event === 'collision');
             const clientEndTime = endEvent.time;
-            const serverEndTime = nowEnd;
-            const serverDuration = serverEndTime - gameDurationStore.get(address);
-            const clientDuration = stats.time;
+            console.log('clientEndTime', clientEndTime);
+            console.log('nowEnd', nowEnd);
             // Check if client end time is within 2 seconds of server end time
             if (Math.abs(clientEndTime - nowEnd) > TIME_VARIANCE_MS*2) {
+              console.log('clientEndTime', clientEndTime);
+              console.log('nowEnd', nowEnd);
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious end time' }), { status: 400 });
             }
        

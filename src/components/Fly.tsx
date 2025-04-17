@@ -232,7 +232,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 if (ship.x > canvas.width) {
                     ship.x = -SHIP_WIDTH;
                 }
-                setScore((prev) => prev + deltaTime);
+                setScore((prev) => prev + deltaTime * 1000);
                 setTelemetry((prev) => {
                     if (prev.length >= 1000) return [...prev.slice(1), { event: 'frame', time: performance.now(), data: { deltaTime, difficulty: difficultyFactor } }];
                     return [...prev, { event: 'frame', time: performance.now(), data: { deltaTime, difficulty: difficultyFactor } }];

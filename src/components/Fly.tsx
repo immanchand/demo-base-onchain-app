@@ -4,7 +4,7 @@ import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
-import { GameStats, Entity, FLY_PARAMETERS } from 'src/constants';
+import { GameStats, Entity, FLY_PARAMETERS, TELEMETRY_LIMIT, TELEMETRY_SCORE_THRESHOLD } from 'src/constants';
 import { useAccount } from 'wagmi';
 import LoginButton from './LoginButton';
 
@@ -22,7 +22,7 @@ interface Obstacle extends Entity {
 interface TelemetryEvent {
     event: 'flap' | 'spawn' | 'collision' | 'frame';
     time: number;
-    data?: { deltaTime?: number; difficulty?: number; y?: number; speed?: number };
+    data?: { deltaTime?: number; difficulty?: number; y?: number; speed?: number; score?: number };
 }
 
 type EnemyType = 'alien' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
@@ -131,7 +131,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         const randomFactor = Math.pow(Math.random(), 2);
         const y = randomFactor * (canvas.height - FLY_PARAMETERS.OBSTACLE_SIZE);
         setTelemetry((prev) => {
-            if (prev.length >= 1000) return [...prev.slice(1), { event: 'spawn', time: performance.now(), data: { y, speed } }];
+            if (prev.length >= TELEMETRY_LIMIT) return [...prev.slice(1), { event: 'spawn', time: performance.now(), data: { y, speed } }];
             return [...prev, { event: 'spawn', time: performance.now(), data: { y, speed } }];
         });
         return {
@@ -230,7 +230,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 if (ship.y > canvas.height - FLY_PARAMETERS.SHIP_HEIGHT) {
                     setGameOver(true);
                     setTelemetry((prev) => {
-                        if (prev.length >= 1000) return [...prev.slice(1), { event: 'collision', time: performance.now() }];
+                        if (prev.length >= TELEMETRY_LIMIT) return [...prev.slice(1), { event: 'collision', time: performance.now() }];
                         return [...prev, { event: 'collision', time: performance.now() }];
                     });
                 }
@@ -241,8 +241,8 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 				frameCount++;
                 if (frameCount % 10 === 0) {
                     setTelemetry((prev) => {
-                        if (prev.length >= 1000) return [...prev.slice(1), { event: 'frame', time: performance.now(), data: { deltaTime: deltaTime * 10, difficulty: difficultyFactor } }];
-                        return [...prev, { event: 'frame', time: performance.now(), data: { deltaTime: deltaTime * 10, difficulty: difficultyFactor } }];
+                        if (prev.length >= TELEMETRY_LIMIT) return [...prev.slice(1), { event: 'frame', time: performance.now(), data: { deltaTime: deltaTime * 10, difficulty: difficultyFactor } }];
+                        return [...prev, { event: 'frame', time: performance.now(), data: { deltaTime: deltaTime * 10, difficulty: difficultyFactor, score } }];
                     });
                 }
                 pendingStatsUpdate = {
@@ -288,7 +288,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                     if (distance < (FLY_PARAMETERS.SHIP_WIDTH + obstacleSize) / 2) {
                         setGameOver(true);
                         setTelemetry((prev) => {
-                            if (prev.length >= 1000) return [...prev.slice(1), { event: 'collision', time: performance.now() }];
+                            if (prev.length >= TELEMETRY_LIMIT) return [...prev.slice(1), { event: 'collision', time: performance.now() }];
                             return [...prev, { event: 'collision', time: performance.now() }];
                         });
                     }
@@ -309,7 +309,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             if (!gameOver) {
                 ship.vy = FLY_PARAMETERS.FLAP_VELOCITY;
                 setTelemetry((prev) => {
-                    if (prev.length >= 1000) return [...prev.slice(1), { event: 'flap', time: performance.now(), data: { y: ship.y, vy: ship.vy } }];
+                    if (prev.length >= TELEMETRY_LIMIT) return [...prev.slice(1), { event: 'flap', time: performance.now(), data: { y: ship.y, vy: ship.vy } }];
                     return [...prev, { event: 'flap', time: performance.now(), data: { y: ship.y, vy: ship.vy } }];
                 });
                 pendingStatsUpdate = { ...pendingStatsUpdate, flaps: pendingStatsUpdate.flaps + 1 };
@@ -372,7 +372,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             window.removeEventListener('mousedown', handleMouseDown);
             cancelAnimationFrame(animationFrameIdRef.current);
         };
-    }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnObstacle]);
+    }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnObstacle, score]);
 
     const startGame = useCallback(async () => {
         if (ticketCount > 0 && startGameRef.current) {
@@ -453,8 +453,8 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 score={Math.floor(score).toString()}
                 highScore={existingHighScore.toString()}
                 onStatusChange={handleEndGameStatusChange}
-                telemetry={score >= 2 ? telemetry : []}
-                stats={score >= 2 ? stats : null}
+                telemetry={score >= TELEMETRY_SCORE_THRESHOLD && score > existingHighScore ? telemetry : []}
+                stats={score >= TELEMETRY_SCORE_THRESHOLD && score > existingHighScore ? stats : null}
             />
             {!gameStarted ? (
                 <div className="text-center text-primary-text font-mono">

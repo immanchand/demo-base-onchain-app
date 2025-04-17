@@ -2,26 +2,14 @@
 import { ethers } from 'ethers';
 import { getCsrfTokens } from 'src/lib/csrfStore';
 import { contractABI, CONTRACT_ADDRESS } from '../../../constants';
-import {
-  SCORE_MULTIPLIER_TIME,
-  SCORE_MULTIPLIER_SHOOT,
-  MAX_FLAPS_PER_SEC,
-  MAX_JUMPS_PER_SEC,
-  MAX_HIT_RATE,
-  MAX_KILLS_PER_SEC,
-  TIME_VARIANCE_MS,
-  FPS_VARIANCE,
-} from '../../../constants';
 
 const rateLimitStore = new Map();
-const gameDurationStore = new Map();
 const GAME_MASTER_PRIVATE_KEY = process.env.GAME_MASTER_PRIVATE_KEY;
 const PROVIDER_URL = process.env.API_URL;
 
 if (!GAME_MASTER_PRIVATE_KEY || !PROVIDER_URL) {
   throw new Error('Missing GAME_MASTER_PRIVATE_KEY or PROVIDER_URL in environment');
-  }
-
+}
 
 const provider = new ethers.JsonRpcProvider(PROVIDER_URL);
 const wallet = new ethers.Wallet(GAME_MASTER_PRIVATE_KEY, provider);
@@ -85,206 +73,182 @@ export async function POST(request) {
           { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
         );
       
-        case 'end-game':
-          if (!gameId || !address || !score) {	  
-            return new Response(
-              JSON.stringify({ status: 'error', message: 'Missing gameId, address, or score' }),
-              { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
-            );
-          }
-          const nowEnd = Date.now();
-          const lastCallEnd = rateLimitStore.get(`${sessionId}:end`);
-          const rateLimitSeconds = Number(process.env.ENDGAME_RATE_LIMIT_SECONDS) || 30;
-          if (lastCallEnd && nowEnd - lastCallEnd < rateLimitSeconds * 1000) {
-            return new Response(
-              JSON.stringify({ status: 'error', message: `Rate limit exceeded. Try again in a few seconds.` }),
-              { status: 429 }
-            );
-          }
-          rateLimitStore.set(`${sessionId}:end`, nowEnd);
-          if (stats && stats.game) {
-            try {
-              console.log(stats.game, gameId, address, score, telemetry, stats);
-            } catch (error) {
-              console.error(`Failed to log game data: `, error);
-            }
-          }
-          
-          try {
-            const gameData = await contract.getGame(gameId);
-            const contractHighScore = Number(gameData.highScore.toString());
-            console.log('contractHighScore', contractHighScore);
-            if (Number(score) <= contractHighScore) {
-              return new Response(
-                JSON.stringify({ status: 'success', isHighScore: false, highScore: contractHighScore }),
-                { status: 200 }
-              );
-            }
-            if (Number(score) >= 2) {
-              const startTime = gameDurationStore.get(address);
-              if (!startTime) {
-                return new Response(JSON.stringify({ status: 'error', message: 'No start time recorded' }), { status: 400 });
-              }
-              const serverDurationMs = nowEnd - startTime;
-              
-              if (stats && (stats.game === 'fly' || stats.game === 'jump')) {
-                const expectedScore = serverDurationMs;
-                if (Math.abs(Number(score) - expectedScore) > TIME_VARIANCE_MS) {
-                  return new Response(JSON.stringify({ status: 'error', message: 'Score does not match game duration' }), { status: 400 });
-                }
-                if (Math.abs(stats.time - serverDurationMs) > TIME_VARIANCE_MS) {
-                  return new Response(JSON.stringify({ status: 'error', message: 'Stats time does not match server duration' }), { status: 400 });
-                }
-              }
+      case 'end-game':
+        if (!gameId || !address || !score) {
+          return new Response(
+            JSON.stringify({ status: 'error', message: 'Missing gameId or address or score' }),
+            { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
+          );
+        }
+        const nowEnd = Date.now();
+        const lastCallEnd = rateLimitStore.get(`${sessionId}:end`);
+        const rateLimitSeconds = Number(process.env.ENDGAME_RATE_LIMIT_SECONDS) || 30;
+        if (lastCallEnd && nowEnd - lastCallEnd < rateLimitSeconds * 1000) {
+          return new Response(
+            JSON.stringify({ status: 'error', message: `Rate limit exceeded. Try again in a few seconds.` }),
+            { status: 429 }
+          );
+        }
+        rateLimitStore.set(`${sessionId}:end`, nowEnd);
 
-              if (stats) {
-                if (stats.game === 'fly') {
-                  if (stats.flapsPerSec > MAX_FLAPS_PER_SEC || stats.obstaclesDodged > stats.time / 1000 * 3) {
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Fly stats' }), { status: 400 });
-                  }
-                } else if (stats.game === 'jump') {
-                  if (stats.jumpsPerSec > MAX_JUMPS_PER_SEC || stats.obstaclesCleared > stats.time / 1000) {
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Jump stats' }), { status: 400 });
-                  }
-                } else if (stats.game === 'shoot') {
-                  const hitRate = stats.kills / (stats.shots || 1);
-                  if (
-                    hitRate > MAX_HIT_RATE ||
-                    stats.kills > (stats.time / 1000) * MAX_KILLS_PER_SEC ||
-                    Number(score) > stats.kills * SCORE_MULTIPLIER_SHOOT
-                  ) {
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Shoot stats' }), { status: 400 });
-                  }
-                }
-              }
-
-              if (telemetry && telemetry.length > 0) {
-                if (stats && stats.game === 'fly') {
-                  const flapCount = telemetry.filter((e) => e.event === 'flap').length;
-                  if (Math.abs(stats.flaps - flapCount) > 5) {
-                    return new Response(JSON.stringify({ status: 'error', message: 'Flap count mismatch' }), { status: 400 });
-                  }
-                  const frameCount = telemetry.filter((e) => e.event === 'frame').length;
-                  const expectedFrames = (stats.time / 1000) * 60;
-                  if (frameCount < expectedFrames * (1 - FPS_VARIANCE) || frameCount > expectedFrames * (1 + FPS_VARIANCE)) {
-                    return new Response(JSON.stringify({ status: 'error', message: 'Frame count suspicious' }), { status: 400 });
-                  }
-                } else if (stats && stats.game === 'jump') {
-                  const jumpCount = telemetry.filter((e) => e.event === 'jump').length;
-                  if (Math.abs(stats.jumps - jumpCount) > 5) {
-                    return new Response(JSON.stringify({ status: 'error', message: 'Jump count mismatch' }), { status: 400 });
-                  }
-                  const frameCount = telemetry.filter((e) => e.event === 'frame').length;
-                  const expectedFrames = (stats.time / 1000) * 60;
-                  if (frameCount < expectedFrames * (1 - FPS_VARIANCE) || frameCount > expectedFrames * (1 + FPS_VARIANCE)) {
-                    return new Response(JSON.stringify({ status: 'error', message: 'Frame count suspicious' }), { status: 400 });
-                  }
-                } else if (stats && stats.game === 'shoot') {
-                  const killCount = telemetry.filter((e) => e.event === 'kill').length;
-                  if (Math.abs(stats.kills - killCount) > 2) {
-                    return new Response(JSON.stringify({ status: 'error', message: 'Kill count mismatch' }), { status: 400 });
-                  }
-                }
-              }
-            }
-            tx = await contract.endGame(BigInt(gameId), address, BigInt(score));
-            receipt = await tx.wait();
-            let isHighScore = false;
-            try {
-              isHighScore = receipt.logs[1].args[3]? true : false;
-            } catch (error) {
-              isHighScore = false;
-            }
-                    
+        try {
+          // Fetch current highScore from contract
+          const gameData = await contract.getGame(gameId);
+          const contractHighScore = Number(gameData.highScore.toString());
+          console.log('contractHighScore', contractHighScore);
+          if (Number(score) <= contractHighScore) {
             return new Response(
-              JSON.stringify({
-                status: 'success',
-                txHash: receipt.hash,
-                isHighScore,
-                highScore: isHighScore ? score : contractHighScore,
-              }),
+              JSON.stringify({ status: 'success', isHighScore: false, highScore: contractHighScore }),
               { status: 200 }
             );
-          } catch (error) {
-            console.error('End game error:', error);
-            return new Response(JSON.stringify({ status: 'error', message: error.message || 'Failed to end game' }), {
-              status: 500,
-            });
           }
+          // Validate only if score >= 2000 and > contractHighScore
+          if (Number(score) >= 2) {
+            const SCORE_VARIANCE = Number(process.env.SCORE_VARIANCE);
+            let computedScore = 0;
 
-        case 'start-game':
-          if (!gameId) {
-            return new Response(
-              JSON.stringify({ status: 'error', message: 'Missing gameId' }),
-              { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
-            );
-          }
-          if (!address) {
-            return new Response(
-              JSON.stringify({ status: 'error', message: 'Missing player address' }),
-              { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
-            );
-          }
-          try {
-            const recaptchaResponse = await fetch(
-              `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`
-            );
-            const recaptchaData = await recaptchaResponse.json();
-            const recaptchaThreshold = Number(process.env.RECAPTCHA_THRESHOLD) || 0.4;
-            if (!recaptchaData.success || recaptchaData.score < recaptchaThreshold) {
-              return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA verification failed' }), {
-                status: 403,
+            // Telemetry validation
+            if (telemetry && telemetry.length > 0) {
+
+              console.log('telemetry: ', telemetry);
+
+              for (const event of telemetry) {
+                if (event.event === 'frame' && event.data?.deltaTime && event.data?.difficulty !== undefined) {
+                  computedScore += event.data.deltaTime * 10 * (1 + event.data.difficulty);
+                }
+              }
+            }
+            // Stats validation
+            if (stats) {
+
+              console.log('stats: ', stats);
+
+              if (stats.game === 'fly') {
+                if (stats.flapsPerSec > 5 || stats.obstaclesDodged > stats.time / 1000) {
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {
+                    status: 400,
+                  });
+                }
+              } else if (stats.game === 'shoot') {
+                const hitRate = stats.kills / (stats.shots || 1);
+                if (hitRate > 0.8 || stats.kills > stats.time / 1000 || Number(score) > stats.kills * 31) {
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {
+                    status: 400,
+                  });
+                }
+                computedScore = stats.kills * 31; // Override telemetry for Shoot
+              } else if (stats.game === 'jump') {
+                if (stats.jumpsPerSec > 1 || stats.obstaclesCleared > stats.time / 10) {
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {
+                    status: 400,
+                  });
+                }
+              }
+            }
+            // Check score variance
+            if (Math.abs(computedScore - Number(score)) > Number(score) * SCORE_VARIANCE) {
+              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score' }), {
+                status: 400,
               });
             }
-          } catch (error) {
-            console.error('reCAPTCHA error:', error);
-            return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA verification error' }), {
-              status: 500,
+        }
+        tx = await contract.endGame(BigInt(gameId), address, BigInt(score));
+        receipt = await tx.wait();
+        let isHighScore = false;
+        try {
+          isHighScore = receipt.logs[1].args[3]? true : false;
+          // code after new contract deployment is:
+          // isHighScore = receipt.logs[0].args[3];
+        } catch (error) {
+          isHighScore = false;
+        }
+                
+        return new Response(
+          JSON.stringify({
+            status: 'success',
+            txHash: receipt.hash,
+            isHighScore,
+            highScore: isHighScore ? score : contractHighScore,
+          }),
+          { status: 200 }
+        );
+      } catch (error) {
+        console.error('End game error:', error);
+        return new Response(JSON.stringify({ status: 'error', message: error.message || 'Failed to end game' }), {
+          status: 500,
+        });
+      }
+
+      case 'start-game':
+        if (!gameId || !address) {
+          return new Response(
+            JSON.stringify({ status: 'error', message: 'Missing gameId or address' }),
+            { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
+          );
+        }
+        //const { recaptchaToken } = body;
+        try {
+          const recaptchaResponse = await fetch(
+            `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`
+          );
+          const recaptchaData = await recaptchaResponse.json();
+          const recaptchaThreshold = Number(process.env.RECAPTCHA_THRESHOLD) || 0.4;
+          if (!recaptchaData.success || recaptchaData.score < recaptchaThreshold) {
+            return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA failed. Move mouse around and try again.' }), {
+              status: 403,
             });
           }
-          if (gameSigRaw) {
-            try {
-              const { message, signature } = JSON.parse(gameSigRaw);
-              const playerAddress = ethers.verifyMessage(message, signature);
-              if (playerAddress.toLowerCase() !== address.toLowerCase()) {
-                return new Response(JSON.stringify({ status: 'error', message: 'Cookie Signature does not match player address' }), {
-                  status: 403,
-                  headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
-                });
-              }
-            } catch (error) {
-              console.error('Signature verification failed:', error);
-              return new Response(JSON.stringify({ status: 'error', message: 'Invalid signature' }), {
+        } catch (error) {
+          console.error('reCAPTCHA error:', error);
+          return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA verification error' }), {
+            status: 500,
+          });
+        }
+        // Verify signature and recover address
+        let playerAddress;
+        if (gameSigRaw) {
+          try {
+            const { message, signature } = JSON.parse(gameSigRaw);
+            playerAddress = ethers.verifyMessage(message, signature);
+            if (playerAddress.toLowerCase() !== address.toLowerCase()) {
+              return new Response(JSON.stringify({ status: 'error', message: 'Cookie Signature does not match player address' }), {
                 status: 403,
                 headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
               });
             }
-          } else {
-            return new Response(JSON.stringify({ status: 'error', message: 'Missing or invalid signature' }), {
+          } catch (error) {
+            console.error('Signature verification failed:', error);
+            return new Response(JSON.stringify({ status: 'error', message: 'Invalid signature' }), {
               status: 403,
               headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
             });
           }
+        } else {
+          return new Response(JSON.stringify({ status: 'error', message: 'Missing or invalid signature' }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
+          });
+        }
 
-          tx = await contract.startGame(BigInt(gameId), address);
-          receipt = await tx.wait();
-          gameDurationStore.set(address, Date.now());
-          return new Response(
-            JSON.stringify({ status: 'success', txHash: tx.hash }),
-            { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
-          );
-        
-        default:
-          return new Response(
-            JSON.stringify({ status: 'error', message: 'Invalid action' }),
-            { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
-          );
-      }
-    } catch (error) {
-      console.error(`${action} error:`, error);
-      return new Response(
-        JSON.stringify({ status: 'error', message: error.reason || error.message }),
-        { status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
-      );
+
+        tx = await contract.startGame(BigInt(gameId), playerAddress);
+        receipt = await tx.wait();
+        return new Response(
+          JSON.stringify({ status: 'success', txHash: tx.hash }),
+          { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
+        );
+      
+      default:
+        return new Response(
+          JSON.stringify({ status: 'error', message: 'Invalid action' }),
+          { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
+        );
     }
-  } 
+  } catch (error) {
+    console.error(`${action} error:`, error);
+    return new Response(
+      JSON.stringify({ status: 'error', message: error.reason || error.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
+    );
+  }
+}

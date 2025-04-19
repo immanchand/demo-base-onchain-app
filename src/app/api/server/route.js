@@ -1,7 +1,7 @@
 // src/app/api/server/route.js
 import { ethers } from 'ethers';
 import { getCsrfTokens } from 'src/lib/csrfStore';
-import { contractABI, CONTRACT_ADDRESS, TELEMETRY_SCORE_THRESHOLD } from '../../../constants';
+import { contractABI, CONTRACT_ADDRESS, TELEMETRY_SCORE_THRESHOLD, TELEMETRY_LIMIT } from '../../../constants';
 
 const rateLimitStore = new Map();
 const gameDurationStore = new Map();

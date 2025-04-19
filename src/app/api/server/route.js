@@ -168,10 +168,6 @@ export async function POST(request) {
             
             // Check for identical deltaTime values (suspicious for manipulation)
             const deltaTimes = frameEvents.map(e => e.data.deltaTime);
-            const uniqueDeltaTimes = new Set(deltaTimes);
-            if (uniqueDeltaTimes.size < deltaTimes.length * 0.5) { // Less than 50% unique values
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously identical deltaTime values' }), { status: 400 });
-            }
             const avgDeltaTime = deltaTimes.reduce((a, b) => a + b, 0) / deltaTimes.length;
             const deltaVariance = deltaTimes.reduce((a, b) => a + Math.pow(b - avgDeltaTime, 2), 0) / deltaTimes.length;
             if (deltaVariance < 1e-7 || deltaVariance > 1e-4) { // 0.0000001 to 0.0001 s²

@@ -165,17 +165,23 @@ export async function POST(request) {
                 ' Telemetry Duration: ', telemetryDuration);
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious telemetry duration vs server duration' }), { status: 400 });
             }
+            
+            // Check for identical deltaTime values (suspicious for manipulation)
             const deltaTimes = frameEvents.map(e => e.data.deltaTime);
+            const uniqueDeltaTimes = new Set(deltaTimes);
+            if (uniqueDeltaTimes.size < deltaTimes.length * 0.5) { // Less than 50% unique values
+              return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously identical deltaTime values' }), { status: 400 });
+            }
             const avgDeltaTime = deltaTimes.reduce((a, b) => a + b, 0) / deltaTimes.length;
             const deltaVariance = deltaTimes.reduce((a, b) => a + Math.pow(b - avgDeltaTime, 2), 0) / deltaTimes.length;
-            if (deltaVariance < 0.001) {
+            if (deltaVariance < 1e-7 || deltaVariance > 1e-4) { // 0.0000001 to 0.0001 s²
               console.log('Delta time variance check failed for',
                 ' Player: ', address,
                 ' Game Id: ', gameId,
                 ' Game Name: ', stats.game,
                 ' Delta Times: ', deltaTimes,
                 ' Delta Variance: ', deltaVariance);
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously consistent deltaTime' }), { status: 400 });
+              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious deltaTime variance' }), { status: 400 });
             }
             
        

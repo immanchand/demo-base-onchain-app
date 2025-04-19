@@ -252,6 +252,15 @@ export async function POST(request) {
                   const deltaTime = event.data.deltaTime; // Already in seconds
                   const expectedY = lastFrame.data.y + lastFrame.data.vy * deltaTime + 0.5 * 0.2 * deltaTime * deltaTime; // GRAVITY = 0.2
                   if (Math.abs(event.data.y - expectedY) > 10) { // Allow 10px variance for floating-point errors
+                    console.log('Frame position check failed for',
+                      ' Event: ', event,
+                      ' Event data: ', event.data,
+                      ' Event data y: ', event.data.y,
+                      ' Last frame: ', lastFrame,
+                      ' Last frame data: ', lastFrame.data,
+                      ' Last frame data y: ', lastFrame.data.y,
+                      ' Expected Y: ', expectedY,
+                      ' Actual Y: ', event.data.y);
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
                   }
                   // Check frameId order

@@ -175,6 +175,7 @@ export async function POST(request) {
                 );
                 const recaptchaData = await recaptchaResponse.json();
                 if (!recaptchaData.success || recaptchaData.score < FLY_PARAMETERS.RECAPTCHA_END_THRESHOLD) {
+                  console.log('reCAPTCHA failed:', recaptchaData);
                   return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA failed. You behaved like a bot' }), {
                     status: 403,
                   });

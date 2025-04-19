@@ -3,6 +3,7 @@ import { baseSepolia } from "viem/chains";
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
 export const ethPrice = 1700;
 export const message = 'Please sign this message to approve paying tickets to start the game session. This is not a transaction and there is no fee. It is only used to verify your identity and protect your own tickts.';
+export const RECAPTCHA_START_THRESHOLD = 0.5;
 export const TELEMETRY_LIMIT = 10000; // Max telemetry data points
 export const TELEMETRY_SCORE_THRESHOLD = 200; // Min score for telemetry data
 // Scoring multipliers
@@ -25,7 +26,7 @@ export const FLY_PARAMETERS = {
   SCORE_PER_SECOND: 100,
   MAX_FLAPS_PER_SEC: 5,
   MIN_FLAPS_PER_SEC: 1,
-  RECAPTCHA_END_THRESHOLD: 0.2, // Higher is more human check; Lower (e.g., 0.2) is less human check
+  RECAPTCHA_END_THRESHOLD: 0.5, // Higher is more human check; Lower (e.g., 0.2) is less human check.
 };
 export const JUMP_PARAMETERS = {
   BASE_OBSTACLE_SPEED: -3, // Higher (e.g., -5) = faster obstacles, harder; Lower (e.g., -2) = easier

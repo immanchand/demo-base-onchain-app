@@ -175,7 +175,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
         let ship = {
             x: 200,
-            y: canvas.height,
+            y: canvas.height / 2 + FLY_PARAMETERS.SHIP_HEIGHT * 2,
             width: FLY_PARAMETERS.SHIP_WIDTH,
             height: FLY_PARAMETERS.SHIP_HEIGHT,
             vy: 0,

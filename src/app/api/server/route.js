@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import { getCsrfTokens } from 'src/lib/csrfStore';
 import {  contractABI,
           CONTRACT_ADDRESS,
+          RECAPTCHA_START_THRESHOLD,
           TELEMETRY_SCORE_THRESHOLD,
           TELEMETRY_LIMIT,
           SCORE_DIVISOR_TIME,
@@ -174,8 +175,8 @@ export async function POST(request) {
                   `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`
                 );
                 const recaptchaData = await recaptchaResponse.json();
+                console.log('reCAPTCHA END data:', recaptchaData);
                 if (!recaptchaData.success || recaptchaData.score < FLY_PARAMETERS.RECAPTCHA_END_THRESHOLD) {
-                  console.log('reCAPTCHA failed:', recaptchaData);
                   return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA failed. You behaved like a bot' }), {
                     status: 403,
                   });
@@ -447,8 +448,8 @@ export async function POST(request) {
             `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`
           );
           const recaptchaData = await recaptchaResponse.json();
-          const recaptchaThreshold = Number(process.env.RECAPTCHA_THRESHOLD) || 0.4;
-          if (!recaptchaData.success || recaptchaData.score < recaptchaThreshold) {
+          console.log('reCAPTCHA START data:', recaptchaData);
+          if (!recaptchaData.success || recaptchaData.score < RECAPTCHA_START_THRESHOLD) {
             return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA failed. Move mouse around and try again' }), {
               status: 403,
             });

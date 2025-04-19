@@ -3,10 +3,10 @@ import { baseSepolia } from "viem/chains";
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
 export const ethPrice = 1700;
 export const message = 'Please sign this message to approve paying tickets to start the game session. This is not a transaction and there is no fee. It is only used to verify your identity and protect your own tickts.';
-export const TELEMETRY_LIMIT = 200; // Max telemetry data points per second
+export const TELEMETRY_LIMIT = 10000; // Max telemetry data points
 export const TELEMETRY_SCORE_THRESHOLD = 200; // Min score for telemetry data
 // Scoring multipliers
-export const SCORE_MULTIPLIER_TIME = 10; // Points per second for Fly and Jump
+export const SCORE_DIVISOR_TIME = 10; // should be SCORE_PER_SECOND/10
 export const SCORE_MULTIPLIER_SHOOT = 5; // Points per kill for Shoot
 // Validation thresholds
 export const MAX_JUMPS_PER_SEC = 3; // Flag if jumpsPerSec > 3 (Jump)
@@ -25,6 +25,7 @@ export const FLY_PARAMETERS = {
   SCORE_PER_SECOND: 100,
   MAX_FLAPS_PER_SEC: 5,
   MIN_FLAPS_PER_SEC: 1,
+  RECAPTCHA_END_THRESHOLD: 0.3, // Higher is more human check; Lower (e.g., 0.2) is less human check
 };
 export const JUMP_PARAMETERS = {
   BASE_OBSTACLE_SPEED: -3, // Higher (e.g., -5) = faster obstacles, harder; Lower (e.g., -2) = easier
@@ -37,6 +38,8 @@ export const SHOOT_PARAMETERS = {
   MAX_ENEMY_COUNT: 10, // Higher (e.g., 15) = more enemies, harder; Lower (e.g., 5) = easier
   SPAWN_INTERVAL: 1000, // Lower (e.g., 500) = faster spawns, harder; Higher (e.g., 1500) = easier
   BULLET_SPEED: 5, // Higher (e.g., 6) = faster bullets, easier; Lower (e.g., 4) = harder
+  SCORE_PER_KILL: 100, 
+  RECAPTCHA_END_THRESHOLD: 0.5, // Higher is more human check; Lower (e.g., 0.2) is less human check. Higher for shoot which needs a mouse
 };
 export const GAME_COUNT = 3;
 export const GAME_PRICE_WEI = 100000000000000; 

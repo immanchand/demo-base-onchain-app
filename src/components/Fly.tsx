@@ -29,16 +29,6 @@ interface TelemetryEvent {
 type EnemyType = 'alien' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
 type ShipType = 'ship' | 'eth' | 'base';
 
-// Constants
-//const SHIP_WIDTH = 40;
-//const SHIP_HEIGHT = SHIP_WIDTH * (3/4);
-//const OBSTACLE_SIZE = 50;
-//const MIN_SPAWN_INTERVAL = 300; // Lower (e.g., 200) = more frequent obstacles, harder; Higher (e.g., 500) = easier
-//const GRAVITY = 0.2; // Higher (e.g., 0.3) = faster fall, harder; Lower (e.g., 0.1) = easier
-//const FLAP_VELOCITY = -5;
-//const BASE_OBSTACLE_SPEED = -3; // Higher (e.g., -4) = faster obstacles, harder; Lower (e.g., -2) = easier
-
-
 const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -185,10 +175,10 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
         let ship = {
             x: 200,
-            y: canvas.height / 2 + FLY_PARAMETERS.SHIP_HEIGHT / 2,
+            y: canvas.height,
             width: FLY_PARAMETERS.SHIP_WIDTH,
             height: FLY_PARAMETERS.SHIP_HEIGHT,
-            vy: FLY_PARAMETERS.FLAP_VELOCITY*2,
+            vy: 0,
         };
         let obstaclePool: Obstacle[] = [];
         const stars: { x: number; y: number; dx: number }[] = [];
@@ -222,7 +212,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             const spawnInterval = 2500 * (1 - difficultyFactor) + FLY_PARAMETERS.MIN_SPAWN_INTERVAL;
             const obstacleSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
             const clusterChance = difficultyFactor * 0.3;
-            const obstacleSize = FLY_PARAMETERS.OBSTACLE_SIZE * (1 + difficultyFactor * 0.1);
+            const obstacleSize = FLY_PARAMETERS.OBSTACLE_SIZE;
 
             if (!gameOver) {
                 ship.vy += FLY_PARAMETERS.GRAVITY;
@@ -297,7 +287,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             if (currentTime - lastSpawnTimeRef.current >= spawnInterval && !gameOver) {
                 const numObstacles = Math.random() < clusterChance ? 2 : 1;
                 for (let i = 0; i < numObstacles; i++) {
-                    const y = Math.random() * (canvas.height - obstacleSize) + (i * obstacleSize * 1.5);
+                    const y = Math.random() * (canvas.height - obstacleSize) + (i * obstacleSize * 2);
                     obstaclePool.push({ x: canvas.width, y, width: obstacleSize, height: obstacleSize, dx: obstacleSpeed, dodged: false });
                 }
                 lastSpawnTimeRef.current = currentTime;

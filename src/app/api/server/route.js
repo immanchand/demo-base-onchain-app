@@ -1,7 +1,11 @@
 // src/app/api/server/route.js
 import { ethers } from 'ethers';
 import { getCsrfTokens } from 'src/lib/csrfStore';
-import { contractABI, CONTRACT_ADDRESS, TELEMETRY_SCORE_THRESHOLD, TELEMETRY_LIMIT } from '../../../constants';
+import {  contractABI,
+          CONTRACT_ADDRESS,
+          TELEMETRY_SCORE_THRESHOLD,
+          TELEMETRY_LIMIT,
+          FLY_PARAMETERS } from '../../../constants';
 
 const rateLimitStore = new Map();
 const gameDurationStore = new Map();
@@ -93,6 +97,7 @@ export async function POST(request) {
         }
         rateLimitStore.set(`${sessionId}:end`, nowEnd);
 
+        //main logig to check telemetry and stats and score and try to send contract transaction
         try {
           // Fetch current highScore from contract
           const gameData = await contract.getGame(gameId);
@@ -298,13 +303,13 @@ export async function POST(request) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: number of obstacles dodged' }), { status: 400 });
               }
 
-              if (stats.flapsPerSec < 1) {
+              if (stats.flapsPerSec < FLY_PARAMETERS.MIN_FLAPS_PER_SEC) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats: too few flaps per second' }), {
                   status: 400,
                 });
               }
 
-              if (stats.flapsPerSec > 5) {
+              if (stats.flapsPerSec > FLY_PARAMETERS.MAX_FLAPS_PER_SEC) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats: excessive flaps per second' }), {
                   status: 400,
                 });
@@ -335,28 +340,27 @@ export async function POST(request) {
                 });
               }
             }
-            
-        }
-        tx = await contract.endGame(BigInt(gameId), address, BigInt(score));
-        receipt = await tx.wait();
-        let isHighScore = false;
-        try {
-          isHighScore = receipt.logs[1].args[3]? true : false;
-          // code after new contract deployment is:
-          // isHighScore = receipt.logs[0].args[3];
-        } catch (error) {
-          isHighScore = false;
-        }
-                
-        return new Response(
-          JSON.stringify({
-            status: 'success',
-            txHash: receipt.hash,
-            isHighScore,
-            highScore: isHighScore ? score : contractHighScore,
-          }),
-          { status: 200 }
-        );
+            tx = await contract.endGame(BigInt(gameId), address, BigInt(score));
+            receipt = await tx.wait();
+            let isHighScore = false;
+            try {
+              isHighScore = receipt.logs[1].args[3]? true : false;
+              // code after new contract deployment is:
+              // isHighScore = receipt.logs[0].args[3];
+            } catch (error) {
+              isHighScore = false;
+            }
+                    
+            return new Response(
+              JSON.stringify({
+                status: 'success',
+                txHash: receipt.hash,
+                isHighScore,
+                highScore: isHighScore ? score : contractHighScore,
+              }),
+              { status: 200 }
+            );
+        } //end if score >= telemetry threshold and > contractHighScore
       } catch (error) {
         console.error('End game error:', error);
         return new Response(JSON.stringify({ status: 'error', message: error.message || 'Failed to end game' }), {

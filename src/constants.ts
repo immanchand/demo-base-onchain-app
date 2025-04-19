@@ -3,7 +3,7 @@ import { baseSepolia } from "viem/chains";
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
 export const ethPrice = 1700;
 export const message = 'Please sign this message to approve paying tickets to start the game session. This is not a transaction and there is no fee. It is only used to verify your identity and protect your own tickts.';
-export const RECAPTCHA_START_THRESHOLD = 0.5;
+export const RECAPTCHA_START_THRESHOLD = 0.6;
 export const TELEMETRY_LIMIT = 10000; // Max telemetry data points
 export const TELEMETRY_SCORE_THRESHOLD = 200; // Min score for telemetry data
 // Scoring multipliers
@@ -41,7 +41,7 @@ export const SHOOT_PARAMETERS = {
   SPAWN_INTERVAL: 1000, // Lower (e.g., 500) = faster spawns, harder; Higher (e.g., 1500) = easier
   BULLET_SPEED: 5, // Higher (e.g., 6) = faster bullets, easier; Lower (e.g., 4) = harder
   SCORE_PER_KILL: 100, 
-  RECAPTCHA_END_THRESHOLD: 0.5, // Higher is more human check; Lower (e.g., 0.2) is less human check. Higher for shoot which needs a mouse
+  RECAPTCHA_END_THRESHOLD: 0.6, // Higher is more human check; Lower (e.g., 0.2) is less human check. Higher for shoot which needs a mouse
 };
 export const GAME_COUNT = 3;
 export const GAME_PRICE_WEI = 100000000000000; 

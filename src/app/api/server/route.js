@@ -137,19 +137,41 @@ export async function POST(request) {
             }
             // All gamess Check if server game duration is less than client game duration. With network latency, it should never be less.
             // if less, indicates cheating on client side
-            if (nowEnd - gameDurationStore.get(address) < stats.time) {
+            const serverDuration = nowEnd - gameDurationStore.get(address);
+            if (serverDuration < stats.time) {
                 console.log('GameDurationStore Duration Check failed for',
                     ' Player: ', address,
                     ' Game Id: ', gameId,
                     ' Game Name: ', stats.game,
                     ' Server Game Start: ', gameDurationStore.get(address),
                     ' Server Game End: ', nowEnd,
-                    ' Server Game Duration: ', nowEnd - gameDurationStore.get(address),
+                    ' Server Game Duration: ', serverDuration,
                     ' Client Game Duration: ', stats.time);
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: game duration is more than expected' }), {
                     status: 400,
                 });
             }
+            // Detect Game Clock Manipulation
+            const frameEvents = telemetry.filter(e => e.event === 'frame');
+            const telemetryDuration = frameEvents[frameEvents.length-1].time - frameEvents[0].time;
+            if (telemetryDuration > serverDuration) {
+              console.log('GameDurationStore Duration Check failed for',
+                ' Player: ', address,
+                ' Game Id: ', gameId,
+                ' Game Name: ', stats.game,
+                ' Server Game Start: ', gameDurationStore.get(address),
+                ' Server Game End: ', nowEnd,
+                ' Server Game Duration: ', serverDuration,
+                ' Telemetry Duration: ', telemetryDuration);
+              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious telemetry duration vs server duration' }), { status: 400 });
+            }
+            const deltaTimes = frameEvents.map(e => e.data.deltaTime);
+            const avgDeltaTime = deltaTimes.reduce((a, b) => a + b, 0) / deltaTimes.length;
+            const deltaVariance = deltaTimes.reduce((a, b) => a + Math.pow(b - avgDeltaTime, 2), 0) / deltaTimes.length;
+            if (deltaVariance < 0.001) {
+              return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously consistent deltaTime' }), { status: 400 });
+            }
+            
        
             // all games common telemetry check for average fps frames per second
             const fpsEvents = telemetry.filter(e => e.event === 'fps');
@@ -162,7 +184,7 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'FPS out of acceptable range' }), { status: 400 });
               }
               // Check for suspicious FPS variance (e.g., >20 FPS change)
-              if (maxFps - minFps > 10) {
+              if (maxFps - minFps > 15) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious FPS variance during game' }), { status: 400 });
               }
             }          
@@ -250,7 +272,7 @@ export async function POST(request) {
               if (event.event === 'frame') {
                 if (lastFrame) {
                   const deltaTime = event.data.deltaTime; // Already in seconds
-                  const expectedY = lastFrame.data.y + lastFrame.data.vy * deltaTime + 0.5 * 0.2 * deltaTime * deltaTime; // GRAVITY = 0.2
+                  const expectedY = lastFrame.data.y + lastFrame.data.vy * deltaTime + 0.5 * deltaTime * deltaTime * FLY_PARAMETERS.GRAVITY; // GRAVITY = 0.2
                   if (Math.abs(event.data.y - expectedY) > 10) { // Allow 10px variance for floating-point errors
                     console.log('Frame position check failed for',
                       ' Event: ', event,
@@ -274,11 +296,17 @@ export async function POST(request) {
             // Telemetry validation
             // Validate collision events
             const collisionEvents = telemetry.filter(e => e.event === 'collision');
-            if (collisionEvents.length > 1) {
-              return new Response(JSON.stringify({ status: 'error', message: 'Multiple collisions detected' }), {
+            if (collisionEvents.length != 1) {
+              return new Response(JSON.stringify({ status: 'error', message: 'Invalid collisions detected' }), {
                 status: 400,
               });
             }
+            // validate that the last event is a collision
+            const lastEvent = telemetry[telemetry.length - 1];
+            if (lastEvent.event !== 'collision') {
+              return new Response(JSON.stringify({ status: 'error', message: 'Last event must be collision' }), { status: 400 });
+            }
+            
 
 			      // Stats validation
             // FLY GAME
@@ -326,6 +354,21 @@ export async function POST(request) {
               if (Math.abs(spawnEvents.length - expectedSpawns * 1.15) > expectedSpawns * 0.2) { // 20% tolerance
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn count' }), { status: 400 });
               }
+              //check double spawn events
+              let doubleSpawnCount = 0;
+              for (let i = 1; i < spawnEvents.length; i++) {
+                if (spawnEvents[i].time - spawnEvents[i-1].time < 10) {
+                  doubleSpawnCount++;
+                  const yDiff = Math.abs(spawnEvents[i].data.y - spawnEvents[i-1].data.y);
+                  if (yDiff < FLY_PARAMETERS.OBSTACLE_SIZE * 1.5 * 0.9 || yDiff > FLY_PARAMETERS.OBSTACLE_SIZE * 2 * 1.1) {
+                    return new Response(JSON.stringify({ status: 'error', message: 'Invalid cluster spawn spacing' }), { status: 400 });
+                  }
+                }
+              }
+              const expectedDoubleSpawns = spawnEvents.length * (stats.time / 90000 * 0.3);
+              if (Math.abs(doubleSpawnCount - expectedDoubleSpawns) > expectedDoubleSpawns * 0.1) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious cluster spawn frequency' }), { status: 400 });
+              }
 
               // FLAPS RELATED VALIDATOINS
               // validate stats.flapsPerSec matches the number of flap and keydown events
@@ -341,7 +384,7 @@ export async function POST(request) {
                 if (event.event === 'flap') {
                   if (lastFlapTime && lastY) {
                     const timeDiff = (event.time - lastFlapTime) / 1000;
-                    const expectedY = lastY + event.data.vy * timeDiff + 0.5 * 0.2 * timeDiff * timeDiff; // GRAVITY = 0.2
+                    const expectedY = lastY + event.data.vy * timeDiff + 0.5 * timeDiff * timeDiff * FLY_PARAMETERS.GRAVITY; // GRAVITY = 0.2
                     if (Math.abs(event.data.y - expectedY) > 10) {
                       return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: flap position' }), {
                         status: 400,

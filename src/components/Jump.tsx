@@ -4,7 +4,7 @@ import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
-import { GameStats, Entity, SCORE_MULTIPLIER_TIME, JUMP_PARAMETERS } from 'src/constants';
+import { GameStats, Entity, JUMP_PARAMETERS } from 'src/constants';
 import { useAccount } from 'wagmi';
 import LoginButton from './LoginButton';
 

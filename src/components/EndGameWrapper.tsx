@@ -1,9 +1,18 @@
 // EndGameWrapper.tsx
 'use client';
-import { useCallback, useImperativeHandle, forwardRef } from 'react';
+import { useCallback, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { useCsrf } from 'src/context/CsrfContext';
 import { useAccount } from 'wagmi';
-import { GameStats } from 'src/constants';
+import { GameStats, TELEMETRY_SCORE_THRESHOLD} from 'src/constants';
+// Extend the Window interface to include grecaptcha
+declare global {
+  interface Window {
+    grecaptcha: {
+      ready: (callback: () => void) => void;
+      execute: (siteKey: string, options: { action: string }) => Promise<string>;
+    };
+  }
+}
 
 interface TelemetryEvent {
   event: string;
@@ -30,6 +39,17 @@ const EndGameWrapper = forwardRef<{ endGame: () => Promise<void> }, EndGameWrapp
     const { csrfToken, refreshCsrfToken } = useCsrf();
     const xapporigin = process.env.NEXT_PUBLIC_APP_ORIGIN;
     const { address } = useAccount();
+
+    useEffect(() => {
+      const script = document.createElement('script');
+      script.src = `https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`;
+      script.async = true;
+      //script.crossOrigin = "anonymous";
+      document.body.appendChild(script);
+      return () => {
+        document.body.removeChild(script);
+      };
+    }, []);
 
     const endGame = useCallback(
       async (isRetry = false) => {
@@ -59,6 +79,21 @@ const EndGameWrapper = forwardRef<{ endGame: () => Promise<void> }, EndGameWrapp
           onStatusChange('loser', undefined, highScore.toString());
           return;
         }
+        // Get reCAPTCHA token
+        let recaptchaToken = '';
+        try {
+          recaptchaToken = await new Promise((resolve) => {
+            window.grecaptcha.ready(() => {
+              window.grecaptcha
+                .execute(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || (() => { throw new Error('RECAPTCHA_SITE_KEY is not defined'); })(), { action: 'startGame' })
+                .then(resolve);
+            });
+          });
+        } catch (error) {
+          console.log('CAPTCHA error: ', error);
+          onStatusChange('error', 'CAPTCHA initialization failed');
+          return;
+        }
 
         try {
           onStatusChange('pending');
@@ -75,8 +110,9 @@ const EndGameWrapper = forwardRef<{ endGame: () => Promise<void> }, EndGameWrapp
               gameId,
               address,
               score,
-              telemetry: Number(score) >= 2 ? telemetry : [],   //***CHANGE BACK TO 2000 IN PROD */
-              stats: Number(score) >= 2 ? stats : null,    //***CHANGE BACK TO 2000 IN PROD */
+              telemetry: Number(score) >= TELEMETRY_SCORE_THRESHOLD ? telemetry : [],
+              stats: Number(score) >= TELEMETRY_SCORE_THRESHOLD ? stats : null,
+              recaptchaToken 
             }),
           });
 

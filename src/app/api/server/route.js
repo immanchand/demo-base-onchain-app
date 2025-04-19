@@ -169,6 +169,12 @@ export async function POST(request) {
             const avgDeltaTime = deltaTimes.reduce((a, b) => a + b, 0) / deltaTimes.length;
             const deltaVariance = deltaTimes.reduce((a, b) => a + Math.pow(b - avgDeltaTime, 2), 0) / deltaTimes.length;
             if (deltaVariance < 0.001) {
+              console.log('Delta time variance check failed for',
+                ' Player: ', address,
+                ' Game Id: ', gameId,
+                ' Game Name: ', stats.game,
+                ' Delta Times: ', deltaTimes,
+                ' Delta Variance: ', deltaVariance);
               return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously consistent deltaTime' }), { status: 400 });
             }
             
@@ -306,7 +312,7 @@ export async function POST(request) {
             if (lastEvent.event !== 'collision') {
               return new Response(JSON.stringify({ status: 'error', message: 'Last event must be collision' }), { status: 400 });
             }
-            
+
 
 			      // Stats validation
             // FLY GAME

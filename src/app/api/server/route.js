@@ -5,7 +5,9 @@ import {  contractABI,
           CONTRACT_ADDRESS,
           TELEMETRY_SCORE_THRESHOLD,
           TELEMETRY_LIMIT,
-          FLY_PARAMETERS } from '../../../constants';
+          SCORE_DIVISOR_TIME,
+          FLY_PARAMETERS,
+          SHOOT_PARAMETERS } from '../../../constants';
 
 const rateLimitStore = new Map();
 const gameDurationStore = new Map();
@@ -122,6 +124,8 @@ export async function POST(request) {
             console.log('telemetry: ', telemetry);
             console.log('stats: ', stats);
 
+            const gameTimeSec = stats.time / 1000;
+
             // All game check timestamp of last telemetry event collision
             const endEvent = telemetry.find(e => e.event === 'collision');
             if (!endEvent) {
@@ -147,12 +151,11 @@ export async function POST(request) {
             }
        
             // all games common telemetry check for average fps frames per second
-            const fpsEvents = telemetry.filter(e => e.event === 'fps' && e.data?.fps);
+            const fpsEvents = telemetry.filter(e => e.event === 'fps');
             if (fpsEvents.length > 0) {
               const fpsValues = fpsEvents.map(e => e.data.fps);
               const minFps = Math.min(...fpsValues);
               const maxFps = Math.max(...fpsValues);
-              const avgFps = fpsValues.reduce((a, b) => a + b, 0) / fpsValues.length;
               // Allow 40–72 FPS for mobile compatibility
               if (minFps < 40 || maxFps > 72) {
                 return new Response(JSON.stringify({ status: 'error', message: 'FPS out of acceptable range' }), { status: 400 });
@@ -165,14 +168,30 @@ export async function POST(request) {
             
             // common duration and score checks for TIME based games
             if (stats.game === 'fly' || stats.game === 'jump') {
+              // validate recaptcha token for bot detection
+              try {
+                const recaptchaResponse = await fetch(
+                  `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`
+                );
+                const recaptchaData = await recaptchaResponse.json();
+                if (!recaptchaData.success || recaptchaData.score < FLY_PARAMETERS.RECAPTCHA_END_THRESHOLD) {
+                  return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA failed. You behaved like a bot' }), {
+                    status: 403,
+                  });
+                }
+              } catch (error) {
+                console.error('reCAPTCHA error:', error);
+                //continue because backend mistake and not player's fault
+                //assume player is human
+              }
               // Check if score is less than client side game duration with 1 seconds tolerance for start game
-              if (score > (stats.time + TIME_VARIANCE_MS)/10) {
+              if (score > (stats.time + TIME_VARIANCE_MS)/SCORE_DIVISOR_TIME) {
                 console.log('Duration and score check failed for',
                   ' Player: ', address,
                   ' Game Id: ', gameId,
                   ' Game Name: ', stats.game,
                   ' Client Score: ', score,
-                  ' Client Time Score Variance: ', (stats.time + 1000)/10);
+                  ' Client Time Score Variance: ', (stats.time + 1000)/SCORE_DIVISOR_TIME);
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: score and game duration dont match' }), {
                   status: 400,
                 });
@@ -183,8 +202,8 @@ export async function POST(request) {
               if (telemetry.length < TELEMETRY_LIMIT) {
                 // Simple sum for games with complete telemetry
                 for (const event of telemetry) {
-                  if (event.event === 'frame' && event.data?.deltaTime && event.data?.score) {
-                    computedScore += event.data.deltaTime * 100;
+                  if (event.event === 'frame') {
+                    computedScore += event.data.deltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER;
                   }
                 }
                 console.log('first computedScore', computedScore);
@@ -194,24 +213,24 @@ export async function POST(request) {
                 let firstFrameScore = null;
                 let frameEventsProcessed = false;
                 for (const event of telemetry) {
-                  if (event.event === 'frame' && event.data?.deltaTime && event.data?.score) {
+                  if (event.event === 'frame') {
                     if (firstFrameTime === null) {
                       firstFrameTime = event.time;
                       firstFrameScore = event.data.score;
                       const gameStartTime = firstFrameTime - stats.time;
                       const elapsedTimeSeconds = (firstFrameTime - gameStartTime) / 1000;
-                      computedScore = elapsedTimeSeconds * 100;
+                      computedScore = elapsedTimeSeconds * FLY_PARAMETERS.SCORE_MULTIPLIER;
                       if (Math.abs(computedScore - firstFrameScore) > computedScore * 0.1) {
                         return new Response(JSON.stringify({ status: 'error', message: 'Suspicious first frame score' }), { status: 400 });
                       }
                     } else {
-                      computedScore += event.data.deltaTime * 100;
+                      computedScore += event.data.deltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER;
                     }
                     frameEventsProcessed = true;
                   }
                 }
                 if (!frameEventsProcessed) {
-                  computedScore = (stats.time / 1000) * 100;
+                  computedScore = gameTimeSec * FLY_PARAMETERS.SCORE_MULTIPLIER;
                   console.log('second computedScore', computedScore);
                 }
               }
@@ -221,21 +240,12 @@ export async function POST(request) {
                 console.log('computedScore * 1.1', computedScore * 1.1);
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score: computed events and reported score don’t match' }), { status: 400 });
               }
-              //remove later as repeated code
-              //******************* DELETE********* */
-              computedScore = 0;
-              for (const event of telemetry) {
-                if (event.event === 'frame' && event.data?.deltaTime) {
-                  computedScore += event.data.deltaTime * 100;
-                }
-              }
-              console.log('last new computedScore', computedScore);
             }
             //check between frame actions
             // Check if frameId is in order and position is plausible
             let lastFrame = null;
             for (const event of telemetry) {
-              if (event.event === 'frame' && event.frameId && event.data?.y && event.data?.vy && event.data?.deltaTime) {
+              if (event.event === 'frame') {
                 if (lastFrame) {
                   const deltaTime = event.data.deltaTime; // Already in seconds
                   const expectedY = lastFrame.data.y + lastFrame.data.vy * deltaTime + 0.5 * 0.2 * deltaTime * deltaTime; // GRAVITY = 0.2
@@ -262,18 +272,62 @@ export async function POST(request) {
 			      // Stats validation
             // FLY GAME
             if (stats.game === 'fly') {
-							
+							//SPAWN RELETED VALIDATION
+              // validate spawn events speed against expected values
+              const difficultyFactor = Math.min(stats.time / 90000, 1);
+              const expectedSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
+              const spawnEvents = telemetry.filter(e => e.event === 'spawn');
+              for (const event of spawnEvents) {
+                if (Math.abs(event.data.speed - expectedSpeed) > 0.1) {
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle speed' }), { status: 400 });
+                }
+              }
+              // Validate obstacle spawns
+              const minExpectedSpawns = stats.time / FLY_PARAMETERS.MIN_SPAWN_INTERVAL;
+              if (spawnEvents.length < minExpectedSpawns) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: Too few obstacle spawns' }), {
+                  status: 400,
+                });
+              }
+              const spawnInterval = 2500 * (1 - difficultyFactor) + FLY_PARAMETERS.MIN_SPAWN_INTERVAL;
+              if (stats.obstaclesCleared > stats.time / spawnInterval) {
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: number of obstacles dodged' }), { status: 400 });
+              }
+              
+              let minObstacles, maxObstacles;
+              if (gameTimeSec <= 30) {
+                minObstacles = 1;
+                maxObstacles = 3;
+              } else if (gameTimeSec <= 60) {
+                minObstacles = 2;
+                maxObstacles = 4;
+              } else if (gameTimeSec <= 90) {
+                minObstacles = 3;
+                maxObstacles = 6;
+              } else {
+                minObstacles = 5;
+                maxObstacles = 10;
+              }
+              if (stats.maxObstacles < minObstacles || stats.maxObstacles > maxObstacles) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious maxObstacles: outside expected range' }), { status: 400 });
+              }
+              const expectedSpawns = gameTimeSec <= 90 ? gameTimeSec / 1.55 : (90 / 1.55) + (gameTimeSec - 90) / 0.3;
+              if (Math.abs(spawnEvents.length - expectedSpawns * 1.15) > expectedSpawns * 0.2) { // 20% tolerance
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn count' }), { status: 400 });
+              }
+
+              // FLAPS RELATED VALIDATOINS
               // validate stats.flapsPerSec matches the number of flap and keydown events
               const flapEvents = telemetry.filter(e => e.event === 'flap').length;
-              const expectedFlapsPerSec = flapEvents / (stats.time / 1000 || 1);
+              const expectedFlapsPerSec = flapEvents / (gameTimeSec || 1);
               if (Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.5) {
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious input patterns' }), { status: 400 });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flapsPerSec vs flap events patterns' }), { status: 400 });
               }
               // Validate flap plausibility
               let lastFlapTime = null;
               let lastY = null;
               for (const event of telemetry) {
-                if (event.event === 'flap' && event.data?.y && event.data?.vy) {
+                if (event.event === 'flap') {
                   if (lastFlapTime && lastY) {
                     const timeDiff = (event.time - lastFlapTime) / 1000;
                     const expectedY = lastY + event.data.vy * timeDiff + 0.5 * 0.2 * timeDiff * timeDiff; // GRAVITY = 0.2
@@ -287,28 +341,23 @@ export async function POST(request) {
                   lastY = event.data.y;
                 }
               }
-
-              // Validate obstacle spawns
-              const spawnEvents = telemetry.filter(e => e.event === 'spawn');
-              const minSpawnInterval = 300;
-              const expectedSpawns = stats.time / minSpawnInterval;
-              if (spawnEvents.length > expectedSpawns) {
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: Too many obstacle spawns' }), {
-                  status: 400,
-                });
+              //validate flap events timing
+              const flapIntervals = [];
+              for (let i = 1; i < flapEvents.length; i++) {
+                flapIntervals.push(flapEvents[i].time - flapEvents[i - 1].time);
               }
-             
-              const spawnInterval = 2500 * (1 - Math.min(stats.time / 90000, 1)) + 300;
-              if (stats.obstaclesCleared > stats.time / spawnInterval) {
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: number of obstacles dodged' }), { status: 400 });
+              const avgInterval = flapIntervals.reduce((a, b) => a + b, 0) / flapIntervals.length;
+              const variance = flapIntervals.reduce((a, b) => a + Math.pow(b - avgInterval, 2), 0) / flapIntervals.length;
+              if (variance < 10) { // Low variance indicates robotic consistency
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: flap timing too robotic' }), { status: 400 });
               }
-
+              // Validate minimum flaps per second required to not hit the ground
               if (stats.flapsPerSec < FLY_PARAMETERS.MIN_FLAPS_PER_SEC) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats: too few flaps per second' }), {
                   status: 400,
                 });
               }
-
+              // Validate maximum flaps per second humanly possible for long games that will have obstacle on top
               if (stats.flapsPerSec > FLY_PARAMETERS.MAX_FLAPS_PER_SEC) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats: excessive flaps per second' }), {
                   status: 400,
@@ -317,8 +366,24 @@ export async function POST(request) {
 
               // SHOOT GAME
             } else if (stats.game === 'shoot') {
+              // validate recaptcha token for bot detection
+              try {
+                const recaptchaResponse = await fetch(
+                  `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`
+                );
+                const recaptchaData = await recaptchaResponse.json();
+                if (!recaptchaData.success || recaptchaData.score < SHOOT_PARAMETERS.RECAPTCHA_END_THRESHOLD) {
+                  return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA failed. You behaved like a bot' }), {
+                    status: 403,
+                  });
+                }
+              } catch (error) {
+                console.error('reCAPTCHA error:', error);
+                //continue because backend mistake and not player's fault
+                //assume player is human
+              }
               const hitRate = stats.kills / (stats.shots || 1);
-              if (hitRate > 0.8 || stats.kills > stats.time / 1000 || Number(score) > stats.kills * 31) {
+              if (hitRate > 0.8 || stats.kills > gameTimeSec || Number(score) > stats.kills * 31) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {
                   status: 400,
                 });

@@ -25,13 +25,14 @@ export const FLY_PARAMETERS = {
   SCORE_PER_SECOND: 100,
   MAX_FLAPS_PER_SEC: 5,
   MIN_FLAPS_PER_SEC: 1,
-  RECAPTCHA_END_THRESHOLD: 0.3, // Higher is more human check; Lower (e.g., 0.2) is less human check
+  RECAPTCHA_END_THRESHOLD: 0.2, // Higher is more human check; Lower (e.g., 0.2) is less human check
 };
 export const JUMP_PARAMETERS = {
   BASE_OBSTACLE_SPEED: -3, // Higher (e.g., -5) = faster obstacles, harder; Lower (e.g., -2) = easier
   MIN_GAP: 300, // Lower (e.g., 200) = tighter gaps, harder; Higher (e.g., 400) = easier
   GRAVITY: 0.4, // Higher (e.g., 0.5) = faster fall, harder; Lower (e.g., 0.3) = easier
   JUMP_VELOCITY: -12, // Higher (e.g., -14) = higher jumps, easier; Lower (e.g., -10) = harder
+  SCORE_PER_SECOND: 100,
 };
 export const SHOOT_PARAMETERS = {
   ENEMY_SPEED_BASE: 2, // Higher (e.g., 3) = faster enemies, harder; Lower (e.g., 1) = easier

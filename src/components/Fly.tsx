@@ -255,7 +255,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 if (ship.x > canvas.width) {
                     ship.x = -FLY_PARAMETERS.SHIP_WIDTH;
                 }
-                setScore((prev) => prev + deltaTime * FLY_PARAMETERS.SCORE_PER_SECOND);
+                setScore((prev) => prev + deltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER);
 				frameCount++;
                 if (frameCount % 10 === 0) {
                     setTelemetry((prev) => {

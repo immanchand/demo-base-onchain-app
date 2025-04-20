@@ -285,8 +285,9 @@ export async function POST(request) {
                 );
                 // Assume velocity could be affected by flaps (vy = FLAP_VELOCITY) or gravity
                 const maxVy = lastFrame.data.vy; // Best case: no flaps, just last velocity
-                const minVy = FLY_PARAMETERS.FLAP_VELOCITY; // Worst case: flap sets vy to -5
+                const minVy = lastFrame.frameId < 20 ? FLY_PARAMETERS.FLAP_VELOCITY*2 : FLY_PARAMETERS.FLAP_VELOCITY; // Account for initial vy
                 // Calculate expected y range
+                
                 const expectedYMax = lastFrame.data.y + maxVy * deltaTime + 0.5 * deltaTime * deltaTime * FLY_PARAMETERS.GRAVITY;
                 const expectedYMin = lastFrame.data.y + minVy * deltaTime + 0.5 * deltaTime * deltaTime * FLY_PARAMETERS.GRAVITY;
                 // Allow 10px variance outside the range

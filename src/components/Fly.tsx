@@ -1,3 +1,4 @@
+// Fly.tsx
 'use client';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTicketContext } from 'src/context/TicketContext';
@@ -7,6 +8,16 @@ import Button from './Button';
 import { GameStats, Entity, FLY_PARAMETERS, TELEMETRY_LIMIT, TELEMETRY_SCORE_THRESHOLD } from 'src/constants';
 import { useAccount } from 'wagmi';
 import LoginButton from './LoginButton';
+
+// Extend the Window interface to include grecaptcha
+declare global {
+    interface Window {
+        grecaptcha: {
+            ready: (callback: () => void) => void;
+            execute: (siteKey: string, options: { action: string }) => Promise<string>;
+        };
+    }
+}
 
 interface FlyProps {
     gameId: number;
@@ -38,6 +49,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
     const [enemyType, setEnemyType] = useState<EnemyType>('alien');
     const [shipType, setShipType] = useState<ShipType>('ship');
     const [imagesLoaded, setImagesLoaded] = useState<boolean>(false);
+    const [isRecaptchaReady, setIsRecaptchaReady] = useState<boolean>(false);
     const [enemyImages, setEnemyImages] = useState<Record<EnemyType, HTMLImageElement>>({} as Record<EnemyType, HTMLImageElement>);
     const [shipImages, setShipImages] = useState<Record<ShipType, HTMLImageElement>>({} as Record<ShipType, HTMLImageElement>);
     const lastFrameTimeRef = useRef<number>(performance.now());
@@ -69,6 +81,18 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         maxObstacles: 0,
         inputsPerSec: 0,
     });
+
+    // Check reCAPTCHA readiness
+    useEffect(() => {
+        if (window.grecaptcha) {
+            window.grecaptcha.ready(() => {
+                console.log('reCAPTCHA initialized');
+                setIsRecaptchaReady(true);
+            });
+        } else {
+            console.warn('reCAPTCHA script not loaded yet');
+        }
+    }, []);
 
     // Preload images
     useEffect(() => {
@@ -408,40 +432,46 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         }
     }, [gameStarted]);
 
-    const handleStartGameStatusChange = useCallback((status: 'idle' | 'pending' | 'success' | 'error', errorMessage?: string) => {
-        setStartGameStatus(status);
-        if (status === 'pending') {
-            setStartGameError('');
-        } else if (status === 'success') {
-            updateTickets();
-            setGameStarted(true);
-            setGameOver(false);
-            setScore(0);
-            setEndGameStatus('idle');
-            setEndGameError('');
-            setEndGameMessage('');
-            containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            canvasRef.current?.focus();
-        } else if (status === 'error') {
-            setStartGameError(errorMessage || 'Failed to start game');
-            setGameStarted(false);
-        }
-    }, [updateTickets]);
+    const handleStartGameStatusChange = useCallback(
+        (status: 'idle' | 'pending' | 'success' | 'error', errorMessage?: string) => {
+            setStartGameStatus(status);
+            if (status === 'pending') {
+                setStartGameError('');
+            } else if (status === 'success') {
+                updateTickets();
+                setGameStarted(true);
+                setGameOver(false);
+                setScore(0);
+                setEndGameStatus('idle');
+                setEndGameError('');
+                setEndGameMessage('');
+                containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                canvasRef.current?.focus();
+            } else if (status === 'error') {
+                setStartGameError(errorMessage || 'Failed to start game');
+                setGameStarted(false);
+            }
+        },
+        [updateTickets]
+    );
 
-    const handleEndGameStatusChange = useCallback((status: 'idle' | 'pending' | 'leader' | 'loser' | 'error', errorMessage?: string, highScore?: string) => {
-        setEndGameStatus(status);
-        if (status === 'pending') {
-            setEndGameError('');
-        } else if (status === 'leader') {
-            setEndGameMessage('CONGRATULATIONS! YOU SET A NEW HIGH SCORE!');
-            console.log('New leader score:', Math.floor(score));
-        } else if (status === 'loser') {
-            setEndGameMessage(`YOU DID NOT BEAT THE HIGH SCORE: ${highScore}!`);
-            console.log('Game ended, not the leader. Player Score:', Math.floor(score), 'High Score:', highScore);
-        } else if (status === 'error') {
-            setEndGameError(errorMessage || 'Failed to end game');
-        }
-    }, [score]);
+    const handleEndGameStatusChange = useCallback(
+        (status: 'idle' | 'pending' | 'leader' | 'loser' | 'error', errorMessage?: string, highScore?: string) => {
+            setEndGameStatus(status);
+            if (status === 'pending') {
+                setEndGameError('');
+            } else if (status === 'leader') {
+                setEndGameMessage('CONGRATULATIONS! YOU SET A NEW HIGH SCORE!');
+                console.log('New leader score:', Math.floor(score));
+            } else if (status === 'loser') {
+                setEndGameMessage(`YOU DID NOT BEAT THE HIGH SCORE: ${highScore}!`);
+                console.log('Game ended, not the leader. Player Score:', Math.floor(score), 'High Score:', highScore);
+            } else if (status === 'error') {
+                setEndGameError(errorMessage || 'Failed to end game');
+            }
+        },
+        [score]
+    );
 
     useEffect(() => {
         if (gameOver && gameStarted && endGameStatus === 'idle') {
@@ -514,8 +544,15 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                         </select>
                     </div>
                     {address ? (
-                        <Button onClick={startGame} disabled={startGameStatus === 'pending' || !imagesLoaded}>
-                            {startGameStatus === 'pending' ? 'starting...' : !imagesLoaded ? 'Loading...' : 'START GAME'}
+                        <Button
+                            onClick={startGame}
+                            disabled={startGameStatus === 'pending' || !imagesLoaded || !isRecaptchaReady}
+                        >
+                            {startGameStatus === 'pending'
+                                ? 'starting...'
+                                : !imagesLoaded || !isRecaptchaReady
+                                ? 'Loading...'
+                                : 'START GAME'}
                         </Button>
                     ) : (
                         <div className="flex items-center justify-center">
@@ -524,7 +561,9 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                     )}
                     <p className="mt-2">COST: 1 TICKET</p>
                     {startGameStatus === 'error' && startGameError && (
-                        <p className="text-error-red mt-2">{startGameError}</p>
+                        <p className="text-error-red mt-2">
+                            {startGameError} Try selecting a ship or obstacle to start.
+                        </p>
                     )}
                 </div>
             ) : (
@@ -540,12 +579,14 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                             <Button
                                 className="mt-6"
                                 onClick={startGame}
-                                disabled={startGameStatus === 'pending' || endGameStatus === 'pending' || endGameStatus === 'leader'}
+                                disabled={startGameStatus === 'pending' || endGameStatus === 'pending' || endGameStatus === 'leader' || !isRecaptchaReady}
                             >
                                 {startGameStatus === 'pending' ? 'starting...' : 'PLAY AGAIN'}
                             </Button>
                             {startGameStatus === 'error' && startGameError && (
-                                <p className="text-error-red mt-2">{startGameError}</p>
+                                <p className="text-error-red mt-2">
+                                    {startGameError} Try selecting a ship or obstacle to start.
+                                </p>
                             )}
                         </div>
                     )}

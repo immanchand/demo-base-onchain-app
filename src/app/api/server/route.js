@@ -287,9 +287,9 @@ export async function POST(request) {
                 const maxVy = lastFrame.data.vy; // Best case: no flaps, just last velocity
                 const minVy = lastFrame.frameId < 20 ? FLY_PARAMETERS.FLAP_VELOCITY*2 : FLY_PARAMETERS.FLAP_VELOCITY; // Account for initial vy
                 // Calculate expected y range
-                
-                const expectedYMax = lastFrame.data.y + maxVy * deltaTime + 0.5 * deltaTime * deltaTime * FLY_PARAMETERS.GRAVITY;
-                const expectedYMin = lastFrame.data.y + minVy * deltaTime + 0.5 * deltaTime * deltaTime * FLY_PARAMETERS.GRAVITY;
+                const deltaTimePerFrame = event.data.deltaTime / 10;
+                const expectedYMax = lastFrame.data.y + maxVy * deltaTimePerFrame + 0.5 * deltaTimePerFrame * deltaTimePerFrame * FLY_PARAMETERS.GRAVITY;
+                const expectedYMin = lastFrame.data.y + minVy * deltaTimePerFrame + 0.5 * deltaTimePerFrame * deltaTimePerFrame * FLY_PARAMETERS.GRAVITY;
                 // Allow 10px variance outside the range
                 if (event.data.y < expectedYMin - 10 || event.data.y > expectedYMax + 10) {
                   console.log('Frame position check failed', {

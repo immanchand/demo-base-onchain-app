@@ -202,7 +202,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             y: 0 ,
             width: FLY_PARAMETERS.SHIP_WIDTH,
             height: FLY_PARAMETERS.SHIP_HEIGHT,
-            vy: 0,
+            vy: FLY_PARAMETERS.FLAP_VELOCITY,
         };
         let obstaclePool: Obstacle[] = [];
         const stars: { x: number; y: number; dx: number }[] = [];

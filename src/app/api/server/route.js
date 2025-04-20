@@ -66,7 +66,7 @@ export async function POST(request) {
       case 'create-game':
         const nowCreate = Date.now();
         const fifteenMinutes = 25 * 60 * 1000; // 25 minutes in milliseconds
-        const lastCallCreate = rateLimitStore.get(sessionId);
+        const lastCallCreate = rateLimitStore.get(address);
         if (lastCallCreate && nowCreate - lastCallCreate < fifteenMinutes) {
           const timeLeft = Math.ceil((fifteenMinutes - (nowCreate - lastCallCreate)) / (60 * 1000));
           return new Response(
@@ -76,7 +76,7 @@ export async function POST(request) {
         }
         tx = await contract.createGame();
         receipt = await tx.wait();
-        rateLimitStore.set(sessionId, nowCreate);
+        rateLimitStore.set(address, nowCreate);
         return new Response(
           JSON.stringify({ status: 'success', txHash: tx.hash }),
           { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
@@ -90,7 +90,7 @@ export async function POST(request) {
           );
         }
         const nowEnd = Date.now();
-        const lastCallEnd = rateLimitStore.get(`${sessionId}:end`);
+        const lastCallEnd = rateLimitStore.get(`${address}:end`);
         const rateLimitSeconds = Number(process.env.ENDGAME_RATE_LIMIT_SECONDS) || 30;
         if (lastCallEnd && nowEnd - lastCallEnd < rateLimitSeconds * 1000) {
           return new Response(
@@ -98,7 +98,7 @@ export async function POST(request) {
             { status: 429 }
           );
         }
-        rateLimitStore.set(`${sessionId}:end`, nowEnd);
+        rateLimitStore.set(`${address}:end`, nowEnd);
 
         //main logig to check telemetry and stats and score and try to send contract transaction
         try {
@@ -147,6 +147,7 @@ export async function POST(request) {
                     ' Server Game End: ', nowEnd,
                     ' Server Game Duration: ', serverDuration,
                     ' Client Game Duration: ', stats.time);
+                gameDurationStore.delete(address);
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: game duration is more than expected' }), {
                     status: 400,
                 });
@@ -163,8 +164,10 @@ export async function POST(request) {
                 ' Server Game End: ', nowEnd,
                 ' Server Game Duration: ', serverDuration,
                 ' Telemetry Duration: ', telemetryDuration);
+              gameDurationStore.delete(address);
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious telemetry duration vs server duration' }), { status: 400 });
             }
+            gameDurationStore.delete(address);
             
             // Check for identical deltaTime values (suspicious for manipulation)
             const deltaTimes = frameEvents.map(e => e.data.deltaTime);
@@ -187,8 +190,8 @@ export async function POST(request) {
               const fpsValues = fpsEvents.map(e => e.data.fps);
               const minFps = Math.min(...fpsValues);
               const maxFps = Math.max(...fpsValues);
-              // Allow 40–72 FPS for mobile compatibility
-              if (minFps < 40 || maxFps > 72) {
+              // Allow 40–72 FPS for mobile compatibility. No upper bound as game is harder when faster.
+              if (minFps < 40) {
                 return new Response(JSON.stringify({ status: 'error', message: 'FPS out of acceptable range' }), { status: 400 });
               }
               // Check for suspicious FPS variance (e.g., >20 FPS change)
@@ -233,10 +236,8 @@ export async function POST(request) {
               let computedScore = 0;
               if (telemetry.length < TELEMETRY_LIMIT) {
                 // Simple sum for games with complete telemetry
-                for (const event of telemetry) {
-                  if (event.event === 'frame') {
+                for (const event of frameEvents) {
                     computedScore += event.data.deltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER;
-                  }
                 }
                 console.log('first computedScore', computedScore);
               } else {
@@ -384,7 +385,7 @@ export async function POST(request) {
               if (stats.obstaclesCleared < dodgedObstacles - 2 || stats.obstaclesCleared > dodgedObstacles + 2 ) { // +-2 for tolerance
                 return new Response(JSON.stringify({ status: 'error', message: 'Mismatch in obstacles cleared' }), { status: 400 });
               }
-              
+
               // FLAPS RELATED VALIDATOINS
               // validate stats.flapsPerSec matches the number of flap and keydown events
               const flapEvents = telemetry.filter(e => e.event === 'flap').length;

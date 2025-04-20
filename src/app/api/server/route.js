@@ -52,7 +52,7 @@ export async function POST(request) {
     });
   }
 
-  const { action, gameId, address, score, recaptchaToken, telemetry, stats } = body;
+  const { action, gameId, address, score, recaptchaTokenStart, recaptchaTokenEnd, telemetry, stats } = body;
   if (!action) {
     return new Response(JSON.stringify({ status: 'error', message: 'Missing action' }), {
       status: 400,
@@ -205,7 +205,7 @@ export async function POST(request) {
               // validate recaptcha token for bot detection
               try {
                 const recaptchaResponse = await fetch(
-                  `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`
+                  `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaTokenEnd}`
                 );
                 const recaptchaData = await recaptchaResponse.json();
                 console.log('reCAPTCHA END data:', recaptchaData);
@@ -439,7 +439,7 @@ export async function POST(request) {
               // validate recaptcha token for bot detection
               try {
                 const recaptchaResponse = await fetch(
-                  `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`
+                  `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaTokenEnd}`
                 );
                 const recaptchaData = await recaptchaResponse.json();
                 if (!recaptchaData.success || recaptchaData.score < SHOOT_PARAMETERS.RECAPTCHA_END_THRESHOLD) {
@@ -513,7 +513,7 @@ export async function POST(request) {
         
         try {
           const recaptchaResponse = await fetch(
-            `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`
+            `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaTokenStart}`
           );
           const recaptchaData = await recaptchaResponse.json();
           console.log('reCAPTCHA START data:', recaptchaData);

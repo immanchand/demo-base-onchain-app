@@ -52,9 +52,9 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                 }
 
                 // Get reCAPTCHA token
-                let recaptchaToken = '';
+                let recaptchaTokenStart = '';
                 try {
-                    recaptchaToken = await new Promise((resolve, reject) => {
+                    recaptchaTokenStart = await new Promise((resolve, reject) => {
                         if (!window.grecaptcha) {
                             reject(new Error('reCAPTCHA not loaded. Please wait and try again.'));
                         }
@@ -126,7 +126,7 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                             'X-App-Origin': xapporigin,
                         },
                         credentials: 'include',
-                        body: JSON.stringify({ action: 'start-game', gameId, address, recaptchaToken }),
+                        body: JSON.stringify({ action: 'start-game', gameId, address, recaptchaTokenStart }),
                     });
                     const data = await response.json();
                     if (data.status === 'success') {

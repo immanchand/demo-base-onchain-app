@@ -66,7 +66,7 @@ export async function POST(request) {
       case 'create-game':
         const nowCreate = Date.now();
         const fifteenMinutes = 25 * 60 * 1000; // 25 minutes in milliseconds
-        const lastCallCreate = rateLimitStore.get(address);
+        const lastCallCreate = rateLimitStore.get(sessionId);
         if (lastCallCreate && nowCreate - lastCallCreate < fifteenMinutes) {
           const timeLeft = Math.ceil((fifteenMinutes - (nowCreate - lastCallCreate)) / (60 * 1000));
           return new Response(
@@ -76,7 +76,7 @@ export async function POST(request) {
         }
         tx = await contract.createGame();
         receipt = await tx.wait();
-        rateLimitStore.set(address, nowCreate);
+        rateLimitStore.set(sessionId, nowCreate);
         return new Response(
           JSON.stringify({ status: 'success', txHash: tx.hash }),
           { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
@@ -90,7 +90,7 @@ export async function POST(request) {
           );
         }
         const nowEnd = Date.now();
-        const lastCallEnd = rateLimitStore.get(`${address}:end`);
+        const lastCallEnd = rateLimitStore.get(`${sessionId}:end`);
         const rateLimitSeconds = Number(process.env.ENDGAME_RATE_LIMIT_SECONDS) || 30;
         if (lastCallEnd && nowEnd - lastCallEnd < rateLimitSeconds * 1000) {
           return new Response(
@@ -98,7 +98,7 @@ export async function POST(request) {
             { status: 429 }
           );
         }
-        rateLimitStore.set(`${address}:end`, nowEnd);
+        rateLimitStore.set(`${sessionId}:end`, nowEnd);
 
         //main logig to check telemetry and stats and score and try to send contract transaction
         try {

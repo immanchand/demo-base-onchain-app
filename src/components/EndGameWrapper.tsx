@@ -63,6 +63,7 @@ const EndGameWrapper = forwardRef<{ endGame: () => Promise<void> }, EndGameWrapp
                 }
 
                 if (Number(score) <= Number(highScore)) {
+                  console.log('Score is not higher than highScore, no need to end game: ' + score + ' <= ' + highScore);
                     onStatusChange('loser', undefined, highScore.toString());
                     return;
                 }

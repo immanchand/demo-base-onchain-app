@@ -475,7 +475,10 @@ export async function POST(request) {
                 });
               }
             }
-            tx = await contract.endGame(BigInt(gameId), address, BigInt(score));
+            
+        } //end if score >= telemetry threshold and > contractHighScore
+        //now submit the validated high score to the contract
+        tx = await contract.endGame(BigInt(gameId), address, BigInt(score));
             receipt = await tx.wait();
             let isHighScore = false;
             try {
@@ -495,7 +498,6 @@ export async function POST(request) {
               }),
               { status: 200 }
             );
-        } //end if score >= telemetry threshold and > contractHighScore
       } catch (error) {
         console.error('End game error:', error);
         return new Response(JSON.stringify({ status: 'error', message: error.message || 'Failed to end game' }), {

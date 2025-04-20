@@ -68,9 +68,9 @@ const EndGameWrapper = forwardRef<{ endGame: () => Promise<void> }, EndGameWrapp
                     return;
                 }
 
-                let recaptchaToken = '';
+                let recaptchaTokenEnd = '';
                 try {
-                    recaptchaToken = await new Promise((resolve, reject) => {
+                    recaptchaTokenEnd = await new Promise((resolve, reject) => {
                         if (!window.grecaptcha) {
                             reject(new Error('reCAPTCHA not loaded. Please wait and try again.'));
                         }
@@ -108,7 +108,7 @@ const EndGameWrapper = forwardRef<{ endGame: () => Promise<void> }, EndGameWrapp
                             score,
                             telemetry: Number(score) >= TELEMETRY_SCORE_THRESHOLD ? telemetry : [],
                             stats: Number(score) >= TELEMETRY_SCORE_THRESHOLD ? stats : null,
-                            recaptchaToken,
+                            recaptchaTokenEnd,
                         }),
                     });
 

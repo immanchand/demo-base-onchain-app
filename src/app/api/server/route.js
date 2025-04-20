@@ -244,22 +244,21 @@ export async function POST(request) {
                 let firstFrameTime = null;
                 let firstFrameScore = null;
                 let frameEventsProcessed = false;
-                for (const event of telemetry) {
-                  if (event.event === 'frame') {
-                    if (firstFrameTime === null) {
-                      firstFrameTime = event.time;
-                      firstFrameScore = event.data.score;
-                      const gameStartTime = firstFrameTime - stats.time;
-                      const elapsedTimeSeconds = (firstFrameTime - gameStartTime) / 1000;
-                      computedScore = elapsedTimeSeconds * FLY_PARAMETERS.SCORE_MULTIPLIER;
-                      if (Math.abs(computedScore - firstFrameScore) > computedScore * 0.1) {
-                        return new Response(JSON.stringify({ status: 'error', message: 'Suspicious first frame score' }), { status: 400 });
-                      }
-                    } else {
-                      computedScore += event.data.deltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER;
+                
+                for (const event of frameEvents) {
+                  if (firstFrameTime === null) {
+                    firstFrameTime = event.time;
+                    firstFrameScore = event.data.score;
+                    const gameStartTime = firstFrameTime - stats.time;
+                    const elapsedTimeSeconds = (firstFrameTime - gameStartTime) / 1000;
+                    computedScore = elapsedTimeSeconds * FLY_PARAMETERS.SCORE_MULTIPLIER;
+                    if (Math.abs(computedScore - firstFrameScore) > computedScore * 0.1) {
+                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious first frame score' }), { status: 400 });
                     }
-                    frameEventsProcessed = true;
+                  } else {
+                    computedScore += event.data.deltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER;
                   }
+                  frameEventsProcessed = true;
                 }
                 if (!frameEventsProcessed) {
                   computedScore = gameTimeSec * FLY_PARAMETERS.SCORE_MULTIPLIER;
@@ -276,30 +275,33 @@ export async function POST(request) {
             //check between frame actions
             // Check if frameId is in order and position is plausible
             let lastFrame = null;
-            for (const event of telemetry) {
-              if (event.event === 'frame') {
-                if (lastFrame) {
-                  const deltaTime = event.data.deltaTime; // Already in seconds
-                  const expectedY = lastFrame.data.y + lastFrame.data.vy * deltaTime + 0.5 * deltaTime * deltaTime * FLY_PARAMETERS.GRAVITY; // GRAVITY = 0.2
-                  if (Math.abs(event.data.y - expectedY) > 10) { // Allow 10px variance for floating-point errors
-                    console.log('Frame position check failed for',
-                      ' Event: ', event,
-                      ' Event data: ', event.data,
-                      ' Event data y: ', event.data.y,
-                      ' Last frame: ', lastFrame,
-                      ' Last frame data: ', lastFrame.data,
-                      ' Last frame data y: ', lastFrame.data.y,
-                      ' Expected Y: ', expectedY,
-                      ' Actual Y: ', event.data.y);
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
-                  }
-                  // Check frameId order
-                  if (event.frameId <= lastFrame.frameId) {
-                    return new Response(JSON.stringify({ status: 'error', message: 'Out-of-order frame IDs' }), { status: 400 });
-                  }
+            for (const event of frameEvents) {
+              if (lastFrame) {
+                const deltaTime = event.data.deltaTime;
+                // Find flap events between lastFrame.time and event.time
+                const flapsBetween = telemetry.filter(
+                  e => e.event === 'flap' && e.time > lastFrame.time && e.time <= event.time
+                );
+                // Assume velocity could be affected by flaps (vy = FLAP_VELOCITY) or gravity
+                const maxVy = lastFrame.data.vy; // Best case: no flaps, just last velocity
+                const minVy = FLY_PARAMETERS.FLAP_VELOCITY; // Worst case: flap sets vy to -5
+                // Calculate expected y range
+                const expectedYMax = lastFrame.data.y + maxVy * deltaTime + 0.5 * deltaTime * deltaTime * FLY_PARAMETERS.GRAVITY;
+                const expectedYMin = lastFrame.data.y + minVy * deltaTime + 0.5 * deltaTime * deltaTime * FLY_PARAMETERS.GRAVITY;
+                // Allow 10px variance outside the range
+                if (event.data.y < expectedYMin - 10 || event.data.y > expectedYMax + 10) {
+                  console.log('Frame position check failed', {
+                    event,
+                    lastFrame,
+                    expectedYMin,
+                    expectedYMax,
+                    actualY: event.data.y,
+                    flapsBetween
+                  });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
                 }
-                lastFrame = event;
               }
+              lastFrame = event;
             }
             // Telemetry validation
             // Validate collision events
@@ -377,7 +379,12 @@ export async function POST(request) {
               if (Math.abs(doubleSpawnCount - expectedDoubleSpawns) > expectedDoubleSpawns * 0.1) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious cluster spawn frequency' }), { status: 400 });
               }
-
+              //Ensure stats.obstaclesCleared matches the number of obstacles marked as dodged in telemetry
+              const dodgedObstacles = telemetry.filter(e => e.event === 'spawn').length;
+              if (stats.obstaclesCleared < dodgedObstacles - 2 || stats.obstaclesCleared > dodgedObstacles + 2 ) { // +-2 for tolerance
+                return new Response(JSON.stringify({ status: 'error', message: 'Mismatch in obstacles cleared' }), { status: 400 });
+              }
+              
               // FLAPS RELATED VALIDATOINS
               // validate stats.flapsPerSec matches the number of flap and keydown events
               const flapEvents = telemetry.filter(e => e.event === 'flap').length;

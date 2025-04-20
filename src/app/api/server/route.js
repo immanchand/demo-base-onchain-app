@@ -9,6 +9,7 @@ import {  contractABI,
           SCORE_DIVISOR_TIME,
           FLY_PARAMETERS,
           SHOOT_PARAMETERS } from '../../../constants';
+import { skip } from 'node:test';
 
 const rateLimitStore = new Map();
 const gameDurationStore = new Map();
@@ -277,19 +278,18 @@ export async function POST(request) {
             // Check if frameId is in order and position is plausible
             let lastFrame = null;
             for (const event of frameEvents) {
-              if (lastFrame) {
+              if (lastFrame && lastFrame.frameId > 50) { //skip for frist few frames
                 const deltaTime = event.data.deltaTime;
                 // Find flap events between lastFrame.time and event.time
                 const flapsBetween = telemetry.filter(
                   e => e.event === 'flap' && e.time > lastFrame.time && e.time <= event.time
                 );
                 // Assume velocity could be affected by flaps (vy = FLAP_VELOCITY) or gravity
-                const maxVy = lastFrame.frameId < 20 ? FLY_PARAMETERS.FLAP_VELOCITY*2 : lastFrame.data.vy; // Best case: no flaps, just last velocity
-                const minVy = lastFrame.frameId < 20 ? FLY_PARAMETERS.GRAVITY : lastFrame.data.vy; // Account for initial vy
+                const maxVy = lastFrame.data.vy; // Best case: no flaps, just last velocity
+                const minVy = FLY_PARAMETERS.FLAP_VELOCITY; // Worst case: flap sets vy to -5
                 // Calculate expected y range
-                const deltaTimePerFrame = event.data.deltaTime / 10;
-                const expectedYMax = lastFrame.data.y + maxVy * deltaTimePerFrame + 0.5 * deltaTimePerFrame * deltaTimePerFrame * FLY_PARAMETERS.GRAVITY;
-                const expectedYMin = lastFrame.data.y + minVy * deltaTimePerFrame + 0.5 * deltaTimePerFrame * deltaTimePerFrame * FLY_PARAMETERS.GRAVITY;
+                const expectedYMax = lastFrame.data.y + maxVy * deltaTime + 0.5 * deltaTime * deltaTime * FLY_PARAMETERS.GRAVITY;
+                const expectedYMin = lastFrame.data.y + minVy * deltaTime + 0.5 * deltaTime * deltaTime * FLY_PARAMETERS.GRAVITY;
                 // Allow 10px variance outside the range
                 if (event.data.y < expectedYMin - 10 || event.data.y > expectedYMax + 10) {
                   console.log('Frame position check failed', {

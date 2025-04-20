@@ -3,7 +3,7 @@ import { baseSepolia } from "viem/chains";
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
 export const ethPrice = 1700;
 export const message = 'Please sign this message to approve paying tickets to start the game session. This is not a transaction and there is no fee. It is only used to verify your identity and protect your own tickts.';
-export const RECAPTCHA_START_THRESHOLD = 0.6;
+export const RECAPTCHA_START_THRESHOLD = 0.5;
 export const TELEMETRY_LIMIT = 10000; // Max telemetry data points
 export const TELEMETRY_SCORE_THRESHOLD = 200; // Min score for telemetry data
 // Scoring multipliers
@@ -23,7 +23,7 @@ export const FLY_PARAMETERS = {
   MIN_SPAWN_INTERVAL: 300, // Lower (e.g., 200) = more frequent obstacles, harder; Higher (e.g., 500) = easier
   GRAVITY: 0.2, // Higher (e.g., 0.3) = faster fall, harder; Lower (e.g., 0.1) = easier
   FLAP_VELOCITY: -5, // Higher (e.g., -6) = stronger flaps, easier; Lower (e.g., -4) = harder
-  SCORE_PER_SECOND: 100,
+  SCORE_MULTIPLIER: 100,
   MAX_FLAPS_PER_SEC: 5,
   MIN_FLAPS_PER_SEC: 1,
   RECAPTCHA_END_THRESHOLD: 0.5, // Higher is more human check; Lower (e.g., 0.2) is less human check.
@@ -33,7 +33,7 @@ export const JUMP_PARAMETERS = {
   MIN_GAP: 300, // Lower (e.g., 200) = tighter gaps, harder; Higher (e.g., 400) = easier
   GRAVITY: 0.4, // Higher (e.g., 0.5) = faster fall, harder; Lower (e.g., 0.3) = easier
   JUMP_VELOCITY: -12, // Higher (e.g., -14) = higher jumps, easier; Lower (e.g., -10) = harder
-  SCORE_PER_SECOND: 100,
+  SCORE_MULTIPLIER: 100,
 };
 export const SHOOT_PARAMETERS = {
   ENEMY_SPEED_BASE: 2, // Higher (e.g., 3) = faster enemies, harder; Lower (e.g., 1) = easier

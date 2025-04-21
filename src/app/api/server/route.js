@@ -125,6 +125,11 @@ export async function POST(request) {
                 status: 400,
               });
             }
+            if (telemetry.length >= TELEMETRY_LIMIT-1) {
+              return new Response(JSON.stringify({ status: 'error', message: 'Telemetry data is invalid. Suspected cheating.' }), {
+                status: 400,
+              });
+            }
             console.log('telemetry (first 100 events): ', telemetry.slice(0, 100));
             console.log('telemetry (last 100 events): ', telemetry.slice(-100));
             console.log('stats: ', stats);
@@ -163,10 +168,6 @@ export async function POST(request) {
             }
             // All game check telemetry only one event collision
             const collisionEvents = telemetry.filter(e => e.event === 'collision');
-            console.log('collisionEvents', collisionEvents);
-            //to do some error now : "collisionEvents length undefined"
-            console.log('collisionEvents length', collisionEvents.length);
-            //to do some error now : "collisionEvents length undefined"
             if (collisionEvents.length !== 1 && (collisionEvents.length == 2 && collisionEvents[0].time !== collisionEvents[1].time)) {
               console.log('Incorrect number of collision events found for', {
                 address,
@@ -204,20 +205,19 @@ export async function POST(request) {
             const frameEvents = telemetry.filter(e => e.event === 'frame');
             // Detect Game Clock Manipulation
             // check telemetry time agains server time only if telemetry length is less than limit
-            if (telemetryLength < TELEMETRY_LIMIT) {
-              const telemetryDuration = frameEvents[frameEvents.length-1].time - frameEvents[0].time;
-              if (telemetryDuration > serverDuration) {
-                console.log('GameDurationStore Duration Check failed for',
-                  ' Player: ', address,
-                  ' Game Id: ', gameId,
-                  ' Game Name: ', stats.game,
-                  ' Server Game Start: ', gameDurationStore.get(address),
-                  ' Server Game End: ', nowEnd,
-                  ' Server Game Duration: ', serverDuration,
-                  ' Telemetry Duration: ', telemetryDuration);
-                gameDurationStore.delete(address);
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious telemetry duration vs server duration' }), { status: 400 });
-              }
+            
+            const telemetryDuration = frameEvents[frameEvents.length-1].time - frameEvents[0].time;
+            if (telemetryDuration > serverDuration) {
+              console.log('GameDurationStore Duration Check failed for',
+                ' Player: ', address,
+                ' Game Id: ', gameId,
+                ' Game Name: ', stats.game,
+                ' Server Game Start: ', gameDurationStore.get(address),
+                ' Server Game End: ', nowEnd,
+                ' Server Game Duration: ', serverDuration,
+                ' Telemetry Duration: ', telemetryDuration);
+              gameDurationStore.delete(address);
+              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious telemetry duration vs server duration' }), { status: 400 });
             }
             gameDurationStore.delete(address);
             // check 
@@ -292,7 +292,7 @@ export async function POST(request) {
 
               // TIME based games telemetry computed score validation
               let computedScore = 0;
-              if (telemetryLength < TELEMETRY_LIMIT) {
+              if (telemetryLength < TELEMETRY_LIMIT-1) { //*************keep for now only for the code. Delete check and else before production
                 // Simple sum for games with complete telemetry
                 for (const event of frameEvents) {
                     computedScore += event.data.deltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER;
@@ -337,30 +337,27 @@ export async function POST(request) {
 							//SPAWN RELETED VALIDATION
               const spawnEvents = telemetry.filter(e => e.event === 'spawn');
               //validate spawn events in telemetry against obstacles cleared and maxObstacles in stats
-              if (telemetryLength < TELEMETRY_LIMIT) {
-                if (stats.obstaclesCleared < spawnEvents.length - stats.maxObstacles
-                    || stats.obstaclesCleared > spawnEvents.length) { //account for obstacles spawned but not cleared yet
-                  console.log('Spawn events count mismatch', {
-                    address,
-                    gameId,
-                    gameName: stats.game,
-                    obstaclesCleared: stats.obstaclesCleared,
-                    maxObstacles: stats.maxObstacles,
-                    spawnEventsCount: spawnEvents.length
-                  });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle count in stats and telemetry' }), { status: 400 });
-                }
+              if (stats.obstaclesCleared < spawnEvents.length - stats.maxObstacles
+                  || stats.obstaclesCleared > spawnEvents.length) { //account for obstacles spawned but not cleared yet
+                console.log('Spawn events count mismatch', {
+                  address,
+                  gameId,
+                  gameName: stats.game,
+                  obstaclesCleared: stats.obstaclesCleared,
+                  maxObstacles: stats.maxObstacles,
+                  spawnEventsCount: spawnEvents.length
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle count in stats and telemetry' }), { status: 400 });
               }
+              
               // validate spawned obstacle speeds against expected speed values
               // Calculate game start time with offset for first frame
               const firstFrameId = telemetry.find(e => e.event === 'frame')?.data?.frameId || 10;
               const frameInterval = 1000 / minFps; // Assume 60 FPS
               const offset = (firstFrameId - 1) * frameInterval; // Adjust for frames before first logged event and miliseconds to seconds  
-              const gameStartTime = telemetryLength < TELEMETRY_LIMIT?
-                      telemetry[0].time - offset : telemetry[telemetryLength -1].time - stats.time - offset;
+              const gameStartTime = telemetry[0].time - offset;
               for (const event of spawnEvents) {
                 const elapsedTimeSec = ((event.time - gameStartTime) / 1000); //divide by 1000 to convert to seconds
-                console.log('elapsedTimeSec:', elapsedTimeSec, 'event.time:', event.time, 'gameStartTime:', gameStartTime);
                 const difficultyFactor = Math.min(elapsedTimeSec / 90, 1);
                 const expectedSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
                 if (Math.abs(event.data.speed - expectedSpeed) > 0.1) {
@@ -379,10 +376,18 @@ export async function POST(request) {
               // Validate obstacle spawns
               const gameTimeSec = stats.time / 1000;
               const difficultyFactor = Math.min(gameTimeSec / 90, 1);
-              const avgSpawnInterval = gameTimeSec <= 90 ? (2800 + (2800 - 2500 * gameTimeSec / 90)) / 2 : ((90 * 1550) + ((gameTimeSec - 90) * FLY_PARAMETERS.MIN_SPAWN_INTERVAL)) / gameTimeSec;
-              const minExpectedSpawns = (stats.time / avgSpawnInterval);// * 0.8; // 20% tolerance
+              let avgSpawnInterval;
+              if (gameTimeSec <= 90) {
+                avgSpawnInterval = 2800 - (2500 * gameTimeMs) / (2 * 90000);
+              } else {
+                  const decayFactor = Math.exp(-gameTimeSec / 720);
+                  avgSpawnInterval = 300 + (112500000 / gameTimeMs) * decayFactor;
+              }
+              const avgObstaclesPerSpawn = gameTimeSec <= 90 ? 1 + (gameTimeSec / 90 * 0.15) : ((90 * 1.15) + ((gameTimeSec - 90) * 1.3)) / gameTimeSec;
+              const minExpectedSpawns = (gameTimeMs / avgSpawnInterval) * avgObstaclesPerSpawn * 0.93;
               console.log('avgSpawnInterval', avgSpawnInterval);
               console.log('minExpectedSpawns', minExpectedSpawns);
+              console.log('averageObstaclesPerSpawn', avgObstaclesPerSpawn);
               console.log('spawnEvents.length', spawnEvents.length);
               if (spawnEvents.length < minExpectedSpawns) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: Too few obstacle spawns' }), { status: 400 });
@@ -397,7 +402,7 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious maxObstacles: outside expected range' }), { status: 400 });
               }
               
-              const avgObstaclesPerSpawn = gameTimeSec <= 90 ? 1 + (gameTimeSec / 90 * 0.15) : 1.3;
+              //const avgObstaclesPerSpawn = gameTimeSec <= 90 ? 1 + (gameTimeSec / 90 * 0.15) : 1.3;
               //const avgSpawnInterval = gameTimeSec <= 90 ? (2800 + (2800 - 2500 * gameTimeSec / 90)) / 2 : ((90 * 1550) + ((gameTimeSec - 90) * 300)) / gameTimeSec;
               const expectedSpawns = (stats.time / avgSpawnInterval) * avgObstaclesPerSpawn;
               const maxExpectedSpawns = expectedSpawns * 1.5;

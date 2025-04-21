@@ -277,28 +277,41 @@ export async function POST(request) {
             //check between frame actions
             // Check if frameId is in order and position is plausible
             let lastFrame = null;
+            const frames = 10; // Telemetry is every 10 frames
             for (const event of frameEvents) {
-              if (lastFrame && lastFrame.frameId > 50) { //skip for frist few frames
-                const deltaTime = event.data.deltaTime;
-                // Find flap events between lastFrame.time and event.time
+              if (lastFrame && lastFrame.frameId > 50) { // Skip for first few frames
+                const deltaTime = event.data.deltaTime; // Cumulative deltaTime over 10 frames
                 const flapsBetween = telemetry.filter(
                   e => e.event === 'flap' && e.time > lastFrame.time && e.time <= event.time
                 );
-                // Assume velocity could be affected by flaps (vy = FLAP_VELOCITY) or gravity
-                const maxVy = lastFrame.data.vy; // Best case: no flaps, just last velocity
-                const minVy = FLY_PARAMETERS.FLAP_VELOCITY; // Worst case: flap sets vy to -5
-                // Calculate expected y range
-                const expectedYMax = lastFrame.data.y + maxVy * deltaTime + 0.5 * deltaTime * deltaTime * FLY_PARAMETERS.GRAVITY;
-                const expectedYMin = lastFrame.data.y + minVy * deltaTime + 0.5 * deltaTime * deltaTime * FLY_PARAMETERS.GRAVITY;
-                // Allow 10px variance outside the range
-                if (event.data.y < expectedYMin - 10 || event.data.y > expectedYMax + 10) {
+                let currentY = lastFrame.data.y;
+                let currentVy = lastFrame.data.vy;
+                const frameDeltaTime = deltaTime / frames; // Per-frame deltaTime in seconds
+
+                for (let i = 0; i < frames; i++) {
+                  // Check for a flap in this frame
+                  const frameStartTime = lastFrame.time + i * frameDeltaTime * 1000;
+                  const frameEndTime = frameStartTime + frameDeltaTime * 1000;
+                  const hasFlap = flapsBetween.some(
+                    flap => flap.time > frameStartTime && flap.time <= frameEndTime
+                  );
+                  if (hasFlap) {
+                    currentVy = FLY_PARAMETERS.FLAP_VELOCITY; // -5.0
+                  }
+                  // Apply gravity and update position (match frontend order: vy first, then y)
+                  currentVy += FLY_PARAMETERS.GRAVITY; // GRAVITY = 0.2
+                  currentY += currentVy * frameDeltaTime; // Scale position update by deltaTime
+                }
+
+                // Allow 15px tolerance for floating-point errors and timing variations
+                if (Math.abs(event.data.y - currentY) > 15) {
                   console.log('Frame position check failed', {
                     event,
                     lastFrame,
-                    expectedYMin,
-                    expectedYMax,
+                    expectedY: currentY,
                     actualY: event.data.y,
-                    flapsBetween
+                    flapsBetween,
+                    computedVy: currentVy
                   });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
                 }

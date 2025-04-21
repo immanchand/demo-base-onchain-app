@@ -350,8 +350,6 @@ export async function POST(request) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle count in stats and telemetry' }), { status: 400 });
                 }
               }
-
-              console.log('spawnEvents', spawnEvents);
               // validate spawned obstacle speeds against expected speed values
               // Calculate game start time with offset for first frame
               const firstFrameId = telemetry.find(e => e.event === 'frame')?.data?.frameId || 10;
@@ -359,13 +357,12 @@ export async function POST(request) {
               const offset = (firstFrameId - 1) * frameInterval; // Adjust for frames before first logged event and miliseconds to seconds  
               const gameStartTime = telemetryLength < TELEMETRY_LIMIT?
                       telemetry[0].time - offset : telemetry[telemetryLength -1].time - stats.time - offset;
-              console.log('gameStartTime:', gameStartTime, 'telemetry[0].time:', telemetry[0].time, 'stats.time:', stats.time, 'offset:', offset);
               for (const event of spawnEvents) {
                 const elapsedTimeSec = ((event.time - gameStartTime) / 1000); //divide by 1000 to convert to seconds
                 console.log('elapsedTimeSec:', elapsedTimeSec, 'event.time:', event.time, 'gameStartTime:', gameStartTime);
                 const difficultyFactor = Math.min(elapsedTimeSec / 90, 1);
                 const expectedSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-                console.log('expectedSpeed for event at time', event.time, ':', expectedSpeed, 'event.speed:', event.data.speed);
+                console.log('actual speed - event speed = ', Math.abs(event.data.speed - expectedSpeed));
                 if (Math.abs(event.data.speed - expectedSpeed) > 0.1) {
                     console.log('Obstacle speed check failed', { 
                       address,
@@ -390,7 +387,9 @@ export async function POST(request) {
                   status: 400,
                 });
               }
-              // Validate stats obstacles cleared agains game time and spawn interval  
+              // Validate stats obstacles cleared against game time and spawn interval  
+              console.log('stats.obstaclesCleared', stats.obstaclesCleared);
+              console.log('stats.time/spawnInterval', stats.time/spawnInterval);
               if (stats.obstaclesCleared > stats.time / spawnInterval) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: number of obstacles dodged' }), { status: 400 });
               }
@@ -398,22 +397,24 @@ export async function POST(request) {
               let minObstacles, maxObstacles;
               if (gameTimeSec <= 30) {
                 minObstacles = 1;
-                maxObstacles = 3;
+                maxObstacles = 4;
               } else if (gameTimeSec <= 60) {
                 minObstacles = 2;
-                maxObstacles = 4;
+                maxObstacles = 5;
               } else if (gameTimeSec <= 90) {
                 minObstacles = 3;
-                maxObstacles = 6;
+                maxObstacles = 8;
               } else {
                 minObstacles = 5;
-                maxObstacles = 10;
+                maxObstacles = 12;
               }
               if (stats.maxObstacles < minObstacles || stats.maxObstacles > maxObstacles) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious maxObstacles: outside expected range' }), { status: 400 });
               }
               const expectedSpawns = gameTimeSec <= 90 ? gameTimeSec / 1.55 : (90 / 1.55) + (gameTimeSec - 90) / 0.3;
-              if (Math.abs(spawnEvents.length - expectedSpawns * 1.15) > expectedSpawns * 0.2) { // 20% tolerance
+              console.log('expectedSpawns', expectedSpawns);
+              console.log('spawnEvents.length', spawnEvents.length);
+              if (spawnEvents.length * 1.2 < expectedSpawns ) { // 20% tolerance
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn count' }), { status: 400 });
               }
               //check double spawn events

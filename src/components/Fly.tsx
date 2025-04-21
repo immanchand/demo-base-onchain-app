@@ -370,9 +370,6 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         };
 
         if (gameStarted && !gameOver) {
-            obstaclePool = [spawnObstacle(canvas, FLY_PARAMETERS.BASE_OBSTACLE_SPEED)];
-            lastSpawnTimeRef.current = performance.now();
-            startTimeRef.current = performance.now();
             setTelemetry([]);
             setStats({
                 game: 'fly',
@@ -404,6 +401,9 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 maxObstacles: 0,
                 inputsPerSec: 0,
             };
+            obstaclePool = [spawnObstacle(canvas, FLY_PARAMETERS.BASE_OBSTACLE_SPEED)];
+            lastSpawnTimeRef.current = performance.now();
+            startTimeRef.current = performance.now();
 
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('mousedown', handleMouseDown);

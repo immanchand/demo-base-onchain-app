@@ -132,13 +132,14 @@ export async function POST(request) {
             const gameTimeSec = stats.time / 1000;
 
             // All game check telemetry only one event collision
-            const endEvent = telemetry.find(e => e.event === 'collision');
-            if (endEvent.length !== 1) {
+            const collisionEvents = telemetry.find(e => e.event === 'collision');
+            console.log('collisionEvents', collisionEvents);
+            if (collisionEvents.length !== 1) {
               console.log('Incorrect number of collision events found for', {
                 address,
                 gameId,
                 gameName: stats.game,
-                numberEvents: endEvent.length,
+                numberEvents: collisionEvents.length,
               });
               return new Response(JSON.stringify({ status: 'error', message: 'Missing collision event telemetry' }), {
                 status: 400,
@@ -289,8 +290,8 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score: computed events and reported score don’t match' }), { status: 400 });
               }
             }
-            // TIME based games check between frame actions
-            // Check if frameId is in order and position is plausible
+            // Fly game check between frame actions
+            // Check if game physics between frames are in position and plausible
             let lastFrame = null;
             const frames = 10; // Telemetry is every 10 frames
             for (const event of frameEvents) {
@@ -316,7 +317,7 @@ export async function POST(request) {
                   currentY += currentVy; // No scaling by frameDeltaTime
                 }
 
-                if (Math.abs(event.data.y - currentY) > 15) {
+                if (Math.abs(event.data.y - currentY) > 10) {
                   console.log('Frame position check failed', {
                     event,
                     lastFrame,
@@ -331,15 +332,7 @@ export async function POST(request) {
               lastFrame = event;
             }
             // Telemetry validation
-            // Validate collision events
-            const collisionEvents = telemetry.filter(e => e.event === 'collision');
-            if (collisionEvents.length != 1) {
-              return new Response(JSON.stringify({ status: 'error', message: 'Invalid collisions detected' }), {
-                status: 400,
-              });
-            }
-
-
+            
 			      // Stats validation
             // FLY GAME
             if (stats.game === 'fly') {

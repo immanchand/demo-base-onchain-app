@@ -125,7 +125,8 @@ export async function POST(request) {
                 status: 400,
               });
             }
-            console.log('telemetry: ', telemetry);
+            console.log('telemetry (first 100 events): ', telemetry.slice(0, 100));
+            console.log('telemetry (last 100 events): ', telemetry.slice(-100));
             console.log('stats: ', stats);
 
             const gameTimeSec = stats.time / 1000;
@@ -362,7 +363,6 @@ export async function POST(request) {
                 console.log('elapsedTimeSec:', elapsedTimeSec, 'event.time:', event.time, 'gameStartTime:', gameStartTime);
                 const difficultyFactor = Math.min(elapsedTimeSec / 90, 1);
                 const expectedSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-                console.log('actual speed - event speed = ', Math.abs(event.data.speed - expectedSpeed));
                 if (Math.abs(event.data.speed - expectedSpeed) > 0.1) {
                     console.log('Obstacle speed check failed', { 
                       address,
@@ -400,22 +400,25 @@ export async function POST(request) {
                 maxObstacles = 4;
               } else if (gameTimeSec <= 60) {
                 minObstacles = 2;
-                maxObstacles = 5;
+                maxObstacles = 6;
               } else if (gameTimeSec <= 90) {
                 minObstacles = 3;
-                maxObstacles = 8;
+                maxObstacles = 10;
               } else {
                 minObstacles = 5;
-                maxObstacles = 12;
+                maxObstacles = 20;
               }
               if (stats.maxObstacles < minObstacles || stats.maxObstacles > maxObstacles) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious maxObstacles: outside expected range' }), { status: 400 });
               }
-              const expectedSpawns = gameTimeSec <= 90 ? gameTimeSec / 1.55 : (90 / 1.55) + (gameTimeSec - 90) / 0.3;
+              const avgObstaclesPerSpawn = 1 + (Math.min(gameTimeSec / 90, 1) * 0.3);
+              const avgSpawnIntervalSec = gameTimeSec <= 90 ? (2500 + FLY_PARAMETERS.MIN_SPAWN_INTERVAL) / 2000 : FLY_PARAMETERS.MIN_SPAWN_INTERVAL / 1000;
+              const expectedSpawns = (gameTimeSec / avgSpawnIntervalSec) * avgObstaclesPerSpawn;
+              const maxExpectedSpawns = expectedSpawns * 1.5; // Upper bound for tampering
               console.log('expectedSpawns', expectedSpawns);
-              console.log('spawnEvents.length', spawnEvents.length);
-              if (spawnEvents.length * 1.2 < expectedSpawns ) { // 20% tolerance
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn count' }), { status: 400 });
+              console.log('maxExpectedSpawns', maxExpectedSpawns);
+              if (spawnEvents.length * 1.3 < expectedSpawns || spawnEvents.length > maxExpectedSpawns) {
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn count' }), { status: 400 });
               }
               //check double spawn events
               let doubleSpawnCount = 0;

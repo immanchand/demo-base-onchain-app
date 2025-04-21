@@ -134,6 +134,8 @@ export async function POST(request) {
             // All game check telemetry only one event collision
             const collisionEvents = telemetry.find(e => e.event === 'collision');
             console.log('collisionEvents', collisionEvents);
+            console.log('telemetry length', telemetry.length);
+            console.log('collisionEvents length', collisionEvents.length);
             if (collisionEvents.length !== 1) {
               console.log('Incorrect number of collision events found for', {
                 address,

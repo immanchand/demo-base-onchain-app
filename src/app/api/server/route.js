@@ -167,7 +167,7 @@ export async function POST(request) {
             //to do some error now : "collisionEvents length undefined"
             console.log('collisionEvents length', collisionEvents.length);
             //to do some error now : "collisionEvents length undefined"
-            if (collisionEvents.length !== 1) {
+            if (collisionEvents.length !== 1 && (collisionEvents.length == 2 && collisionEvents[0].time !== collisionEvents[1].time)) {
               console.log('Incorrect number of collision events found for', {
                 address,
                 gameId,
@@ -351,7 +351,7 @@ export async function POST(request) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle count in stats and telemetry' }), { status: 400 });
                 }
               }
-              s
+
               console.log('spawnEvents', spawnEvents);
               // validate spawned obstacle speeds against expected speed values
               // Calculate game start time with offset for first frame

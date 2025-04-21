@@ -361,7 +361,7 @@ export async function POST(request) {
               const gameStartTime = telemetry[0].time - stats.time - offset;
               console.log('gameStartTime:', gameStartTime, 'telemetry[0].time:', telemetry[0].time, 'stats.time:', stats.time, 'offset:', offset);
               for (const event of spawnEvents) {
-                const elapsedTimeSec = (event.time - gameStartTime) / 1000;
+                const elapsedTimeSec = ((event.time - gameStartTime) / 1000) / 1000; //divide by 1000 to convert to seconds
                 console.log('elapsedTimeSec:', elapsedTimeSec, 'event.time:', event.time, 'gameStartTime:', gameStartTime);
                 const difficultyFactor = Math.min(elapsedTimeSec / 90, 1);
                 const expectedSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);

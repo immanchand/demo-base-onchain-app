@@ -412,17 +412,24 @@ export async function POST(request) {
               //check double spawn events
               let doubleSpawnCount = 0;
               for (let i = 1; i < spawnEvents.length; i++) {
-                if (spawnEvents[i].time - spawnEvents[i-1].time < 10) {
-                  doubleSpawnCount++;
-                  const yDiff = Math.abs(spawnEvents[i].data.y - spawnEvents[i-1].data.y);
-                  if (yDiff < FLY_PARAMETERS.OBSTACLE_SIZE * 1.5 * 0.9 || yDiff > FLY_PARAMETERS.OBSTACLE_SIZE * 2 * 1.1) {
-                    return new Response(JSON.stringify({ status: 'error', message: 'Invalid cluster spawn spacing' }), { status: 400 });
+                  if (spawnEvents[i].time - spawnEvents[i-1].time < 50) {
+                      doubleSpawnCount++;
+                      const yDiff = Math.abs(spawnEvents[i].data.y - spawnEvents[i-1].data.y);
+                      console.log('Double spawn detected', { 
+                        yDiff
+                      });
+                      if (yDiff < FLY_PARAMETERS.OBSTACLE_SIZE * 2 * 0.9 || yDiff > FLY_PARAMETERS.OBSTACLE_SIZE * 2 * 1.1) {
+                          console.log(`Invalid cluster: yDiff=${yDiff}, expectedRange=[${FLY_PARAMETERS.OBSTACLE_SIZE * 2 * 0.9}, ${FLY_PARAMETERS.OBSTACLE_SIZE * 2 * 1.1}]`);
+                          return new Response(JSON.stringify({ status: 'error', message: 'Invalid cluster spawn spacing' }), { status: 400 });
+                      }
                   }
-                }
               }
-              const expectedDoubleSpawns = spawnEvents.length * (stats.time / 90000 * 0.3);
-              if (Math.abs(doubleSpawnCount - expectedDoubleSpawns) > expectedDoubleSpawns * 0.1) {
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious cluster spawn frequency' }), { status: 400 });
+              // Check for expected double spawns vs calculated count
+              const expectedDoubleSpawns = spawnEvents.length * (Math.min(stats.time / 90000, 1) * 0.3);
+              console.log('doubleSpawnCount', doubleSpawnCount);
+              console.log('expectedDoubleSpawns', expectedDoubleSpawns);
+              if (Math.abs(doubleSpawnCount - expectedDoubleSpawns) > expectedDoubleSpawns * 0.2) {
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious low double spawn frequency' }), { status: 400 });
               }
               //Ensure stats.obstaclesCleared matches the number of obstacles marked as dodged in telemetry
               const dodgedObstacles = telemetry.filter(e => e.event === 'spawn').length;

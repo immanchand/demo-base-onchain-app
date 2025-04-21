@@ -9,7 +9,6 @@ import {  contractABI,
           SCORE_DIVISOR_TIME,
           FLY_PARAMETERS,
           SHOOT_PARAMETERS } from '../../../constants';
-import { skip } from 'node:test';
 
 const rateLimitStore = new Map();
 const gameDurationStore = new Map();
@@ -357,8 +356,9 @@ export async function POST(request) {
               // Calculate game start time with offset for first frame
               const firstFrameId = telemetry.find(e => e.event === 'frame')?.data?.frameId || 10;
               const frameInterval = 1000 / minFps; // Assume 60 FPS
-              const offset = (firstFrameId - 1) * frameInterval; // Adjust for frames before first logged event
-              const gameStartTime = telemetry[0].time - stats.time - offset;
+              const offset = (firstFrameId - 1) * frameInterval; // Adjust for frames before first logged event and miliseconds to seconds  
+              const gameStartTime = telemetryLength < TELEMETRY_LIMIT?
+                      telemetry[0].time - offset : telemetry[telemetryLength -1].time - stats.time - offset;
               console.log('gameStartTime:', gameStartTime, 'telemetry[0].time:', telemetry[0].time, 'stats.time:', stats.time, 'offset:', offset);
               for (const event of spawnEvents) {
                 const elapsedTimeSec = ((event.time - gameStartTime) / 1000) / 1000; //divide by 1000 to convert to seconds

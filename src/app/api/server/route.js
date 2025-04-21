@@ -377,46 +377,30 @@ export async function POST(request) {
                   }
               }
               // Validate obstacle spawns
-              const difficultyFactor = Math.min(stats.time / 90000, 1);
-              const spawnInterval = 2500 * (1 - difficultyFactor) + FLY_PARAMETERS.MIN_SPAWN_INTERVAL;
-              const minExpectedSpawns = stats.time / spawnInterval;
+              const gameTimeSec = stats.time / 1000;
+              const difficultyFactor = Math.min(gameTimeSec / 90, 1);
+              const avgSpawnInterval = gameTimeSec <= 90 ? (2800 + (2800 - 2500 * gameTimeSec / 90)) / 2 : ((90 * 1550) + ((gameTimeSec - 90) * FLY_PARAMETERS.MIN_SPAWN_INTERVAL)) / gameTimeSec;
+              const minExpectedSpawns = (stats.time / avgSpawnInterval);// * 0.8; // 20% tolerance
+              console.log('avgSpawnInterval', avgSpawnInterval);
               console.log('minExpectedSpawns', minExpectedSpawns);
               console.log('spawnEvents.length', spawnEvents.length);
               if (spawnEvents.length < minExpectedSpawns) {
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: Too few obstacle spawns' }), {
-                  status: 400,
-                });
-              }
-              // Validate stats obstacles cleared against game time and spawn interval  
-              console.log('stats.obstaclesCleared', stats.obstaclesCleared);
-              console.log('stats.time/spawnInterval', stats.time/spawnInterval);
-              if (stats.obstaclesCleared > stats.time / spawnInterval) {
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: number of obstacles dodged' }), { status: 400 });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: Too few obstacle spawns' }), { status: 400 });
               }
               
               let minObstacles, maxObstacles;
-              if (gameTimeSec <= 30) {
-                minObstacles = 1;
-                maxObstacles = 4;
-              } else if (gameTimeSec <= 60) {
-                minObstacles = 2;
-                maxObstacles = 6;
-              } else if (gameTimeSec <= 90) {
-                minObstacles = 3;
-                maxObstacles = 10;
-              } else {
-                minObstacles = 5;
-                maxObstacles = 20;
-              }
+              if (gameTimeSec <= 30) { minObstacles = 1; maxObstacles = 4; }
+              else if (gameTimeSec <= 60) { minObstacles = 2; maxObstacles = 6; }
+              else if (gameTimeSec <= 90) { minObstacles = 3; maxObstacles = 10; }
+              else { minObstacles = 10; maxObstacles = 20; }
               if (stats.maxObstacles < minObstacles || stats.maxObstacles > maxObstacles) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious maxObstacles: outside expected range' }), { status: 400 });
               }
-              const avgObstaclesPerSpawn = 1 + (Math.min(gameTimeSec / 90, 1) * 0.3);
-              const avgSpawnIntervalSec = gameTimeSec <= 90 ? (2500 + FLY_PARAMETERS.MIN_SPAWN_INTERVAL) / 2000 : FLY_PARAMETERS.MIN_SPAWN_INTERVAL / 1000;
-              const expectedSpawns = (gameTimeSec / avgSpawnIntervalSec) * avgObstaclesPerSpawn;
-              const maxExpectedSpawns = expectedSpawns * 1.5; // Upper bound for tampering
-              console.log('expectedSpawns', expectedSpawns);
-              console.log('maxExpectedSpawns', maxExpectedSpawns);
+              
+              const avgObstaclesPerSpawn = gameTimeSec <= 90 ? 1 + (gameTimeSec / 90 * 0.15) : 1.3;
+              //const avgSpawnInterval = gameTimeSec <= 90 ? (2800 + (2800 - 2500 * gameTimeSec / 90)) / 2 : ((90 * 1550) + ((gameTimeSec - 90) * 300)) / gameTimeSec;
+              const expectedSpawns = (stats.time / avgSpawnInterval) * avgObstaclesPerSpawn;
+              const maxExpectedSpawns = expectedSpawns * 1.5;
               if (spawnEvents.length * 1.3 < expectedSpawns || spawnEvents.length > maxExpectedSpawns) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn count' }), { status: 400 });
               }

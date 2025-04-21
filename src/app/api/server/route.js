@@ -279,17 +279,16 @@ export async function POST(request) {
             let lastFrame = null;
             const frames = 10; // Telemetry is every 10 frames
             for (const event of frameEvents) {
-              if (lastFrame && lastFrame.frameId > 50) { // Skip for first few frames
-                const deltaTime = event.data.deltaTime; // Cumulative deltaTime over 10 frames
+              if (lastFrame && lastFrame.frameId > 300) {
+                const deltaTime = event.data.deltaTime;
                 const flapsBetween = telemetry.filter(
                   e => e.event === 'flap' && e.time > lastFrame.time && e.time <= event.time
                 );
                 let currentY = lastFrame.data.y;
                 let currentVy = lastFrame.data.vy;
-                const frameDeltaTime = deltaTime / frames; // Per-frame deltaTime in seconds
+                const frameDeltaTime = deltaTime / frames; // Used only for flap timing
 
                 for (let i = 0; i < frames; i++) {
-                  // Check for a flap in this frame
                   const frameStartTime = lastFrame.time + i * frameDeltaTime * 1000;
                   const frameEndTime = frameStartTime + frameDeltaTime * 1000;
                   const hasFlap = flapsBetween.some(
@@ -298,12 +297,10 @@ export async function POST(request) {
                   if (hasFlap) {
                     currentVy = FLY_PARAMETERS.FLAP_VELOCITY; // -5.0
                   }
-                  // Apply gravity and update position (match frontend order: vy first, then y)
                   currentVy += FLY_PARAMETERS.GRAVITY; // GRAVITY = 0.2
-                  currentY += currentVy * frameDeltaTime; // Scale position update by deltaTime
+                  currentY += currentVy; // No scaling by frameDeltaTime
                 }
 
-                // Allow 15px tolerance for floating-point errors and timing variations
                 if (Math.abs(event.data.y - currentY) > 15) {
                   console.log('Frame position check failed', {
                     event,

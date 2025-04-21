@@ -378,13 +378,13 @@ export async function POST(request) {
               const difficultyFactor = Math.min(gameTimeSec / 90, 1);
               let avgSpawnInterval;
               if (gameTimeSec <= 90) {
-                avgSpawnInterval = 2800 - (2500 * gameTimeMs) / (2 * 90000);
+                avgSpawnInterval = 2800 - (2500 * stats.time) / (2 * 90000);
               } else {
                   const decayFactor = Math.exp(-gameTimeSec / 720);
-                  avgSpawnInterval = 300 + (112500000 / gameTimeMs) * decayFactor;
+                  avgSpawnInterval = 300 + (112500000 / stats.time) * decayFactor;
               }
               const avgObstaclesPerSpawn = gameTimeSec <= 90 ? 1 + (gameTimeSec / 90 * 0.15) : ((90 * 1.15) + ((gameTimeSec - 90) * 1.3)) / gameTimeSec;
-              const minExpectedSpawns = (gameTimeMs / avgSpawnInterval) * avgObstaclesPerSpawn * 0.93;
+              const minExpectedSpawns = (stats.time / avgSpawnInterval) * avgObstaclesPerSpawn * 0.93;
               console.log('avgSpawnInterval', avgSpawnInterval);
               console.log('minExpectedSpawns', minExpectedSpawns);
               console.log('averageObstaclesPerSpawn', avgObstaclesPerSpawn);
@@ -431,12 +431,16 @@ export async function POST(request) {
               }
 
               // FLAPS RELATED VALIDATOINS
-              // validate stats.flapsPerSec matches the number of flap and keydown events
+              // validate stats.flapsPerSec matches the number of flap and events in telemetry
               const flapEvents = telemetry.filter(e => e.event === 'flap').length;
-              const expectedFlapsPerSec = flapEvents / (gameTimeSec || 1);
+              const expectedFlapsPerSec = flapEvents / gameTimeSec;
               if (Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.5) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flapsPerSec vs flap events patterns' }), { status: 400 });
               }
+              //validate the flapspersec against inputsPerSec
+              if (Math.abs(stats.flapsPerSec - stats.inputsPerSec) > 0.01) {
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious stats flapsPerSec vs inputsPerSec ' }), { status: 400 });
+              } 
               // Validate flap plausibility
               let lastFlapTime = null;
               let lastY = null;
@@ -487,7 +491,7 @@ export async function POST(request) {
               const frames = 10;
 
               for (let i = 0; i < frameFlapEvents.length; i++) {
-                if (frameFlapEvents[i].event === 'frame' && lastFrame && lastFrame.frameId > 50) {
+                if (frameFlapEvents[i].event === 'frame' && lastFrame && lastFrame.frameId > 0) { //was 50. check if this is ok? *****
                   const event = frameFlapEvents[i];
                   const deltaTime = event.data.deltaTime;
                   // Collect flaps between lastFrame.time and event.time

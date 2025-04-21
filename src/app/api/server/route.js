@@ -335,6 +335,8 @@ export async function POST(request) {
               const difficultyFactor = Math.min(stats.time / 90000, 1);
               const expectedSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
               const spawnEvents = telemetry.filter(e => e.event === 'spawn');
+              console.log('spawnEvents', spawnEvents);
+              console.log('expectedSpeed', expectedSpeed);
               for (const event of spawnEvents) {
                 if (Math.abs(event.data.speed - expectedSpeed) > 0.1) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle speed' }), { status: 400 });

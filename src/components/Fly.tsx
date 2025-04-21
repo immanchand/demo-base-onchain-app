@@ -144,7 +144,11 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
     // Game logic
     const spawnObstacle = useCallback((canvas: HTMLCanvasElement, speed: number): Obstacle => {
-        const y = Math.random() * (canvas.height - FLY_PARAMETERS.OBSTACLE_SIZE * 3); // Account for cluster (50 * 3 = 150px)
+        const y = Math.random() * (canvas.height - FLY_PARAMETERS.OBSTACLE_SIZE*3);
+        setTelemetry((prev) => {
+            if (prev.length >= TELEMETRY_LIMIT) return [...prev.slice(1), { event: 'spawn', time: performance.now(), data: { y, speed } }];
+            return [...prev, { event: 'spawn', time: performance.now(), data: { y, speed } }];
+        });
         return {
             x: canvas.width,
             y,
@@ -305,24 +309,11 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
             const currentTime = performance.now();
             if (currentTime - lastSpawnTimeRef.current >= spawnInterval && !gameOver) {
-                const clusterChance = difficultyFactor * 0.3;
                 const numObstacles = Math.random() < clusterChance ? 2 : 1;
-                const spawnTimes = [];
-                const yPositions = [];
                 for (let i = 0; i < numObstacles; i++) {
                     const obstacle = spawnObstacle(canvas, obstacleSpeed);
-                    const y = obstacle.y + (i * FLY_PARAMETERS.OBSTACLE_SIZE * 2);
-                    obstaclePool.push({ ...obstacle, y });
-                    const spawnTime = performance.now();
-                    setTelemetry((prev) => {
-                        if (prev.length >= TELEMETRY_LIMIT) return [...prev.slice(1), { event: 'spawn', time: spawnTime, data: { y, speed: obstacleSpeed } }];
-                        return [...prev, { event: 'spawn', time: spawnTime, data: { y, speed: obstacleSpeed } }];
-                    });
-                    spawnTimes.push(spawnTime);
-                    yPositions.push(y);
-                }
-                if (numObstacles === 2) {
-                    console.log(`Cluster spawn: timeDiff=${spawnTimes[1] - spawnTimes[0]}ms, yDiff=${Math.abs(yPositions[1] - yPositions[0])}px, y1=${yPositions[0]}, y2=${yPositions[1]}, obstacleSize=${FLY_PARAMETERS.OBSTACLE_SIZE}`);
+                    obstaclePool.push({ ...obstacle, y: obstacle.y + (i * obstacleSize * 2) });
+
                 }
                 lastSpawnTimeRef.current = currentTime;
             }

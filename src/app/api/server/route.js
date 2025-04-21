@@ -84,12 +84,14 @@ export async function POST(request) {
         );
       
       case 'end-game':
+        //verify that required input fields are present
         if (!gameId || !address || !score) {
           return new Response(
             JSON.stringify({ status: 'error', message: 'Missing gameId or address or score' }),
             { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
           );
         }
+        // implement rate limiting for end game
         const nowEnd = Date.now();
         const lastCallEnd = rateLimitStore.get(`${sessionId}:end`);
         const rateLimitSeconds = Number(process.env.ENDGAME_RATE_LIMIT_SECONDS) || 30;
@@ -101,7 +103,7 @@ export async function POST(request) {
         }
         rateLimitStore.set(`${sessionId}:end`, nowEnd);
 
-        //main logig to check telemetry and stats and score and try to send contract transaction
+        //main logic to check telemetry and stats and score and try to send contract transaction
         try {
           // Fetch current highScore from contract
           const gameData = await contract.getGame(gameId);
@@ -115,6 +117,7 @@ export async function POST(request) {
             );
           }
           // Validate only if score >= 20000 and > contractHighScore
+          // all telemetry and stats checks go inside this if block
           if (Number(score) >= TELEMETRY_SCORE_THRESHOLD) {
             
             //make sure stats and telemetry are present
@@ -128,15 +131,25 @@ export async function POST(request) {
 
             const gameTimeSec = stats.time / 1000;
 
-            // All game check timestamp of last telemetry event collision
+            // All game check telemetry only one event collision
             const endEvent = telemetry.find(e => e.event === 'collision');
-            if (!endEvent) {
-              console.log('No collision event found for game end');
+            if (endEvent.length !== 1) {
+              console.log('Incorrect number of collision events found for', {
+                address,
+                gameId,
+                gameName: stats.game,
+                numberEvents: endEvent.length,
+              });
               return new Response(JSON.stringify({ status: 'error', message: 'Missing collision event telemetry' }), {
                 status: 400,
               });
             }
-            // All gamess Check if server game duration is less than client game duration. With network latency, it should never be less.
+            // All game check that last event is a collision
+            const lastEvent = telemetry[telemetry.length - 1];
+            if (lastEvent.event !== 'collision') {
+              return new Response(JSON.stringify({ status: 'error', message: 'Last event must be collision' }), { status: 400 });
+            }
+            // All gamess Check if server game duration is less than client game duration. With network latency, it can never be less.
             // if less, indicates cheating on client side
             const serverDuration = nowEnd - gameDurationStore.get(address);
             if (serverDuration < stats.time) {
@@ -154,6 +167,7 @@ export async function POST(request) {
                 });
             }
             // Detect Game Clock Manipulation
+            // check telemetry time agains server time
             const frameEvents = telemetry.filter(e => e.event === 'frame');
             const telemetryDuration = frameEvents[frameEvents.length-1].time - frameEvents[0].time;
             if (telemetryDuration > serverDuration) {
@@ -185,7 +199,8 @@ export async function POST(request) {
             }
             
        
-            // all games common telemetry check for average fps frames per second
+            // all games common telemetry check for average fps (frames per second)
+            // fps should be minumum 40 and can not change more than 15 over a game period
             const fpsEvents = telemetry.filter(e => e.event === 'fps');
             if (fpsEvents.length > 0) {
               const fpsValues = fpsEvents.map(e => e.data.fps);
@@ -220,7 +235,7 @@ export async function POST(request) {
                 //continue because backend mistake and not player's fault
                 //assume player is human
               }
-              // Check if score is less than client side game duration with 1 seconds tolerance for start game
+              // TIME based games Check if score is less than client side game duration with 1 seconds tolerance for start game
               if (score > (stats.time + TIME_VARIANCE_MS)/SCORE_DIVISOR_TIME) {
                 console.log('Duration and score check failed for',
                   ' Player: ', address,
@@ -233,7 +248,7 @@ export async function POST(request) {
                 });
               }
 
-              // telemetry computed score validation
+              // TIME based games telemetry computed score validation
               let computedScore = 0;
               if (telemetry.length < TELEMETRY_LIMIT) {
                 // Simple sum for games with complete telemetry
@@ -274,12 +289,12 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score: computed events and reported score don’t match' }), { status: 400 });
               }
             }
-            //check between frame actions
+            // TIME based games check between frame actions
             // Check if frameId is in order and position is plausible
             let lastFrame = null;
             const frames = 10; // Telemetry is every 10 frames
             for (const event of frameEvents) {
-              if (lastFrame && lastFrame.frameId > 300) {
+              if (lastFrame && lastFrame.frameId > 50) {
                 const deltaTime = event.data.deltaTime;
                 const flapsBetween = telemetry.filter(
                   e => e.event === 'flap' && e.time > lastFrame.time && e.time <= event.time
@@ -322,11 +337,6 @@ export async function POST(request) {
               return new Response(JSON.stringify({ status: 'error', message: 'Invalid collisions detected' }), {
                 status: 400,
               });
-            }
-            // validate that the last event is a collision
-            const lastEvent = telemetry[telemetry.length - 1];
-            if (lastEvent.event !== 'collision') {
-              return new Response(JSON.stringify({ status: 'error', message: 'Last event must be collision' }), { status: 400 });
             }
 
 

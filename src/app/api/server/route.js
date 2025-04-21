@@ -174,7 +174,7 @@ export async function POST(request) {
                 gameName: stats.game,
                 numberEvents: collisionEvents.length,
               });
-              return new Response(JSON.stringify({ status: 'error', message: 'Missing collision event telemetry' }), {
+              return new Response(JSON.stringify({ status: 'error', message: 'Incorrect collision event telemetry count' }), {
                 status: 400,
               });
             }
@@ -362,6 +362,7 @@ export async function POST(request) {
               console.log('gameStartTime:', gameStartTime, 'telemetry[0].time:', telemetry[0].time, 'stats.time:', stats.time, 'offset:', offset);
               for (const event of spawnEvents) {
                 const elapsedTimeSec = (event.time - gameStartTime) / 1000;
+                console.log('elapsedTimeSec:', elapsedTimeSec, 'event.time:', event.time, 'gameStartTime:', gameStartTime);
                 const difficultyFactor = Math.min(elapsedTimeSec / 90, 1);
                 const expectedSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
                 console.log('expectedSpeed for event at time', event.time, ':', expectedSpeed, 'event.speed:', event.data.speed);

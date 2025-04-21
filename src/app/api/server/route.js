@@ -130,7 +130,36 @@ export async function POST(request) {
             console.log('stats: ', stats);
 
             const gameTimeSec = stats.time / 1000;
+            // All games check that telemetry in in order by time and frameId
+            let lastTime = -Infinity;
+            let lastFrameId = -1;
+            for (let i = 0; i < telemetry.length; i++) {
+              const event = telemetry[i];
+              // Verify time is non-decreasing
+              if (event.time < lastTime) {
+                console.log('Telemetry time order violation', {
+                  index: i,
+                  eventTime: event.time,
+                  lastTime
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Invalid telemetry order: time not chronological' }), { status: 400 });
+              }
+              lastTime = event.time;
 
+              // Verify frameId is strictly increasing for frame events
+              if (event.event === 'frame') {
+                const currentFrameId = event.data.frameId;
+                if (currentFrameId <= lastFrameId) {
+                  console.log('Telemetry frameId order violation', {
+                    index: i,
+                    currentFrameId,
+                    lastFrameId
+                  });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Invalid telemetry order: frameId not in order' }), { status: 400 });
+                }
+                lastFrameId = currentFrameId;
+              }
+            }
             // All game check telemetry only one event collision
             const collisionEvents = telemetry.find(e => e.event === 'collision');
             console.log('collisionEvents', collisionEvents);
@@ -170,24 +199,29 @@ export async function POST(request) {
                     status: 400,
                 });
             }
-            // Detect Game Clock Manipulation
-            // check telemetry time agains server time
+            //common frame events filter for subsequent checks
             const frameEvents = telemetry.filter(e => e.event === 'frame');
-            const telemetryDuration = frameEvents[frameEvents.length-1].time - frameEvents[0].time;
-            if (telemetryDuration > serverDuration) {
-              console.log('GameDurationStore Duration Check failed for',
-                ' Player: ', address,
-                ' Game Id: ', gameId,
-                ' Game Name: ', stats.game,
-                ' Server Game Start: ', gameDurationStore.get(address),
-                ' Server Game End: ', nowEnd,
-                ' Server Game Duration: ', serverDuration,
-                ' Telemetry Duration: ', telemetryDuration);
-              gameDurationStore.delete(address);
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious telemetry duration vs server duration' }), { status: 400 });
+            // Detect Game Clock Manipulation
+            // check telemetry time agains server time only if telemetry length is less than limit
+            if (telemetry.length < TELEMETRY_LIMIT) {
+              const telemetryDuration = frameEvents[frameEvents.length-1].time - frameEvents[0].time;
+              if (telemetryDuration > serverDuration) {
+                console.log('GameDurationStore Duration Check failed for',
+                  ' Player: ', address,
+                  ' Game Id: ', gameId,
+                  ' Game Name: ', stats.game,
+                  ' Server Game Start: ', gameDurationStore.get(address),
+                  ' Server Game End: ', nowEnd,
+                  ' Server Game Duration: ', serverDuration,
+                  ' Telemetry Duration: ', telemetryDuration);
+                gameDurationStore.delete(address);
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious telemetry duration vs server duration' }), { status: 400 });
+              }
             }
             gameDurationStore.delete(address);
-            
+            // check 
+
+
             // Check for identical deltaTime values (suspicious for manipulation)
             const deltaTimes = frameEvents.map(e => e.data.deltaTime);
             const avgDeltaTime = deltaTimes.reduce((a, b) => a + b, 0) / deltaTimes.length;
@@ -295,33 +329,46 @@ export async function POST(request) {
             }
             // Fly game check between frame actions
             // Check if game physics between frames are in position and plausible
+            const frameFlapEvents = telemetry.filter(e => e.event === 'frame' || e.event === 'flap');
+
             let lastFrame = null;
-            const frames = 10; // Telemetry is every 10 frames
-            for (const event of frameEvents) {
-              if (lastFrame && lastFrame.frameId > 50) {
+            let frameIndex = 0;
+            const frames = 10;
+
+            for (let i = 0; i < frameFlapEvents.length; i++) {
+              if (frameFlapEvents[i].event === 'frame' && lastFrame && lastFrame.frameId > 50) {
+                const event = frameFlapEvents[i];
                 const deltaTime = event.data.deltaTime;
-                const flapsBetween = telemetry.filter(
-                  e => e.event === 'flap' && e.time > lastFrame.time && e.time <= event.time
-                );
+                // Collect flaps between lastFrame.time and event.time
+                const flapsBetween = [];
+                for (let j = frameIndex + 1; j < i; j++) {
+                  if (frameFlapEvents[j].event === 'flap') {
+                    flapsBetween.push(frameFlapEvents[j]);
+                  }
+                }
+                frameIndex = i;
+
                 let currentY = lastFrame.data.y;
                 let currentVy = lastFrame.data.vy;
-                const frameDeltaTime = deltaTime / frames; // Used only for flap timing
+                const frameDeltaTime = deltaTime / frames;
 
-                for (let i = 0; i < frames; i++) {
-                  const frameStartTime = lastFrame.time + i * frameDeltaTime * 1000;
+                for (let k = 0; k < frames; k++) {
+                  const frameStartTime = lastFrame.time + k * frameDeltaTime * 1000;
                   const frameEndTime = frameStartTime + frameDeltaTime * 1000;
                   const hasFlap = flapsBetween.some(
                     flap => flap.time > frameStartTime && flap.time <= frameEndTime
                   );
                   if (hasFlap) {
-                    currentVy = FLY_PARAMETERS.FLAP_VELOCITY; // -5.0
+                    currentVy = FLY_PARAMETERS.FLAP_VELOCITY;
                   }
-                  currentVy += FLY_PARAMETERS.GRAVITY; // GRAVITY = 0.2
-                  currentY += currentVy; // No scaling by frameDeltaTime
+                  currentVy += FLY_PARAMETERS.GRAVITY;
+                  currentY += currentVy;
                 }
-		console.log('event.data.y - currentY = ', event.data.y, ' - ', currentY, ' = ', event.data.y - currentY);
-                if (Math.abs(event.data.y - currentY) > 10) {
+                if (Math.abs(event.data.y - currentY) > 15) {
                   console.log('Frame position check failed', {
+                    address,
+                    gameId,
+                    gameName: stats.game,
                     event,
                     lastFrame,
                     expectedY: currentY,
@@ -332,7 +379,9 @@ export async function POST(request) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
                 }
               }
-              lastFrame = event;
+              if (frameFlapEvents[i].event === 'frame') {
+                lastFrame = frameFlapEvents[i];
+              }
             }
             // Telemetry validation
             

@@ -319,7 +319,7 @@ export async function POST(request) {
                   currentVy += FLY_PARAMETERS.GRAVITY; // GRAVITY = 0.2
                   currentY += currentVy; // No scaling by frameDeltaTime
                 }
-
+		colsole.log('event.data.y - currentY = ', event.data.y, ' - ', currentY, ' = ', event.data.y - currentY);
                 if (Math.abs(event.data.y - currentY) > 10) {
                   console.log('Frame position check failed', {
                     event,

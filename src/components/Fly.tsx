@@ -204,6 +204,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             height: FLY_PARAMETERS.SHIP_HEIGHT,
             vy: FLY_PARAMETERS.FLAP_VELOCITY*2,
         };
+        
         let obstaclePool: Obstacle[] = [];
         const stars: { x: number; y: number; dx: number }[] = [];
         const starCount = 100;
@@ -311,8 +312,10 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             if (currentTime - lastSpawnTimeRef.current >= spawnInterval && !gameOver) {
                 const numObstacles = Math.random() < clusterChance ? 2 : 1;
                 for (let i = 0; i < numObstacles; i++) {
+                    const obstacle = spawnObstacle(canvas, obstacleSpeed);
                     const y = Math.random() * (canvas.height - obstacleSize) + (i * obstacleSize * 2);
-                    obstaclePool.push({ x: canvas.width, y, width: obstacleSize, height: obstacleSize, dx: obstacleSpeed, dodged: false });
+                    obstaclePool.push({ ...obstacle, y: obstacle.y + (i * obstacleSize * 2) });
+                    //obstaclePool.push({ x: canvas.width, y, width: obstacleSize, height: obstacleSize, dx: obstacleSpeed, dodged: false });
                 }
                 lastSpawnTimeRef.current = currentTime;
             }

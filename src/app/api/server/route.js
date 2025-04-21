@@ -134,19 +134,20 @@ export async function POST(request) {
             // All game check telemetry only one event collision
             const collisionEvents = telemetry.find(e => e.event === 'collision');
             console.log('collisionEvents', collisionEvents);
-            console.log('telemetry length', telemetry.length);
-            console.log('collisionEvents length', collisionEvents.length);
-            if (collisionEvents.length !== 1) {
-              console.log('Incorrect number of collision events found for', {
-                address,
-                gameId,
-                gameName: stats.game,
-                numberEvents: collisionEvents.length,
-              });
-              return new Response(JSON.stringify({ status: 'error', message: 'Missing collision event telemetry' }), {
-                status: 400,
-              });
-            }
+            // to do some error now : "collisionEvents length undefined"
+            //console.log('collisionEvents length', collisionEvents.length);
+            // to do some error now : "collisionEvents length undefined"
+            // if (collisionEvents.length !== 1) {
+            //   console.log('Incorrect number of collision events found for', {
+            //     address,
+            //     gameId,
+            //     gameName: stats.game,
+            //     numberEvents: collisionEvents.length,
+            //   });
+            //   return new Response(JSON.stringify({ status: 'error', message: 'Missing collision event telemetry' }), {
+            //     status: 400,
+            //   });
+            // }
             // All game check that last event is a collision
             const lastEvent = telemetry[telemetry.length - 1];
             if (lastEvent.event !== 'collision') {

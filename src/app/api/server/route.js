@@ -245,10 +245,10 @@ export async function POST(request) {
                     stats.game === 'fly'? FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME:
                     stats.game === 'jump'? JUMP_PARAMETERS.DIFFICULTY_FACTOR_TIME:
                     stats.game === 'shoot'? SHOOT_PARAMETERS.DIFFICULTY_FACTOR_TIME: 0;
-            const firstFrameId = telemetry.find(e => e.event === 'frame')?.data?.frameId || 10;
-            const frameInterval = 1000 / minFps; // Assume 60 FPS
-            const offset = (firstFrameId - 1) * frameInterval; // Adjust for frames before first logged event and miliseconds to seconds  
-            const gameStartTime = telemetry[0].time - offset;
+            //const firstFrameId = telemetry.find(e => e.event === 'frame')?.data?.frameId || 10;
+            //const frameInterval = 1000 / minFps; // Assume 60 FPS
+            //const offset = (firstFrameId - 1) * frameInterval; // Adjust for frames before first logged event and miliseconds to seconds  
+            const gameStartTime = telemetry[0].time;
             // loop over frame events and check difficulty factor progress
             for (const event of frameEvents) {
               const elapsedTimeSec = ((event.time - gameStartTime) / 1000); //divide by 1000 to convert to seconds
@@ -261,9 +261,9 @@ export async function POST(request) {
                     gameName: stats.game,
                     event,
                     difficultyFactor,
-                    eventDifficultyFactor: event.difficultyFactor,
+                    eventDifficulty: event.data.difficulty,
                   });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle speed' }), { status: 400 });
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious difficulty factor progression' }), { status: 400 });
                 }
             }
 

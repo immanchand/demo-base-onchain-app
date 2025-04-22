@@ -548,13 +548,13 @@ export async function POST(request) {
                   avgSpawnInterval = 300 + (112500000 / stats.time) * decayFactor;
               }
               const avgObstaclesPerSpawn = gameTimeSec <= difficultyFactorTime ? 1 + (gameTimeSec / difficultyFactorTime * 0.15) : ((difficultyFactorTime * 1.15) + ((gameTimeSec - difficultyFactorTime) * 1.3)) / gameTimeSec;
-              minExpectedSpawns = (stats.time / avgSpawnInterval) * avgObstaclesPerSpawn * 0.93;
+              //minExpectedSpawns = (stats.time / avgSpawnInterval) * avgObstaclesPerSpawn * 0.93;
               if (spawnEvents.length < minExpectedSpawns) {
                   console.log('spawnEvents.length < minExpectedSpawns', spawnEvents.length, '<', minExpectedSpawns);
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: Too few obstacle spawns' }), { status: 400 });
               }
               
-              minObstacles, maxObstacles;
+              //minObstacles, maxObstacles;
               if (gameTimeSec <= difficultyFactorTime*0.33) { minObstacles = 1; maxObstacles = 4; }
               else if (gameTimeSec <= difficultyFactorTime*0.66) { minObstacles = 2; maxObstacles = 6; }
               else if (gameTimeSec <= difficultyFactorTime) { minObstacles = 6; maxObstacles = 18; }
@@ -577,14 +577,14 @@ export async function POST(request) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn count' }), { status: 400 });
               }
               //check double spawn events
-              doubleSpawnCount = 0;
+              //doubleSpawnCount = 0;
               for (let i = 1; i < spawnEvents.length; i++) {
                   if (spawnEvents[i].time - spawnEvents[i-1].time < 50) {
                       doubleSpawnCount++;
                   }
               }
               // Check for expected double spawns vs calculated count
-              expectedDoubleSpawns = 0;
+              //expectedDoubleSpawns = 0;
               for (let t = 0; t < Math.floor(gameTimeSec); t++) {
                 const difficultyFactor = Math.min(t / 90, 1);
                 const spawnInterval = 2.5 * (1 - difficultyFactor) + 0.3; // in seconds

@@ -113,26 +113,38 @@ export async function POST(request) {
         //main logic to check telemetry and stats and score and try to send contract transaction
         try {
           // Fetch current highScore from contract
-          const gameData = await contract.getGame(gameId);
-          const contractHighScore = Number(gameData.highScore.toString());
-          const gameEndTime = Number(gameData.endTime.toString());
-          // early check and return if game is already over
-          console.log('gameEndTime', gameEndTime);
-          console.log('date.now', Date.now());
-          if (gameEndTime <= Date.now()) {
-            console.log('gameEndTime <= Date.now()', gameEndTime, '<=', Date.now());
-            return new Response(JSON.stringify({ status: 'error', message: 'This game is already over' }), {
-              status: 400,
+            let gameData;
+            try {
+              gameData = await contract.getGame(gameId);
+              const contractHighScore = Number(gameData.highScore.toString());
+              const gameEndTime = Number(gameData.endTime.toString()); // Convert seconds to milliseconds
+              if (gameData && gameData.highScore && gameData.endTime) {
+                // early check and return if game is already over
+                console.log('gameEndTime', gameEndTime);
+                console.log('date.now/1000', Date.now()/1000);
+                if (gameEndTime <= Date.now()/1000) {
+                  console.log('gameEndTime <= Date.now()/1000', gameEndTime, '<=', Date.now()/1000);
+                  return new Response(JSON.stringify({ status: 'error', message: 'This game is already over' }), {
+                    status: 400,
+                  });
+                }
+                // early check if score less than high score
+                if (Number(score) <= contractHighScore) {
+                  console.log('Number(score) <= contractHighScore', Number(score), '<=', contractHighScore);
+                  return new Response(
+                    JSON.stringify({ status: 'success', isHighScore: false, highScore: contractHighScore }),
+                    { status: 200 }
+                  );
+                }
+              } else {
+                console.error('Invalid game data:', gameData);
+              }
+            } catch (error) {
+            console.error('Error fetching game data from contract:', error);
+            return new Response(JSON.stringify({ status: 'error', message: 'Failed to fetch game data' }), {
+              status: 500,
             });
-          }
-          // early check and return if score is less than contract high score
-          if (Number(score) <= contractHighScore) {
-            console.log('Number(score) <= contractHighScore', Number(score), '<=', contractHighScore);
-            return new Response(
-              JSON.stringify({ status: 'success', isHighScore: false, highScore: contractHighScore }),
-              { status: 200 }
-            );
-          }
+            }
           // Validate only if score >= 20000 and > contractHighScore
           // all telemetry and stats checks go inside this if block
           if (Number(score) >= TELEMETRY_SCORE_THRESHOLD) {

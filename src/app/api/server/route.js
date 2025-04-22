@@ -31,6 +31,7 @@ export async function POST(request) {
   const allowedOrigin = process.env.APP_ORIGIN;
 
   if (appOrigin !== allowedOrigin) {
+    console.log('appOrigin !== allowedOrigin', appOrigin,'!==', allowedOrigin)
     return new Response(JSON.stringify({ status: 'error', message: 'Invalid application origin' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
@@ -47,6 +48,7 @@ export async function POST(request) {
   const csrfTokens = getCsrfTokens();
 
   if (!csrfToken || !sessionId || csrfTokens.get(sessionId) !== csrfToken) {
+    console.log('!csrfToken || !sessionId || csrfTokens.get(sessionId) !== csrfToken', !csrfToken,'||',!sessionId,' ||', csrfTokens.get(sessionId),'!==', csrfToken);
     return new Response(JSON.stringify({ status: 'error', message: 'Invalid or missing CSRF token. Press f5 to refresh' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
@@ -55,6 +57,7 @@ export async function POST(request) {
 
   const { action, gameId, address, score, recaptchaTokenStart, recaptchaTokenEnd, telemetry, stats } = body;
   if (!action) {
+    console.log('!action', !action);
     return new Response(JSON.stringify({ status: 'error', message: 'Missing action' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
@@ -66,10 +69,11 @@ export async function POST(request) {
     switch (action) {
       case 'create-game':
         const nowCreate = Date.now();
-        const fifteenMinutes = 25 * 60 * 1000; // 25 minutes in milliseconds
+        const fifteenMinutes = 15 * 60 * 1000; // 15 minutes in milliseconds
         const lastCallCreate = rateLimitStore.get(sessionId);
         if (lastCallCreate && nowCreate - lastCallCreate < fifteenMinutes) {
           const timeLeft = Math.ceil((fifteenMinutes - (nowCreate - lastCallCreate)) / (60 * 1000));
+          console.log('lastCallCreate && nowCreate - lastCallCreate < fifteenMinutes', lastCallCreate,' &&', nowCreate,' -', lastCallCreate,' <', fifteenMinutes);
           return new Response(
             JSON.stringify({ status: 'error', message: `Rate limit exceeded. Try again in ${timeLeft} minutes.` }),
             { status: 429, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
@@ -78,6 +82,7 @@ export async function POST(request) {
         tx = await contract.createGame();
         receipt = await tx.wait();
         rateLimitStore.set(sessionId, nowCreate);
+        console.log('create game successful',tx.hash);
         return new Response(
           JSON.stringify({ status: 'success', txHash: tx.hash }),
           { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
@@ -86,6 +91,7 @@ export async function POST(request) {
       case 'end-game':
         //verify that required input fields are present
         if (!gameId || !address || !score) {
+          console.log('!gameId || !address || !score', !gameId,' ||', !address,' ||', !score);
           return new Response(
             JSON.stringify({ status: 'error', message: 'Missing gameId or address or score' }),
             { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
@@ -94,8 +100,9 @@ export async function POST(request) {
         // implement rate limiting for end game
         const nowEnd = Date.now();
         const lastCallEnd = rateLimitStore.get(`${sessionId}:end`);
-        const rateLimitSeconds = Number(process.env.ENDGAME_RATE_LIMIT_SECONDS) || 30;
+        const rateLimitSeconds = Number(process.env.ENDGAME_RATE_LIMIT_SECONDS) || 10;
         if (lastCallEnd && nowEnd - lastCallEnd < rateLimitSeconds * 1000) {
+          console.log('lastCallEnd && nowEnd - lastCallEnd < rateLimitSeconds * 1000', lastCallEnd, '&&', nowEnd, '-', lastCallEnd, '<', rateLimitSeconds, '* 1000');
           return new Response(
             JSON.stringify({ status: 'error', message: `Rate limit exceeded. Try again in a few seconds.` }),
             { status: 429 }
@@ -108,9 +115,19 @@ export async function POST(request) {
           // Fetch current highScore from contract
           const gameData = await contract.getGame(gameId);
           const contractHighScore = Number(gameData.highScore.toString());
-          console.log('contractHighScore', contractHighScore);
+          const gameEndTime = Number(gameData.endTime.toString());
+          // early check and return if game is already over
+          console.log('gameEndTime', gameEndTime);
+          console.log('date.now', Date.now());
+          if (gameEndTime <= Date.now()) {
+            console.log('gameEndTime <= Date.now()', gameEndTime, '<=', Date.now());
+            return new Response(JSON.stringify({ status: 'error', message: 'This game is already over' }), {
+              status: 400,
+            });
+          }
           // early check and return if score is less than contract high score
           if (Number(score) <= contractHighScore) {
+            console.log('Number(score) <= contractHighScore', Number(score), '<=', contractHighScore);
             return new Response(
               JSON.stringify({ status: 'success', isHighScore: false, highScore: contractHighScore }),
               { status: 200 }
@@ -122,11 +139,13 @@ export async function POST(request) {
             
             //make sure stats and telemetry are present
             if(!stats || !telemetry) {
+              console.log('!stats || !telemetry',!stats, '||', !telemetry);
               return new Response(JSON.stringify({ status: 'error', message: 'Missing telemetry or stats for high score validation' }), {
                 status: 400,
               });
             }
             if (telemetry.length >= TELEMETRY_LIMIT-1) {
+              console.log('telemetry.length >= TELEMETRY_LIMIT-1',telemetry.length, '>=', TELEMETRY_LIMIT,'-1');
               return new Response(JSON.stringify({ status: 'error', message: 'Telemetry data is invalid. Suspected cheating.' }), {
                 status: 400,
               });
@@ -183,20 +202,21 @@ export async function POST(request) {
             // All game check that last event is a collision
             const lastEvent = telemetry[telemetryLength - 1];
             if (lastEvent.event !== 'collision') {
+              console.log('lastEvent.event !== collision',lastEvent.event, '!==', 'collision')
               return new Response(JSON.stringify({ status: 'error', message: 'Last event must be collision' }), { status: 400 });
             }
             // All gamess Check if server game duration is less than client game duration. With network latency, it can never be less.
             // if less, indicates cheating on client side
             const serverDuration = nowEnd - gameDurationStore.get(address);
             if (serverDuration < stats.time) {
-                console.log('GameDurationStore Duration Check failed for',
-                    ' Player: ', address,
-                    ' Game Id: ', gameId,
-                    ' Game Name: ', stats.game,
-                    ' Server Game Start: ', gameDurationStore.get(address),
-                    ' Server Game End: ', nowEnd,
-                    ' Server Game Duration: ', serverDuration,
-                    ' Client Game Duration: ', stats.time);
+                console.log('GameDurationStore Stats Time Check failed for', {
+                    address,
+                    gameId,
+                    gameName: stats.game,
+                    gameDurationStore: gameDurationStore.get(address),
+                    nowEnd,
+                    serverDuration,
+                    statsTime: stats.time});
                 gameDurationStore.delete(address);
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: game duration is more than expected' }), {
                     status: 400,
@@ -208,14 +228,14 @@ export async function POST(request) {
             // check telemetry time agains server time only if telemetry length is less than limit
             const telemetryDuration = frameEvents[frameEvents.length-1].time - frameEvents[0].time;
             if (telemetryDuration > serverDuration) {
-              console.log('GameDurationStore Duration Check failed for',
-                ' Player: ', address,
-                ' Game Id: ', gameId,
-                ' Game Name: ', stats.game,
-                ' Server Game Start: ', gameDurationStore.get(address),
-                ' Server Game End: ', nowEnd,
-                ' Server Game Duration: ', serverDuration,
-                ' Telemetry Duration: ', telemetryDuration);
+              console.log('GameDurationStore Duration Check failed for', {
+                address,
+                gameId,
+                gameName: stats.game,
+                gameDurationStore: gameDurationStore.get(address),
+                nowEnd,
+                serverDuration,
+                telemetryDuration});  
               gameDurationStore.delete(address);
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious telemetry duration vs server duration' }), { status: 400 });
             }
@@ -225,7 +245,7 @@ export async function POST(request) {
             // fps should be minumum 40 and can not change more than 15 over a game period
             const fpsEvents = telemetry.filter(e => e.event === 'fps');
             if (fpsEvents.length < (frameEvents.length/10 - 11)) {
-              console.log('FPS events not found in telemetry');
+              console.log('fpsEvents.length < (frameEvents.length/10 - 11)',fpsEvents.length, '<', frameEvents.length,'/10 - 11');
               return new Response(JSON.stringify({ status: 'error', message: 'Missing FPS events in telemetry' }), { status: 400 });
             }
             const fpsValues = fpsEvents.map(e => e.data.fps);
@@ -233,10 +253,12 @@ export async function POST(request) {
             const maxFps = Math.max(...fpsValues);
             // Allow 40–72 FPS for mobile compatibility. No upper bound as game is harder when faster.
             if (minFps < 40) {
+              console.log('minFps < 40',minFps, '<', '40');
               return new Response(JSON.stringify({ status: 'error', message: 'FPS out of acceptable range' }), { status: 400 });
             }
             // Check for suspicious FPS variance (e.g., >20 FPS change)
             if (maxFps - minFps > 15) {
+              console.log('maxFps - minFps > 15',maxFps,' -', minFps, '>',' 15');
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious FPS variance during game' }), { status: 400 });
             }
             
@@ -272,12 +294,13 @@ export async function POST(request) {
             const avgDeltaTime = deltaTimes.reduce((a, b) => a + b, 0) / deltaTimes.length;
             const deltaVariance = deltaTimes.reduce((a, b) => a + Math.pow(b - avgDeltaTime, 2), 0) / deltaTimes.length;
             if (deltaVariance < 1e-7 || deltaVariance > 1e-3) { // 0.0000001 to 0.0001 s²
-              console.log('Delta time variance check failed for',
-                ' Player: ', address,
-                ' Game Id: ', gameId,
-                ' Game Name: ', stats.game,
-                ' Delta Times: ', deltaTimes,
-                ' Delta Variance: ', deltaVariance);
+              console.log('Delta time variance check failed for',{ 
+                address,
+                gameId,
+                gameName: stats.game,
+                deltaTimes,
+                deltaVariance,
+              });
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious deltaTime variance' }), { status: 400 });
             }
             
@@ -294,6 +317,8 @@ export async function POST(request) {
                 const recaptchaData = await recaptchaResponse.json();
                 console.log('reCAPTCHA END data:', recaptchaData);
                 if (!recaptchaData.success || recaptchaData.score < FLY_PARAMETERS.RECAPTCHA_END_THRESHOLD) {
+                  console.log('!recaptchaData.success || recaptchaData.score < FLY_PARAMETERS.RECAPTCHA_END_THRESHOLD',
+                    !recaptchaData.success, '||', recaptchaData.score, '<', FLY_PARAMETERS.RECAPTCHA_END_THRESHOLD);
                   return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA failed. You behaved like a bot' }), {
                     status: 403,
                   });
@@ -305,12 +330,12 @@ export async function POST(request) {
               }
               // TIME based games Check if score is less than client side game duration with 1 seconds tolerance for start game
               if (score > (stats.time + TIME_VARIANCE_MS)/SCORE_DIVISOR_TIME) {
-                console.log('Duration and score check failed for',
-                  ' Player: ', address,
-                  ' Game Id: ', gameId,
-                  ' Game Name: ', stats.game,
-                  ' Client Score: ', score,
-                  ' Client Time Score Variance: ', (stats.time + 1000)/SCORE_DIVISOR_TIME);
+                console.log('Duration and score check failed for', {
+                  address,
+                  gameId,
+                  gameName: stats.game,
+                  score,
+                  scoreVariance: (stats.time + 1000)/SCORE_DIVISOR_TIME});
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: score and game duration dont match' }), {
                   status: 400,
                 });
@@ -350,8 +375,7 @@ export async function POST(request) {
               // }
               console.log('computedScore', computedScore);
               if (Number(score) > computedScore * 1.1) {
-                console.log('score', Number(score));
-                console.log('computedScore * 1.1', computedScore * 1.1);
+                console.log('Number(score) > computedScore * 1.1', Number(score), '>', computedScore, '* 1.1');
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score: computed events and reported score don’t match' }), { status: 400 });
               }
             }
@@ -408,11 +432,8 @@ export async function POST(request) {
               }
               const avgObstaclesPerSpawn = gameTimeSec <= difficultyFactorTime ? 1 + (gameTimeSec / difficultyFactorTime * 0.15) : ((difficultyFactorTime * 1.15) + ((gameTimeSec - difficultyFactorTime) * 1.3)) / gameTimeSec;
               const minExpectedSpawns = (stats.time / avgSpawnInterval) * avgObstaclesPerSpawn * 0.93;
-              console.log('avgSpawnInterval', avgSpawnInterval);
-              console.log('minExpectedSpawns', minExpectedSpawns);
-              console.log('averageObstaclesPerSpawn', avgObstaclesPerSpawn);
-              console.log('spawnEvents.length', spawnEvents.length);
               if (spawnEvents.length < minExpectedSpawns) {
+                  console.log('spawnEvents.length < minExpectedSpawns', spawnEvents.length, '<', minExpectedSpawns);
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: Too few obstacle spawns' }), { status: 400 });
               }
               
@@ -422,6 +443,8 @@ export async function POST(request) {
               else if (gameTimeSec <= difficultyFactorTime) { minObstacles = 6; maxObstacles = 18; }
               else { minObstacles = 12; maxObstacles = 20; }
               if (stats.maxObstacles < minObstacles || stats.maxObstacles > maxObstacles) {
+                console.log('stats.maxObstacles < minObstacles || stats.maxObstacles > maxObstacles',
+                        stats.maxObstacles, '<', minObstacles, '||', stats.maxObstacles, '>', maxObstacles);
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious maxObstacles: outside expected range' }), { status: 400 });
               }
               
@@ -431,6 +454,9 @@ export async function POST(request) {
               console.log('maxExpectedSpawns',maxExpectedSpawns);
               console.log('spawnEvents.length',spawnEvents.length);
               if (spawnEvents.length * 1.3 < expectedSpawns || spawnEvents.length > maxExpectedSpawns) {
+                  console.log('spawnEvents.length * 1.3 < expectedSpawns || spawnEvents.length > maxExpectedSpawns',
+                    spawnEvents.length, '* 1.3 <', expectedSpawns, '||', spawnEvents.length, '>', maxExpectedSpawns
+                  );
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn count' }), { status: 400 });
               }
               //check double spawn events
@@ -456,6 +482,9 @@ export async function POST(request) {
               console.log('tolerance', tolerance);
               console.log('difference', doubleSpawnCount - expectedDoubleSpawns);
               if (Math.abs(doubleSpawnCount - expectedDoubleSpawns) > tolerance) {
+                  console.log('Math.abs(doubleSpawnCount - expectedDoubleSpawns) > tolerance',
+                    'Math.abs(',doubleSpawnCount, '-', expectedDoubleSpawns,') > ',tolerance
+                  );
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious double spawn frequency' }), { status: 400 });
               }
 
@@ -464,10 +493,16 @@ export async function POST(request) {
               const flapEvents = telemetry.filter(e => e.event === 'flap').length;
               const expectedFlapsPerSec = flapEvents / gameTimeSec;
               if (Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.5) {
+                console.log('Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.5',
+                  'Math.abs(',stats.flapsPerSec,' - ',expectedFlapsPerSec,') > 0.5'
+                );
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flapsPerSec vs flap events patterns' }), { status: 400 });
               }
               //validate the flapspersec against inputsPerSec
               if (Math.abs(stats.flapsPerSec - stats.inputsPerSec) > 0.01) {
+                console.log('Math.abs(stats.flapsPerSec - stats.inputsPerSec) > 0.01',
+                  'Math.abs(',stats.flapsPerSec,' - ',stats.inputsPerSec,') > 0.01'
+                );
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious stats flapsPerSec vs inputsPerSec ' }), { status: 400 });
               } 
               // Validate flap plausibility
@@ -479,6 +514,7 @@ export async function POST(request) {
                     const timeDiff = (event.time - lastFlapTime) / 1000;
                     const expectedY = lastY + event.data.vy * timeDiff + 0.5 * timeDiff * timeDiff * FLY_PARAMETERS.GRAVITY; // GRAVITY = 0.2
                     if (Math.abs(event.data.y - expectedY) > 10) {
+                      console.log('Math.abs(event.data.y - expectedY) > 10 Math.abs(',event.data.y,' - ',expectedY,') > 10');
                       return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: flap position' }), {
                         status: 400,
                       });
@@ -494,18 +530,24 @@ export async function POST(request) {
                 flapIntervals.push(flapEvents[i].time - flapEvents[i - 1].time);
               }
               const avgInterval = flapIntervals.reduce((a, b) => a + b, 0) / flapIntervals.length;
-              const variance = flapIntervals.reduce((a, b) => a + Math.pow(b - avgInterval, 2), 0) / flapIntervals.length;
-              if (variance < 10) { // Low variance indicates robotic consistency
+              const flapIntervalVariance = flapIntervals.reduce((a, b) => a + Math.pow(b - avgInterval, 2), 0) / flapIntervals.length;
+              if (flapIntervalVariance < 10) { // Low variance indicates robotic consistency
+                console.log('flapIntervalVariance < 10',flapIntervalVariance, '< 10');
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: flap timing too robotic' }), { status: 400 });
               }
               // Validate minimum flaps per second required to not hit the ground
               if (stats.flapsPerSec < FLY_PARAMETERS.MIN_FLAPS_PER_SEC) {
+                console.log('stats.flapsPerSec < FLY_PARAMETERS.MIN_FLAPS_PER_SEC',
+                  stats.flapsPerSec, '<', FLY_PARAMETERS.MIN_FLAPS_PER_SEC
+                );
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats: too few flaps per second' }), {
                   status: 400,
                 });
               }
               // Validate maximum flaps per second humanly possible for long games that will have obstacle on top
               if (stats.flapsPerSec > FLY_PARAMETERS.MAX_FLAPS_PER_SEC) {
+                console.log('stats.flapsPerSec > FLY_PARAMETERS.MAX_FLAPS_PER_SEC',
+                  stats.flapsPerSec, '>', FLY_PARAMETERS.MAX_FLAPS_PER_SEC);
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats: excessive flaps per second' }), {
                   status: 400,
                 });

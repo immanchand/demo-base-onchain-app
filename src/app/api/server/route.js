@@ -401,8 +401,8 @@ export async function POST(request) {
               let minObstacles, maxObstacles;
               if (gameTimeSec <= 30) { minObstacles = 1; maxObstacles = 4; }
               else if (gameTimeSec <= 60) { minObstacles = 2; maxObstacles = 6; }
-              else if (gameTimeSec <= 90) { minObstacles = 3; maxObstacles = 10; }
-              else { minObstacles = 10; maxObstacles = 20; }
+              else if (gameTimeSec <= 90) { minObstacles = 6; maxObstacles = 18; }
+              else { minObstacles = 12; maxObstacles = 20; }
               if (stats.maxObstacles < minObstacles || stats.maxObstacles > maxObstacles) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious maxObstacles: outside expected range' }), { status: 400 });
               }

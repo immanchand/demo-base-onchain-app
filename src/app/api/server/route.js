@@ -398,6 +398,109 @@ export async function POST(request) {
 			      // Stats validation and telemetry validation specific to each Game
             // FLY GAME
             if (stats.game === 'fly') {
+              console.log('START NEW SPAWN VALIDATION');
+              // NEW SPAWN RELATED VALIDATION
+              // SPAWN RELATED VALIDATION
+              // Validate spawn events vs. obstacles cleared and maxObstacles
+              if (stats.obstaclesCleared < spawnEvents.length - stats.maxObstacles
+                || stats.obstaclesCleared > spawnEvents.length) {
+                console.log('Spawn events count mismatch', {
+                    address,
+                    gameId,
+                    gameName: stats.game,
+                    obstaclesCleared: stats.obstaclesCleared,
+                    maxObstacles: stats.maxObstacles,
+                    spawnEventsCount: spawnEvents.length
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle count in stats and telemetry' }), { status: 400 });
+              }
+
+              // Combined loop for size, speed, and double spawn counting
+              let doubleSpawnCount = 0;
+              for (let i = 0; i < spawnEvents.length; i++) {
+                const event = spawnEvents[i];
+                // Size check
+                if (event.data.width !== FLY_PARAMETERS.OBSTACLE_SIZE || event.data.height !== FLY_PARAMETERS.OBSTACLE_SIZE) {
+                    console.log('Invalid obstacle size', { actualWidth: event.data.width, actualHeight: event.data.height });
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
+                }
+                // Speed check
+                const elapsedTimeSec = ((event.time - gameStartTime) / 1000);
+                const difficultyFactor = Math.min(elapsedTimeSec / FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME, 1);
+                const expectedSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
+                if (Math.abs(event.data.speed - expectedSpeed) > 0.1) {
+                    console.log('Obstacle speed check failed', { 
+                        address,
+                        gameId,
+                        gameName: stats.game,
+                        event,
+                        expectedSpeed,
+                        actualSpeed: event.data.speed,
+                        difficultyFactor
+                    });
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle speed' }), { status: 400 });
+                }
+                // Double spawn check
+                if (i > 0 && event.time - spawnEvents[i-1].time < 100) {
+                    doubleSpawnCount++;
+                }
+              }
+
+              // Dynamic spawn count validation
+              let expectedSpawns = 0;
+              let expectedDoubleSpawns = 0;
+              for (let t = 0; t < Math.floor(gameTimeSec); t++) {
+                const difficultyFactor = Math.min(t / FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME, 1);
+                const spawnInterval = 2.5 * (1 - difficultyFactor) + 0.3; // in seconds
+                const clusterChance = difficultyFactor * 0.3;
+                const spawnsPerSecond = 1 / spawnInterval;
+                expectedSpawns += spawnsPerSecond * (1 + clusterChance);
+                expectedDoubleSpawns += spawnsPerSecond * clusterChance;
+              }
+              // Spawn count tolerance
+              const spawnStdDev = Math.sqrt(spawnEvents.length * (expectedSpawns / spawnEvents.length) * (1 - expectedSpawns / spawnEvents.length));
+              const spawnTolerance = 1.5 * spawnStdDev;
+              const minExpectedSpawns = expectedSpawns - spawnTolerance;
+              const maxExpectedSpawns = expectedSpawns + spawnTolerance;
+              if (spawnEvents.length < minExpectedSpawns || spawnEvents.length > maxExpectedSpawns) {
+                console.log('Suspicious spawn count', {
+                    spawnEventsLength: spawnEvents.length,
+                    minExpectedSpawns,
+                    maxExpectedSpawns,
+                    expectedSpawns,
+                    gameTimeSec
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn count' }), { status: 400 });
+              }
+
+              // Double spawn tolerance
+              const doubleSpawnStdDev = Math.sqrt(spawnEvents.length * (expectedDoubleSpawns / spawnEvents.length) * (1 - expectedDoubleSpawns / spawnEvents.length));
+              const doubleSpawnTolerance = 1.5 * doubleSpawnStdDev;
+              if (Math.abs(doubleSpawnCount - expectedDoubleSpawns) > doubleSpawnTolerance) {
+                console.log('Suspicious double spawn frequency', {
+                    doubleSpawnCount,
+                    expectedDoubleSpawns,
+                    doubleSpawnTolerance
+                });
+                return new Response(JSON.stringify({ Wstatus: 'error', message: 'Suspicious double spawn frequency' }), { status: 400 });
+              }
+
+              // Validate maxObstacles range
+              let minObstacles, maxObstacles;
+              if (gameTimeSec <= FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME * 0.33) { minObstacles = 1; maxObstacles = 4; }
+              else if (gameTimeSec <= FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME * 0.66) { minObstacles = 2; maxObstacles = 6; }
+              else if (gameTimeSec <= FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME) { minObstacles = 6; maxObstacles = 18; }
+              else { minObstacles = 12; maxObstacles = 20; }
+              if (stats.maxObstacles < minObstacles || stats.maxObstacles > maxObstacles) {
+                console.log('Suspicious maxObstacles', {
+                    maxObstacles: stats.maxObstacles,
+                    minObstacles,
+                    maxObstacles
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious maxObstacles: outside expected range' }), { status: 400 });
+              }
+              // END NEW SPAWN RELATED VALIDATION
+              console.log('END NEW SPAWN VALIDATION');
 							//SPAWN RELETED VALIDATION
               //validate spawn events in telemetry against obstacles cleared and maxObstacles in stats
               if (stats.obstaclesCleared < spawnEvents.length - stats.maxObstacles
@@ -414,7 +517,6 @@ export async function POST(request) {
               }
               
               // validate spawned obstacle speeds against expected speed values
-              // Calculate game start time with offset for first frame
               for (const event of spawnEvents) {
                 //quick check that obstacle size is consistent with backend
                 if (event.data.width !== FLY_PARAMETERS.OBSTACLE_SIZE || event.data.height !== FLY_PARAMETERS.OBSTACLE_SIZE) {
@@ -446,13 +548,13 @@ export async function POST(request) {
                   avgSpawnInterval = 300 + (112500000 / stats.time) * decayFactor;
               }
               const avgObstaclesPerSpawn = gameTimeSec <= difficultyFactorTime ? 1 + (gameTimeSec / difficultyFactorTime * 0.15) : ((difficultyFactorTime * 1.15) + ((gameTimeSec - difficultyFactorTime) * 1.3)) / gameTimeSec;
-              const minExpectedSpawns = (stats.time / avgSpawnInterval) * avgObstaclesPerSpawn * 0.93;
+              minExpectedSpawns = (stats.time / avgSpawnInterval) * avgObstaclesPerSpawn * 0.93;
               if (spawnEvents.length < minExpectedSpawns) {
                   console.log('spawnEvents.length < minExpectedSpawns', spawnEvents.length, '<', minExpectedSpawns);
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: Too few obstacle spawns' }), { status: 400 });
               }
               
-              let minObstacles, maxObstacles;
+              minObstacles, maxObstacles;
               if (gameTimeSec <= difficultyFactorTime*0.33) { minObstacles = 1; maxObstacles = 4; }
               else if (gameTimeSec <= difficultyFactorTime*0.66) { minObstacles = 2; maxObstacles = 6; }
               else if (gameTimeSec <= difficultyFactorTime) { minObstacles = 6; maxObstacles = 18; }
@@ -463,8 +565,8 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious maxObstacles: outside expected range' }), { status: 400 });
               }
               
-              const expectedSpawns = (stats.time / avgSpawnInterval) * avgObstaclesPerSpawn;
-              const maxExpectedSpawns = expectedSpawns * 1.5;
+              expectedSpawns = (stats.time / avgSpawnInterval) * avgObstaclesPerSpawn;
+              maxExpectedSpawns = expectedSpawns * 1.5;
               console.log('expectedSpawns',expectedSpawns);
               console.log('maxExpectedSpawns',maxExpectedSpawns);
               console.log('spawnEvents.length',spawnEvents.length);
@@ -475,14 +577,14 @@ export async function POST(request) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn count' }), { status: 400 });
               }
               //check double spawn events
-              let doubleSpawnCount = 0;
+              doubleSpawnCount = 0;
               for (let i = 1; i < spawnEvents.length; i++) {
                   if (spawnEvents[i].time - spawnEvents[i-1].time < 50) {
                       doubleSpawnCount++;
                   }
               }
               // Check for expected double spawns vs calculated count
-              let expectedDoubleSpawns = 0;
+              expectedDoubleSpawns = 0;
               for (let t = 0; t < Math.floor(gameTimeSec); t++) {
                 const difficultyFactor = Math.min(t / 90, 1);
                 const spawnInterval = 2.5 * (1 - difficultyFactor) + 0.3; // in seconds

@@ -214,9 +214,9 @@ export async function POST(request) {
             // All game check that last event is a collision
             const lastEvent = telemetry[telemetryLength - 1];
             const secondLastEvent = telemetry[telemetryLength - 2];
-            if (lastEvent.event !== 'collision' || secondLastEvent.event !== 'collision') {
-              console.log('lastEvent.event !== collision || secondLastEvent.event !== collision',
-                lastEvent.event, '!== collision', '||', secondLastEvent.event, '!== collision'
+            if (lastEvent.event !== 'collision' && secondLastEvent.event !== 'collision') {
+              console.log('lastEvent.event !== collision && secondLastEvent.event !== collision',
+                lastEvent.event, '!== collision', '&&', secondLastEvent.event, '!== collision'
               );
               return new Response(JSON.stringify({ status: 'error', message: 'Last event must be collision' }), { status: 400 });
             }

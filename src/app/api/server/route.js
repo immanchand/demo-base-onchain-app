@@ -482,20 +482,19 @@ export async function POST(request) {
                   }
               }
               // Check for expected double spawns vs calculated count
-              const T = stats.time / 1000; // Convert ms to seconds
-              let averageClusterChance;
-              if (T <= difficultyFactorTime) {
-                  averageClusterChance = T / 600;
-              } else {
-                  averageClusterChance = (0.3 * T - 13.5) / T;
+              let expectedDoubleSpawns = 0;
+              for (let t = 0; t < Math.floor(gameTimeSec); t++) {
+                const difficultyFactor = Math.min(t / 90, 1);
+                const spawnInterval = 2.5 * (1 - difficultyFactor) + 0.3; // in seconds
+                const clusterChance = Math.min(t / 300, 0.3);
+                expectedDoubleSpawns += (1 / spawnInterval) * clusterChance;
               }
-              const expectedDoubleSpawns = spawnEvents.length * averageClusterChance;
-              const stdDev = Math.sqrt(spawnEvents.length * averageClusterChance * (1 - averageClusterChance));
-              const tolerance = 2 * stdDev;
+              const stdDev = Math.sqrt(spawnEvents.length * (expectedDoubleSpawns / spawnEvents.length) * (1 - expectedDoubleSpawns / spawnEvents.length));
+              const tolerance = 1.5 * stdDev;
               console.log('doubleSpawnCount', doubleSpawnCount);
               console.log('expectedDoubleSpawns', expectedDoubleSpawns);
               console.log('tolerance', tolerance);
-              console.log('difference', doubleSpawnCount - expectedDoubleSpawns);
+              console.log('doubleSpawnCount - expectedDoubleSpawns', doubleSpawnCount - expectedDoubleSpawns);
               if (Math.abs(doubleSpawnCount - expectedDoubleSpawns) > tolerance) {
                   console.log('Math.abs(doubleSpawnCount - expectedDoubleSpawns) > tolerance',
                     'Math.abs(',doubleSpawnCount, '-', expectedDoubleSpawns,') > ',tolerance

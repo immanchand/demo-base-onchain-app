@@ -565,8 +565,8 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious maxObstacles: outside expected range' }), { status: 400 });
               }
               
-              expectedSpawns = (stats.time / avgSpawnInterval) * avgObstaclesPerSpawn;
-              maxExpectedSpawns = expectedSpawns * 1.5;
+              //expectedSpawns = (stats.time / avgSpawnInterval) * avgObstaclesPerSpawn;
+              //maxExpectedSpawns = expectedSpawns * 1.5;
               console.log('expectedSpawns',expectedSpawns);
               console.log('maxExpectedSpawns',maxExpectedSpawns);
               console.log('spawnEvents.length',spawnEvents.length);

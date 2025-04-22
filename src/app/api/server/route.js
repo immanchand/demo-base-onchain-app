@@ -8,7 +8,8 @@ import {  contractABI,
           TELEMETRY_LIMIT,
           SCORE_DIVISOR_TIME,
           FLY_PARAMETERS,
-          SHOOT_PARAMETERS } from '../../../constants';
+          SHOOT_PARAMETERS, 
+          JUMP_PARAMETERS} from '../../../constants';
 
 const rateLimitStore = new Map();
 const gameDurationStore = new Map();
@@ -205,7 +206,6 @@ export async function POST(request) {
             const frameEvents = telemetry.filter(e => e.event === 'frame');
             // Detect Game Clock Manipulation
             // check telemetry time agains server time only if telemetry length is less than limit
-            
             const telemetryDuration = frameEvents[frameEvents.length-1].time - frameEvents[0].time;
             if (telemetryDuration > serverDuration) {
               console.log('GameDurationStore Duration Check failed for',
@@ -220,24 +220,7 @@ export async function POST(request) {
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious telemetry duration vs server duration' }), { status: 400 });
             }
             gameDurationStore.delete(address);
-            // check 
 
-
-            // Check for identical deltaTime values (suspicious for manipulation)
-            const deltaTimes = frameEvents.map(e => e.data.deltaTime);
-            const avgDeltaTime = deltaTimes.reduce((a, b) => a + b, 0) / deltaTimes.length;
-            const deltaVariance = deltaTimes.reduce((a, b) => a + Math.pow(b - avgDeltaTime, 2), 0) / deltaTimes.length;
-            if (deltaVariance < 1e-7 || deltaVariance > 1e-3) { // 0.0000001 to 0.0001 s²
-              console.log('Delta time variance check failed for',
-                ' Player: ', address,
-                ' Game Id: ', gameId,
-                ' Game Name: ', stats.game,
-                ' Delta Times: ', deltaTimes,
-                ' Delta Variance: ', deltaVariance);
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious deltaTime variance' }), { status: 400 });
-            }
-            
-       
             // all games common telemetry check for average fps (frames per second)
             // fps should be minumum 40 and can not change more than 15 over a game period
             const fpsEvents = telemetry.filter(e => e.event === 'fps');
@@ -256,7 +239,48 @@ export async function POST(request) {
             if (maxFps - minFps > 15) {
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious FPS variance during game' }), { status: 400 });
             }
-                
+            
+            // All games check that difficultyFactor progresses correctly.
+            const difficultyFactorTime = 
+                    stats.game === 'fly'? FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME:
+                    stats.game === 'jump'? JUMP_PARAMETERS.DIFFICULTY_FACTOR_TIME:
+                    stats.game === 'shoot'? SHOOT_PARAMETERS.DIFFICULTY_FACTOR_TIME: 0;
+            const firstFrameId = telemetry.find(e => e.event === 'frame')?.data?.frameId || 10;
+            const frameInterval = 1000 / minFps; // Assume 60 FPS
+            const offset = (firstFrameId - 1) * frameInterval; // Adjust for frames before first logged event and miliseconds to seconds  
+            const gameStartTime = telemetry[0].time - offset;
+            // loop over frame events and check difficulty factor progress
+            for (const event of frameEvents) {
+              const elapsedTimeSec = ((event.time - gameStartTime) / 1000); //divide by 1000 to convert to seconds
+              const difficultyFactor = Math.min(elapsedTimeSec / 90, 1);
+              console.log('calculated difficulty factor - frame difficulty factor = ',event.data.difficulty,' - ',difficultyFactor,'=',event.data.difficulty - difficultyFactor );
+              if (Math.abs(event.data.difficulty - difficultyFactor) > 0.001) {
+                  console.log('Difficulty factor progression check failed', { 
+                    address,
+                    gameId,
+                    gameName: stats.game,
+                    event,
+                    difficultyFactor,
+                    eventDifficultyFactor: event.difficultyFactor,
+                  });
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle speed' }), { status: 400 });
+                }
+            }
+
+
+            // Check for identical deltaTime values (suspicious for manipulation)
+            const deltaTimes = frameEvents.map(e => e.data.deltaTime);
+            const avgDeltaTime = deltaTimes.reduce((a, b) => a + b, 0) / deltaTimes.length;
+            const deltaVariance = deltaTimes.reduce((a, b) => a + Math.pow(b - avgDeltaTime, 2), 0) / deltaTimes.length;
+            if (deltaVariance < 1e-7 || deltaVariance > 1e-3) { // 0.0000001 to 0.0001 s²
+              console.log('Delta time variance check failed for',
+                ' Player: ', address,
+                ' Game Id: ', gameId,
+                ' Game Name: ', stats.game,
+                ' Delta Times: ', deltaTimes,
+                ' Delta Variance: ', deltaVariance);
+              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious deltaTime variance' }), { status: 400 });
+            }   
             
             // common duration and score checks for TIME based games
             if (stats.game === 'fly' || stats.game === 'jump') {
@@ -352,10 +376,6 @@ export async function POST(request) {
               
               // validate spawned obstacle speeds against expected speed values
               // Calculate game start time with offset for first frame
-              const firstFrameId = telemetry.find(e => e.event === 'frame')?.data?.frameId || 10;
-              const frameInterval = 1000 / minFps; // Assume 60 FPS
-              const offset = (firstFrameId - 1) * frameInterval; // Adjust for frames before first logged event and miliseconds to seconds  
-              const gameStartTime = telemetry[0].time - offset;
               for (const event of spawnEvents) {
                 //quick check that obstacle size is consistent with backend
                 if (event.data.width !== FLY_PARAMETERS.OBSTACLE_SIZE || event.data.height !== FLY_PARAMETERS.OBSTACLE_SIZE) {
@@ -495,7 +515,7 @@ export async function POST(request) {
               const frames = 10;
 
               for (let i = 0; i < frameFlapEvents.length; i++) {
-                if (frameFlapEvents[i].event === 'frame' && lastFrame && lastFrame.frameId > 0) { //was 50. check if this is ok? *****
+                if (frameFlapEvents[i].event === 'frame' && lastFrame) {// && lastFrame.frameId > 0) { //was 50. check if this is ok? *****
                   const event = frameFlapEvents[i];
                   const deltaTime = event.data.deltaTime;
                   // Collect flaps between lastFrame.time and event.time

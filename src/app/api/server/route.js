@@ -268,7 +268,7 @@ export async function POST(request) {
             }
 
 
-            // Check for identical deltaTime values (suspicious for manipulation)
+            // All games Check for identical deltaTime values (suspicious for manipulation)
             const deltaTimes = frameEvents.map(e => e.data.deltaTime);
             const avgDeltaTime = deltaTimes.reduce((a, b) => a + b, 0) / deltaTimes.length;
             const deltaVariance = deltaTimes.reduce((a, b) => a + Math.pow(b - avgDeltaTime, 2), 0) / deltaTimes.length;
@@ -280,8 +280,11 @@ export async function POST(request) {
                 ' Delta Times: ', deltaTimes,
                 ' Delta Variance: ', deltaVariance);
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious deltaTime variance' }), { status: 400 });
-            }   
+            }
             
+            //All games events filtered required
+            const spawnEvents = telemetry.filter(e => e.event === 'spawn');
+            //const frameSwpawnEvents = telemetry.filter(e => e.event === 'frame' || e.event === 'spawn');
             // common duration and score checks for TIME based games
             if (stats.game === 'fly' || stats.game === 'jump') {
               // validate recaptcha token for bot detection
@@ -354,12 +357,11 @@ export async function POST(request) {
               }
             }
                         
-			      // Stats validation and telemetry validation per Game
+			      // Stats validation and telemetry validation specific to each Game
             // FLY GAME
             if (stats.game === 'fly') {
               
 							//SPAWN RELETED VALIDATION
-              const spawnEvents = telemetry.filter(e => e.event === 'spawn');
               //validate spawn events in telemetry against obstacles cleared and maxObstacles in stats
               if (stats.obstaclesCleared < spawnEvents.length - stats.maxObstacles
                   || stats.obstaclesCleared > spawnEvents.length) { //account for obstacles spawned but not cleared yet
@@ -399,8 +401,6 @@ export async function POST(request) {
                   }
               }
               // Validate obstacle spawns
-              const gameTimeSec = stats.time / 1000;
-              const difficultyFactor = Math.min(gameTimeSec / 90, 1);
               let avgSpawnInterval;
               if (gameTimeSec <= 90) {
                 avgSpawnInterval = 2800 - (2500 * stats.time) / (2 * 90000);
@@ -442,11 +442,22 @@ export async function POST(request) {
                   }
               }
               // Check for expected double spawns vs calculated count
-              const expectedDoubleSpawns = spawnEvents.length * (Math.min(stats.time / 90000, 1) * 0.3);
+              const T = stats.time / 1000; // Convert ms to seconds
+              let averageClusterChance;
+              if (T <= 90) {
+                  averageClusterChance = T / 600;
+              } else {
+                  averageClusterChance = (0.3 * T - 13.5) / T;
+              }
+              const expectedDoubleSpawns = spawnEvents.length * averageClusterChance;
+              const stdDev = Math.sqrt(spawnEvents.length * averageClusterChance * (1 - averageClusterChance));
+              const tolerance = 2 * stdDev;
               console.log('doubleSpawnCount', doubleSpawnCount);
               console.log('expectedDoubleSpawns', expectedDoubleSpawns);
-              if (Math.abs(doubleSpawnCount - expectedDoubleSpawns) > expectedDoubleSpawns * 0.2) {
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious low double spawn frequency' }), { status: 400 });
+              console.log('tolerance', tolerance);
+              console.log('difference', doubleSpawnCount - expectedDoubleSpawns);
+              if (Math.abs(doubleSpawnCount - expectedDoubleSpawns) > tolerance) {
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious double spawn frequency' }), { status: 400 });
               }
               //Ensure stats.obstaclesCleared matches the number of obstacles marked as dodged in telemetry
               const dodgedObstacles = telemetry.filter(e => e.event === 'spawn').length;

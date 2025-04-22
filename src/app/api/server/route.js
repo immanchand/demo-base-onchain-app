@@ -137,7 +137,7 @@ export async function POST(request) {
             const gameTimeSec = stats.time / 1000;
             // All games check that telemetry in in order by time and frameId
             let lastTime = -Infinity;
-            let lastFrameId = -1;
+            let lastFrameId = 0;
             const telemetryLength = telemetry.length;
             for (let i = 0; i < telemetryLength; i++) {
               const event = telemetry[i];
@@ -154,7 +154,7 @@ export async function POST(request) {
 
               // Verify frameId is strictly increasing for frame events
               if (event.event === 'frame') {
-                const currentFrameId = event.data.frameId;
+                const currentFrameId = event.data.frameId/10; //divide 10 because front end captures every 10 frames
                 if (currentFrameId <= lastFrameId) {
                   console.log('Telemetry frameId order violation', {
                     index: i,

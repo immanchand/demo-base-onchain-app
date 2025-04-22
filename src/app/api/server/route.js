@@ -474,13 +474,13 @@ export async function POST(request) {
               // Double spawn tolerance
               const doubleSpawnStdDev = Math.sqrt(expectedDoubleSpawns * 0.3 * (1 - 0.3)); // Variance for double spawns
               const doubleSpawnTolerance = 1.5 * doubleSpawnStdDev;
-              if (Math.abs(doubleSpawnCount - expectedDoubleSpawns) > doubleSpawnTolerance) {
-                console.log('Suspicious double spawn frequency', {
+              if (doubleSpawnCount < expectedDoubleSpawns - doubleSpawnTolerance) {
+                console.log('Suspicious double spawn count', {
                     doubleSpawnCount,
                     expectedDoubleSpawns,
                     doubleSpawnTolerance
                 });
-                return new Response(JSON.stringify({ Wstatus: 'error', message: 'Suspicious double spawn frequency' }), { status: 400 });
+                return new Response(JSON.stringify({ Wstatus: 'error', message: 'Suspicious double spawn count' }), { status: 400 });
               }
 
               // Validate maxObstacles range

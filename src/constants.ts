@@ -26,7 +26,7 @@ export const FLY_PARAMETERS = {
   SCORE_MULTIPLIER: 100,
   MAX_FLAPS_PER_SEC: 5,
   MIN_FLAPS_PER_SEC: 1,
-  RECAPTCHA_END_THRESHOLD: 0.5, // Higher is more human check; Lower (e.g., 0.2) is less human check.
+  RECAPTCHA_END_THRESHOLD: 0.3,//make 0.5 // Higher is more human check; Lower (e.g., 0.2) is less human check.
   DIFFICULTY_FACTOR_TIME: 90, //seonds till max difficulty
 };
 export const JUMP_PARAMETERS = {

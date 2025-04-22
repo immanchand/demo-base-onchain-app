@@ -34,7 +34,16 @@ interface TelemetryEvent {
     event: 'flap' | 'spawn' | 'collision' | 'frame' | 'fps';
     time: number;
     frameId?: number;
-    data?: { deltaTime?: number; difficulty?: number; y?: number; vy?: number; speed?: number; score?: number; fps?: number };
+    data?: { 
+        deltaTime?: number;
+        difficulty?: number;
+        y?: number;
+        vy?: number;
+        speed?: number;
+        score?: number;
+        fps?: number;
+        width?: number;
+        height?: number; };
 }
 
 type EnemyType = 'alien' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
@@ -146,8 +155,8 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
     const spawnObstacle = useCallback((canvas: HTMLCanvasElement, speed: number): Obstacle => {
         const y = Math.random() * (canvas.height - FLY_PARAMETERS.OBSTACLE_SIZE*3);
         setTelemetry((prev) => {
-            if (prev.length >= TELEMETRY_LIMIT) return [...prev.slice(1), { event: 'spawn', time: performance.now(), data: { y, speed } }];
-            return [...prev, { event: 'spawn', time: performance.now(), data: { y, speed } }];
+            if (prev.length >= TELEMETRY_LIMIT) return [...prev.slice(1), { event: 'spawn', time: performance.now(), data: { y, speed, width: FLY_PARAMETERS.OBSTACLE_SIZE, height: FLY_PARAMETERS.OBSTACLE_SIZE } }];
+            return [...prev, { event: 'spawn', time: performance.now(), data: { y, speed, width: FLY_PARAMETERS.OBSTACLE_SIZE, height: FLY_PARAMETERS.OBSTACLE_SIZE } }];
         });
         return {
             x: canvas.width,

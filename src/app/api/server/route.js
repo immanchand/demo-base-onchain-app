@@ -419,14 +419,6 @@ export async function POST(request) {
               for (let i = 1; i < spawnEvents.length; i++) {
                   if (spawnEvents[i].time - spawnEvents[i-1].time < 50) {
                       doubleSpawnCount++;
-                      const yDiff = Math.abs(spawnEvents[i].data.y - spawnEvents[i-1].data.y);
-                      console.log('Double spawn detected', { 
-                        yDiff
-                      });
-                      if (yDiff < FLY_PARAMETERS.OBSTACLE_SIZE * 2 * 0.9 || yDiff > FLY_PARAMETERS.OBSTACLE_SIZE * 2 * 1.1) {
-                          console.log(`Invalid cluster: yDiff=${yDiff}, expectedRange=[${FLY_PARAMETERS.OBSTACLE_SIZE * 2 * 0.9}, ${FLY_PARAMETERS.OBSTACLE_SIZE * 2 * 1.1}]`);
-                          return new Response(JSON.stringify({ status: 'error', message: 'Invalid cluster spawn spacing' }), { status: 400 });
-                      }
                   }
               }
               // Check for expected double spawns vs calculated count

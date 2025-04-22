@@ -253,7 +253,6 @@ export async function POST(request) {
             for (const event of frameEvents) {
               const elapsedTimeSec = ((event.time - gameStartTime) / 1000); //divide by 1000 to convert to seconds
               const difficultyFactor = Math.min(elapsedTimeSec / 90, 1);
-              console.log('calculated difficulty factor - frame difficulty factor = ',event.data.difficulty,' - ',difficultyFactor,'=',event.data.difficulty - difficultyFactor );
               if (event.data.difficulty < difficultyFactor - 0.001) {
                   console.log('Difficulty factor progression check failed', { 
                     address,
@@ -427,10 +426,11 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious maxObstacles: outside expected range' }), { status: 400 });
               }
               
-              //const avgObstaclesPerSpawn = gameTimeSec <= 90 ? 1 + (gameTimeSec / 90 * 0.15) : 1.3;
-              //const avgSpawnInterval = gameTimeSec <= 90 ? (2800 + (2800 - 2500 * gameTimeSec / 90)) / 2 : ((90 * 1550) + ((gameTimeSec - 90) * 300)) / gameTimeSec;
               const expectedSpawns = (stats.time / avgSpawnInterval) * avgObstaclesPerSpawn;
               const maxExpectedSpawns = expectedSpawns * 1.5;
+              console.log('expectedSpawns',expectedSpawns);
+              console.log('maxExpectedSpawns',maxExpectedSpawns);
+              console.log('spawnEvents.length',spawnEvents.length);
               if (spawnEvents.length * 1.3 < expectedSpawns || spawnEvents.length > maxExpectedSpawns) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn count' }), { status: 400 });
               }

@@ -254,7 +254,7 @@ export async function POST(request) {
               const elapsedTimeSec = ((event.time - gameStartTime) / 1000); //divide by 1000 to convert to seconds
               const difficultyFactor = Math.min(elapsedTimeSec / 90, 1);
               console.log('calculated difficulty factor - frame difficulty factor = ',event.data.difficulty,' - ',difficultyFactor,'=',event.data.difficulty - difficultyFactor );
-              if (Math.abs(event.data.difficulty - difficultyFactor) > 0.001) {
+              if (event.data.difficulty < difficultyFactor - 0.001) {
                   console.log('Difficulty factor progression check failed', { 
                     address,
                     gameId,
@@ -316,36 +316,36 @@ export async function POST(request) {
 
               // TIME based games telemetry computed score validation
               let computedScore = 0;
-              if (telemetryLength < TELEMETRY_LIMIT-1) { //*************keep for now only for the code. Delete check and else before production
-                // Simple sum for games with complete telemetry
-                for (const event of frameEvents) {
-                    computedScore += event.data.deltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER;
-                }
-              } else {
-                // Estimate first frame score for games with truncated telemetry
-                let firstFrameTime = null;
-                let firstFrameScore = null;
-                let frameEventsProcessed = false;
-                
-                for (const event of frameEvents) {
-                  if (firstFrameTime === null) {
-                    firstFrameTime = event.time;
-                    firstFrameScore = event.data.score;
-                    const gameStartTime = firstFrameTime - stats.time;
-                    const elapsedTimeSeconds = (firstFrameTime - gameStartTime) / 1000;
-                    computedScore = elapsedTimeSeconds * FLY_PARAMETERS.SCORE_MULTIPLIER;
-                    if (Math.abs(computedScore - firstFrameScore) > computedScore * 0.1) {
-                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious first frame score' }), { status: 400 });
-                    }
-                  } else {
-                    computedScore += event.data.deltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER;
-                  }
-                  frameEventsProcessed = true;
-                }
-                if (!frameEventsProcessed) {
-                  computedScore = gameTimeSec * FLY_PARAMETERS.SCORE_MULTIPLIER;
-                }
+             // if (telemetryLength < TELEMETRY_LIMIT-1) { //*************keep for now only for the code. Delete check and else before production
+              // Simple sum for games with complete telemetry
+              for (const event of frameEvents) {
+                  computedScore += event.data.deltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER;
               }
+              // } else {
+              //   // Estimate first frame score for games with truncated telemetry
+              //   let firstFrameTime = null;
+              //   let firstFrameScore = null;
+              //   let frameEventsProcessed = false;
+                
+              //   for (const event of frameEvents) {
+              //     if (firstFrameTime === null) {
+              //       firstFrameTime = event.time;
+              //       firstFrameScore = event.data.score;
+              //       const gameStartTime = firstFrameTime - stats.time;
+              //       const elapsedTimeSeconds = (firstFrameTime - gameStartTime) / 1000;
+              //       computedScore = elapsedTimeSeconds * FLY_PARAMETERS.SCORE_MULTIPLIER;
+              //       if (Math.abs(computedScore - firstFrameScore) > computedScore * 0.1) {
+              //         return new Response(JSON.stringify({ status: 'error', message: 'Suspicious first frame score' }), { status: 400 });
+              //       }
+              //     } else {
+              //       computedScore += event.data.deltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER;
+              //     }
+              //     frameEventsProcessed = true;
+              //   }
+              //   if (!frameEventsProcessed) {
+              //     computedScore = gameTimeSec * FLY_PARAMETERS.SCORE_MULTIPLIER;
+              //   }
+              // }
               console.log('computedScore', computedScore);
               if (Number(score) > computedScore * 1.1) {
                 console.log('score', Number(score));

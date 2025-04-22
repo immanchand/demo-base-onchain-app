@@ -458,11 +458,6 @@ export async function POST(request) {
               if (Math.abs(doubleSpawnCount - expectedDoubleSpawns) > tolerance) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious double spawn frequency' }), { status: 400 });
               }
-              //Ensure stats.obstaclesCleared matches the number of obstacles marked as dodged in telemetry
-              const dodgedObstacles = telemetry.filter(e => e.event === 'spawn').length;
-              if (stats.obstaclesCleared < dodgedObstacles - 2 || stats.obstaclesCleared > dodgedObstacles + 2 ) { // +-2 for tolerance
-                return new Response(JSON.stringify({ status: 'error', message: 'Mismatch in obstacles cleared' }), { status: 400 });
-              }
 
               // FLAPS RELATED VALIDATOINS
               // validate stats.flapsPerSec matches the number of flap and events in telemetry

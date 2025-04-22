@@ -456,10 +456,10 @@ export async function POST(request) {
                 expectedDoubleSpawns += spawnsPerSecond * clusterChance;
               }
               // Spawn count tolerance
-              const spawnStdDev = Math.sqrt(spawnEvents.length * (expectedSpawns / spawnEvents.length) * (1 - expectedSpawns / spawnEvents.length));
+              const spawnStdDev = Math.sqrt(expectedSpawns * (1 + 0.3) * (1 - (1 + 0.3))); // Approximate variance for obstacles
               const spawnTolerance = 1.5 * spawnStdDev;
-              const minExpectedSpawns = expectedSpawns + expectedDoubleSpawns/2 - spawnTolerance;
-              const maxExpectedSpawns = expectedSpawns + expectedDoubleSpawns/2 + spawnTolerance;
+              const minExpectedSpawns = expectedSpawns - spawnTolerance;
+              const maxExpectedSpawns = expectedSpawns + spawnTolerance;
               if (spawnEvents.length < minExpectedSpawns || spawnEvents.length > maxExpectedSpawns) {
                 console.log('Suspicious spawn count', {
                     spawnEventsLength: spawnEvents.length,
@@ -472,7 +472,7 @@ export async function POST(request) {
               }
 
               // Double spawn tolerance
-              const doubleSpawnStdDev = Math.sqrt(spawnEvents.length * (expectedDoubleSpawns / spawnEvents.length) * (1 - expectedDoubleSpawns / spawnEvents.length));
+              const doubleSpawnStdDev = Math.sqrt(expectedDoubleSpawns * 0.3 * (1 - 0.3)); // Variance for double spawns
               const doubleSpawnTolerance = 1.5 * doubleSpawnStdDev;
               if (Math.abs(doubleSpawnCount - expectedDoubleSpawns) > doubleSpawnTolerance) {
                 console.log('Suspicious double spawn frequency', {

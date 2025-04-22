@@ -357,6 +357,11 @@ export async function POST(request) {
               const offset = (firstFrameId - 1) * frameInterval; // Adjust for frames before first logged event and miliseconds to seconds  
               const gameStartTime = telemetry[0].time - offset;
               for (const event of spawnEvents) {
+                //quick check that obstacle size is consistent with backend
+                if (event.data.width !== FLY_PARAMETERS.OBSTACLE_SIZE || event.data.height !== FLY_PARAMETERS.OBSTACLE_SIZE) {
+                  console.log('Invalid obstacle size', { actualWidth: event.data.width, actualHeight: event.data.height });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
+                }
                 const elapsedTimeSec = ((event.time - gameStartTime) / 1000); //divide by 1000 to convert to seconds
                 const difficultyFactor = Math.min(elapsedTimeSec / 90, 1);
                 const expectedSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);

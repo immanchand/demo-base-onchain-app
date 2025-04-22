@@ -120,8 +120,6 @@ export async function POST(request) {
               const gameEndTime = Number(gameData.endTime.toString()); // Convert seconds to milliseconds
               if (gameData) {
                 // early check and return if game is already over
-                console.log('gameEndTime', gameEndTime);
-                console.log('date.now/1000', Date.now()/1000);
                 if (gameEndTime <= Date.now()/1000) {
                   console.log('gameEndTime <= Date.now()/1000', gameEndTime, '<=', Date.now()/1000);
                   return new Response(JSON.stringify({ status: 'error', message: 'This game is already over' }), {
@@ -460,8 +458,8 @@ export async function POST(request) {
               // Spawn count tolerance
               const spawnStdDev = Math.sqrt(spawnEvents.length * (expectedSpawns / spawnEvents.length) * (1 - expectedSpawns / spawnEvents.length));
               const spawnTolerance = 1.5 * spawnStdDev;
-              const minExpectedSpawns = expectedSpawns - spawnTolerance;
-              const maxExpectedSpawns = expectedSpawns + spawnTolerance;
+              const minExpectedSpawns = expectedSpawns + expectedDoubleSpawns/2 - spawnTolerance;
+              const maxExpectedSpawns = expectedSpawns + expectedDoubleSpawns/2 + spawnTolerance;
               if (spawnEvents.length < minExpectedSpawns || spawnEvents.length > maxExpectedSpawns) {
                 console.log('Suspicious spawn count', {
                     spawnEventsLength: spawnEvents.length,

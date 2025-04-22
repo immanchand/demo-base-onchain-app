@@ -227,7 +227,7 @@ export async function POST(request) {
             const deltaTimes = frameEvents.map(e => e.data.deltaTime);
             const avgDeltaTime = deltaTimes.reduce((a, b) => a + b, 0) / deltaTimes.length;
             const deltaVariance = deltaTimes.reduce((a, b) => a + Math.pow(b - avgDeltaTime, 2), 0) / deltaTimes.length;
-            if (deltaVariance < 1e-7 || deltaVariance > 1e-4) { // 0.0000001 to 0.0001 s²
+            if (deltaVariance < 1e-7 || deltaVariance > 1e-3) { // 0.0000001 to 0.0001 s²
               console.log('Delta time variance check failed for',
                 ' Player: ', address,
                 ' Game Id: ', gameId,

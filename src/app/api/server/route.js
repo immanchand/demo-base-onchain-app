@@ -213,8 +213,11 @@ export async function POST(request) {
             }
             // All game check that last event is a collision
             const lastEvent = telemetry[telemetryLength - 1];
-            if (lastEvent.event !== 'collision') {
-              console.log('lastEvent.event !== collision',lastEvent.event, '!==', 'collision')
+            const secondLastEvent = telemetry[telemetryLength - 2];
+            if (lastEvent.event !== 'collision' || secondLastEvent.event !== 'collision') {
+              console.log('lastEvent.event !== collision || secondLastEvent.event !== collision',
+                lastEvent.event, '!== collision', '||', secondLastEvent.event, '!== collision'
+              );
               return new Response(JSON.stringify({ status: 'error', message: 'Last event must be collision' }), { status: 400 });
             }
             // All gamess Check if server game duration is less than client game duration. With network latency, it can never be less.

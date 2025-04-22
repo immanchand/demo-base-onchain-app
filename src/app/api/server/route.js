@@ -252,7 +252,7 @@ export async function POST(request) {
             // loop over frame events and check difficulty factor progress
             for (const event of frameEvents) {
               const elapsedTimeSec = ((event.time - gameStartTime) / 1000); //divide by 1000 to convert to seconds
-              const difficultyFactor = Math.min(elapsedTimeSec / 90, 1);
+              const difficultyFactor = Math.min(elapsedTimeSec / difficultyFactorTime, 1);
               if (event.data.difficulty < difficultyFactor - 0.001) {
                   console.log('Difficulty factor progression check failed', { 
                     address,
@@ -359,7 +359,6 @@ export async function POST(request) {
 			      // Stats validation and telemetry validation specific to each Game
             // FLY GAME
             if (stats.game === 'fly') {
-              
 							//SPAWN RELETED VALIDATION
               //validate spawn events in telemetry against obstacles cleared and maxObstacles in stats
               if (stats.obstaclesCleared < spawnEvents.length - stats.maxObstacles
@@ -384,7 +383,7 @@ export async function POST(request) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
                 }
                 const elapsedTimeSec = ((event.time - gameStartTime) / 1000); //divide by 1000 to convert to seconds
-                const difficultyFactor = Math.min(elapsedTimeSec / 90, 1);
+                const difficultyFactor = Math.min(elapsedTimeSec / difficultyFactorTime, 1);
                 const expectedSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
                 if (Math.abs(event.data.speed - expectedSpeed) > 0.1) {
                     console.log('Obstacle speed check failed', { 
@@ -401,13 +400,13 @@ export async function POST(request) {
               }
               // Validate obstacle spawns
               let avgSpawnInterval;
-              if (gameTimeSec <= 90) {
+              if (gameTimeSec <= difficultyFactorTime) {
                 avgSpawnInterval = 2800 - (2500 * stats.time) / (2 * 90000);
               } else {
                   const decayFactor = Math.exp(-gameTimeSec / 720);
                   avgSpawnInterval = 300 + (112500000 / stats.time) * decayFactor;
               }
-              const avgObstaclesPerSpawn = gameTimeSec <= 90 ? 1 + (gameTimeSec / 90 * 0.15) : ((90 * 1.15) + ((gameTimeSec - 90) * 1.3)) / gameTimeSec;
+              const avgObstaclesPerSpawn = gameTimeSec <= difficultyFactorTime ? 1 + (gameTimeSec / difficultyFactorTime * 0.15) : ((difficultyFactorTime * 1.15) + ((gameTimeSec - difficultyFactorTime) * 1.3)) / gameTimeSec;
               const minExpectedSpawns = (stats.time / avgSpawnInterval) * avgObstaclesPerSpawn * 0.93;
               console.log('avgSpawnInterval', avgSpawnInterval);
               console.log('minExpectedSpawns', minExpectedSpawns);
@@ -418,9 +417,9 @@ export async function POST(request) {
               }
               
               let minObstacles, maxObstacles;
-              if (gameTimeSec <= 30) { minObstacles = 1; maxObstacles = 4; }
-              else if (gameTimeSec <= 60) { minObstacles = 2; maxObstacles = 6; }
-              else if (gameTimeSec <= 90) { minObstacles = 6; maxObstacles = 18; }
+              if (gameTimeSec <= difficultyFactorTime*0.33) { minObstacles = 1; maxObstacles = 4; }
+              else if (gameTimeSec <= difficultyFactorTime*0.66) { minObstacles = 2; maxObstacles = 6; }
+              else if (gameTimeSec <= difficultyFactorTime) { minObstacles = 6; maxObstacles = 18; }
               else { minObstacles = 12; maxObstacles = 20; }
               if (stats.maxObstacles < minObstacles || stats.maxObstacles > maxObstacles) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious maxObstacles: outside expected range' }), { status: 400 });
@@ -444,7 +443,7 @@ export async function POST(request) {
               // Check for expected double spawns vs calculated count
               const T = stats.time / 1000; // Convert ms to seconds
               let averageClusterChance;
-              if (T <= 90) {
+              if (T <= difficultyFactorTime) {
                   averageClusterChance = T / 600;
               } else {
                   averageClusterChance = (0.3 * T - 13.5) / T;

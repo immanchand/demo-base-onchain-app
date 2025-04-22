@@ -118,7 +118,7 @@ export async function POST(request) {
               gameData = await contract.getGame(gameId);
               const contractHighScore = Number(gameData.highScore.toString());
               const gameEndTime = Number(gameData.endTime.toString()); // Convert seconds to milliseconds
-              if (gameData && gameData.highScore && gameData.endTime) {
+              if (gameData) {
                 // early check and return if game is already over
                 console.log('gameEndTime', gameEndTime);
                 console.log('date.now/1000', Date.now()/1000);

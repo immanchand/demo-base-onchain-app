@@ -495,7 +495,7 @@ export async function POST(request) {
               // END SPAWN RELATED VALIDATION
               
 
-              // FLY GAME FLAPS VALIDATIONS
+              // FLY GAME FLAP VALIDATIONS
               const frameEvents = telemetry.filter(e => e.event === 'frame');
               const flapEvents = telemetry.filter(e => e.event === 'flap');
 
@@ -522,17 +522,20 @@ export async function POST(request) {
                 }
 
                 // Calculate frame difference
-                const frameDiff = (flap.frameId - prevFrame.frameId) / 10;
-                const expectedFrameTime = frameDiff * prevFrame.data.deltaTime / 10;
-                const actualTimeDiff = (flap.time - prevFrame.time) / 1000;
-                if (Math.abs(actualTimeDiff - expectedFrameTime) > 0.05) {
-                  console.log('Flap timing inconsistent with frame', { flap, prevFrame, actualTimeDiff, expectedFrameTime });
+                const framesElapsed = flap.frameId - prevFrame.frameId; // Number of frames (e.g., 109 - 100 = 9)
+                const perFrameDeltaTime = prevFrame.data.deltaTime / 10; // Per-frame deltaTime (e.g., 0.166 / 10 = 0.0166)
+                const expectedFrameTime = framesElapsed * perFrameDeltaTime; // Expected time for framesElapsed frames
+                const actualTimeDiff = (flap.time - prevFrame.time) / 1000; // Actual time in seconds
+                const timingTolerance = Math.max(0.05, framesElapsed * 0.01); // 10ms per frame, minimum 50ms
+                if (Math.abs(actualTimeDiff - expectedFrameTime) > timingTolerance) {
+                  console.log('Flap timing inconsistent with frame', { flap, prevFrame, actualTimeDiff, expectedFrameTime, timingTolerance });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap timing' }), { status: 400 });
                 }
 
                 // Simulate physics
                 let currentY = prevFrame.data.y;
                 let currentVy = prevFrame.data.vy;
+                const frameDiff = framesElapsed / 10; // For physics simulation, as in original code
                 for (let i = 0; i < Math.floor(frameDiff); i++) {
                   currentVy += FLY_PARAMETERS.GRAVITY;
                   currentY += currentVy;

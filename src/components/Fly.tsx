@@ -359,16 +359,11 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 const currentTime = performance.now();
                 const deltaTime = (currentTime - lastFrameTimeRef.current) / 1000; // Time since last frame in seconds
                 setTelemetry((prev) => {
-                    const newEvent: TelemetryEvent = {
-                        event: 'flap',
-                        time: currentTime,
-                        data: { y: ship.y, vy: ship.vy, deltaTime }
-                      };
-                      if (prev.length >= TELEMETRY_LIMIT) return [...prev.slice(1), newEvent];
-                      return [...prev, newEvent];
-                });
-                pendingStatsUpdate = { ...pendingStatsUpdate, flaps: pendingStatsUpdate.flaps + 1 };
-            }
+                    if (prev.length >= TELEMETRY_LIMIT) return [...prev.slice(1), { event: 'flap', time: currentTime, data: { y: ship.y, vy: ship.vy, deltaTime } }];
+                    return [...prev, { event: 'flap', time: currentTime, data: { y: ship.y, vy: ship.vy, deltaTime } }];
+                  });
+                  pendingStatsUpdate = { ...pendingStatsUpdate, flaps: pendingStatsUpdate.flaps + 1 };
+                }
         };
         let inputCount = 0;
         const handleKeyDown = (e: KeyboardEvent) => {

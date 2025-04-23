@@ -29,7 +29,7 @@ interface Bullet extends Entity {
 }
 
 interface TelemetryEvent {
-    event: 'shot' | 'spawn' | 'kill' | 'collision';
+    event: 'shot' | 'spawn' | 'kill' | 'collision'| 'frame';
     time: number;
     data?: { x?: number; y?: number; speedMultiplier?: number };
 }
@@ -89,6 +89,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         flapsPerSec: 0,
         maxObstacles: 0,
         inputsPerSec: 0,
+        canvasWidth: canvasRef.current?.width || 1008,
     });
 
     // Preload images
@@ -476,6 +477,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                 flapsPerSec: 0,
                 maxObstacles: 0,
                 inputsPerSec: 0,
+                canvasWidth: canvasRef.current.width,
             });
 
             window.addEventListener('mousemove', handleMouseMove);

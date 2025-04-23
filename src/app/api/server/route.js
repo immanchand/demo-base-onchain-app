@@ -517,7 +517,7 @@ export async function POST(request) {
                   lastFrame = event;
 
                   // Frame physics check (replaces separate frameFlapEvents loop)
-                  if (lastFrame && frameIndex > 5) { //skip first 10 frame events (50 frames ~ 1 second)
+                  if (lastFrame && frameIndex > 50) { //skip first 10 frame events (500 frames ~ 10 second)
                     const deltaTime = event.data.deltaTime; // Time for 10 frames
                     const frameDeltaTime = deltaTime / 10; // Per-frame time
                     let currentY = lastFrame.data.y;

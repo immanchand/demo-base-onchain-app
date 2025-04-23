@@ -89,6 +89,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         flapsPerSec: 0,
         maxObstacles: 0,
         inputsPerSec: 0,
+        canvasWidth: canvasRef.current?.width || 1008,
     });
 
     // Check reCAPTCHA readiness
@@ -391,6 +392,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 flapsPerSec: 0,
                 maxObstacles: 0,
                 inputsPerSec: 0,
+                canvasWidth: canvasRef.current.width,
             });
 			pendingStatsUpdate = {
                 game: 'fly',
@@ -406,6 +408,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 flapsPerSec: 0,
                 maxObstacles: 0,
                 inputsPerSec: 0,
+                canvasWidth: canvasRef.current.width,
             };
             obstaclePool = [spawnObstacle(canvas, FLY_PARAMETERS.BASE_OBSTACLE_SPEED)];
             lastSpawnTimeRef.current = performance.now();
@@ -595,7 +598,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                             </Button>
                             {startGameStatus === 'error' && startGameError && (
                                 <p className="text-error-red mt-2">
-                                    {startGameError} Try selecting a ship or obstacle to start.
+                                    {startGameError} or try selecting a ship or obstacle to start.
                                 </p>
                             )}
                         </div>

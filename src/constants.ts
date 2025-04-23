@@ -5,7 +5,7 @@ export const ethPrice = 1700;
 export const message = 'Please sign this message to approve paying tickets to start the game session. This is not a transaction and there is no fee. It is only used to verify your identity and protect your own tickts.';
 export const RECAPTCHA_START_THRESHOLD = 0.3;
 export const TELEMETRY_LIMIT = 20000; // Max telemetry data points
-export const TELEMETRY_SCORE_THRESHOLD = 6000; // Min score for telemetry data
+export const TELEMETRY_SCORE_THRESHOLD = 600; // Min score for telemetry data
 // Scoring multipliers
 export const SCORE_DIVISOR_TIME = 10; // should be SCORE_MULTIPLIER/10
 export const SCORE_MULTIPLIER_SHOOT = 5; // Points per kill for Shoot
@@ -24,7 +24,7 @@ export const FLY_PARAMETERS = {
   GRAVITY: 0.2, // Higher (e.g., 0.3) = faster fall, harder; Lower (e.g., 0.1) = easier
   FLAP_VELOCITY: -5, // Higher (e.g., -6) = stronger flaps, easier; Lower (e.g., -4) = harder
   SCORE_MULTIPLIER: 100,
-  MAX_FLAPS_PER_SEC: 5,
+  MAX_FLAPS_PER_SEC: 4,
   MIN_FLAPS_PER_SEC: 1,
   RECAPTCHA_END_THRESHOLD: 0.3,//make 0.5 // Higher is more human check; Lower (e.g., 0.2) is less human check.
   DIFFICULTY_FACTOR_TIME: 90, //seonds till max difficulty

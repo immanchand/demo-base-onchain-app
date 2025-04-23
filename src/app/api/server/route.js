@@ -467,7 +467,7 @@ export async function POST(request) {
               console.log('spawnStdDev',spawnStdDev);
               const spawnTolerance = 1.5 * spawnStdDev;
               const minExpectedSpawns = expectedSpawns - spawnTolerance;
-              const maxExpectedSpawns = expectedSpawns + spawnTolerance;
+              const maxExpectedSpawns = expectedSpawns + spawnTolerance*1.5;
               console.log('spawnTolerance',spawnTolerance);
               console.log('minExpectedSpawns',minExpectedSpawns);
               console.log('maxExpectedSpawns',maxExpectedSpawns);
@@ -485,22 +485,26 @@ export async function POST(request) {
               // Expected Double spawn calculations and validations
               const doubleSpawnStdDev = Math.sqrt(expectedDoubleSpawns * 0.3 * (1 - 0.3)); // Variance for double spawns
               const doubleSpawnTolerance = 1.7 * doubleSpawnStdDev;
+              const minExpectedDoubleSpawns = expectedDoubleSpawns - doubleSpawnTolerance;
+              const maxExpectedDoubleSpawns = expectedDoubleSpawns + doubleSpawnTolerance*1.5;
               console.log('doubleSpawnTolerance',doubleSpawnTolerance);
               console.log('expectedDoubleSpawns',expectedDoubleSpawns);
               console.log('actual double spawn',doubleSpawnCount);
-              if (doubleSpawnCount < expectedDoubleSpawns - doubleSpawnTolerance) {
+              if (doubleSpawnCount < minExpectedDoubleSpawns || doubleSpawnCount > maxExpectedDoubleSpawns) {
                 console.log('Suspicious double spawn count', {
                     doubleSpawnCount,
                     expectedDoubleSpawns,
-                    doubleSpawnTolerance
+                    doubleSpawnTolerance,
+                    minExpectedDoubleSpawns,
+                    maxExpectedDoubleSpawns,
                 });
                 return new Response(JSON.stringify({status: 'error', message: 'Suspicious double spawn count' }), { status: 400 });
               }
               // expected maxObstacles range calcuations and validations
               const maxObstaclesStdDev = Math.sqrt(Math.abs(expectedMaxObstacles * (1 + 0.3) * (1 - (1 + 0.3))));
               const maxObstaclesTolerance = 1.5 * maxObstaclesStdDev;
-              const minExpectedMaxObstacles = Math.max(1, expectedMaxObstacles - maxObstaclesTolerance);
-              const maxExpectedMaxObstacles = expectedMaxObstacles + maxObstaclesTolerance;
+              const minExpectedMaxObstacles = expectedMaxObstacles - maxObstaclesTolerance;
+              const maxExpectedMaxObstacles = expectedMaxObstacles + maxObstaclesTolerance*2;
               console.log('minExpectedMaxObstacles',minExpectedMaxObstacles);
               console.log('maxExpectedMaxObstacles',maxExpectedMaxObstacles);
               console.log('stats.maxObstacles',stats.maxObstacles);
@@ -547,6 +551,12 @@ export async function POST(request) {
                     console.log('expectedY', expectedY);
                     if (Math.abs(event.data.y - expectedY) > 10) {
                       console.log('Math.abs(event.data.y - expectedY) > 10 Math.abs(',event.data.y,' - ',expectedY,') > 10');
+                      console.log('Suspicious play: flap position', {
+                        address,
+                        expectedY,
+                        eventY: event.data.y,
+                        event,
+                      })
                       return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: flap position' }), {
                         status: 400,
                       });

@@ -458,7 +458,7 @@ export async function POST(request) {
               }
               console.log('expectedSpawns',expectedSpawns);
               // Spawn count tolerance
-              const spawnStdDev = Math.sqrt(expectedSpawns * (1 + 0.3) * (1 - (1 + 0.3))); // Approximate variance for obstacles
+              const spawnStdDev = Math.sqrt(Math.abs(expectedSpawns * (1 + 0.3) * (1 - (1 + 0.3)))); // Approximate variance for obstacles
               console.log('spawnStdDev',spawnStdDev);
               const spawnTolerance = 1.5 * spawnStdDev;
               const minExpectedSpawns = expectedSpawns - spawnTolerance;

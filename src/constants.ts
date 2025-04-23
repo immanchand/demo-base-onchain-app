@@ -5,7 +5,7 @@ export const ethPrice = 1700;
 export const message = 'Please sign this message to approve paying tickets to start the game session. This is not a transaction and there is no fee. It is only used to verify your identity and protect your own tickts.';
 export const RECAPTCHA_START_THRESHOLD = 0.3;
 export const TELEMETRY_LIMIT = 20000; // Max telemetry data points
-export const TELEMETRY_SCORE_THRESHOLD = 1000; // Min score for telemetry data
+export const TELEMETRY_SCORE_THRESHOLD = 6000; // Min score for telemetry data
 // Scoring multipliers
 export const SCORE_DIVISOR_TIME = 10; // should be SCORE_MULTIPLIER/10
 export const SCORE_MULTIPLIER_SHOOT = 5; // Points per kill for Shoot

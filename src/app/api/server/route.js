@@ -382,6 +382,7 @@ export async function POST(request) {
                 status: 400,
               });
             }
+            
             console.log('telemetry (first 100 events): ', telemetry.slice(0, 100));
             console.log('telemetry (last 100 events): ', telemetry.slice(-100));
             console.log('stats: ', stats);
@@ -391,6 +392,7 @@ export async function POST(request) {
             let lastTime = -Infinity;
             let lastFrameId = 0;
             const telemetryLength = telemetry.length;
+            console.log('telemetryLength', telemetryLength);
             for (let i = 0; i < telemetryLength; i++) {
               const event = telemetry[i];
               // Verify time is non-decreasing

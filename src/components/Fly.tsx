@@ -191,13 +191,6 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         });
     };
 
-    // Sync telemetry state at game end
-    useEffect(() => {
-        if (gameOver && gameStarted) {
-            setTelemetry(telemetryRef.current);
-        }
-    }, [gameOver, gameStarted]);
-
     // Game loop setup
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -448,10 +441,13 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
     const endGame = useCallback(async () => {
         if (endGameRef.current && gameStarted) {
+            // Sync telemetry and update stats.score before ending the game
+            setTelemetry(telemetryRef.current);
+            setStats(prev => ({ ...prev, score }));
             setEndGameStatus('pending');
             await endGameRef.current.endGame();
         }
-    }, [gameStarted]);
+    }, [gameStarted, score]);
 
     const handleStartGameStatusChange = useCallback(
         (status: 'idle' | 'pending' | 'success' | 'error', errorMessage?: string) => {

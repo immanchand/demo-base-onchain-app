@@ -370,7 +370,7 @@ export async function POST(request) {
           if (Number(score) >= TELEMETRY_SCORE_THRESHOLD) {
             
             //make sure stats and telemetry are present
-            if(!stats || !telemetry) {
+            if(!stats || !telemetry || telemetry.length === 0) {
               console.log('!stats || !telemetry',!stats, '||', !telemetry);
               return new Response(JSON.stringify({ status: 'error', message: 'Missing telemetry or stats for high score validation' }), {
                 status: 400,
@@ -488,7 +488,7 @@ export async function POST(request) {
             const fpsValues = fpsEvents.map(e => e.data.fps);
             const minFps = Math.min(...fpsValues);
             const maxFps = Math.max(...fpsValues);
-            const avgFps = Math.mean(...fpsValues);
+            const avgFps = fpsValues.reduce((sum, fps) => sum + fps, 0) / fpsValues.length;
             console.log('minFps',minFps);
             console.log('maxFps',maxFps);
             console.log('avgFps',avgFps);

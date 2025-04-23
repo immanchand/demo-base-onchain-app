@@ -271,8 +271,8 @@ export async function POST(request) {
               console.log('minFps < 40',minFps, '<', '40');
               return new Response(JSON.stringify({ status: 'error', message: 'FPS out of acceptable range' }), { status: 400 });
             }
-            // Check for suspicious FPS variance (e.g., >20 FPS change)
-            if (maxFps - minFps > 15) {
+            // Check for suspicious FPS variance (e.g., >10 FPS change)
+            if (maxFps - minFps > 10) {
               console.log('maxFps - minFps > 15',maxFps,' -', minFps, '>',' 15');
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious FPS variance during game' }), { status: 400 });
             }
@@ -456,8 +456,10 @@ export async function POST(request) {
                 expectedSpawns += spawnsPerSecond * (1 + clusterChance);
                 expectedDoubleSpawns += spawnsPerSecond * clusterChance;
               }
+              console.log('expectedSpawns',expectedSpawns);
               // Spawn count tolerance
               const spawnStdDev = Math.sqrt(expectedSpawns * (1 + 0.3) * (1 - (1 + 0.3))); // Approximate variance for obstacles
+              console.log('spawnStdDev',spawnStdDev);
               const spawnTolerance = 1.5 * spawnStdDev;
               const minExpectedSpawns = expectedSpawns - spawnTolerance;
               const maxExpectedSpawns = expectedSpawns + spawnTolerance;

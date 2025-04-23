@@ -76,6 +76,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
     const { address } = useAccount();
     const [telemetry, setTelemetry] = useState<TelemetryEvent[]>([]);
     const telemetryRef = useRef<TelemetryEvent[]>([]);
+    const [isTelemetrySyncing, setIsTelemetrySyncing] = useState<boolean>(false);
     const [stats, setStats] = useState<GameStats>({
         game: 'fly',
         score: 0,
@@ -443,15 +444,21 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         if (endGameRef.current && gameStarted) {
             // Sync telemetry and update stats.score before ending the game
             console.log('Telemetry before sync:', telemetryRef.current);
-            setTelemetry(telemetryRef.current);
-            console.log('Telemetry after setTelemetry:', telemetry);
+            setTelemetry(telemetryRef.current); // Update telemetry state
+            setIsTelemetrySyncing(true); // Indicate that syncing is in progress
             setEndGameStatus('pending');
-            setTimeout(() => {
-                console.log('Calling endGame with telemetry:', telemetry);
-                endGameRef.current?.endGame();
-            }, 0);
+            }
+    }, [gameStarted]);
+
+    // Add useEffect to detect telemetry update and call endGame
+    useEffect(() => {
+        if (isTelemetrySyncing && telemetry.length > 0 && endGameRef.current) {
+            console.log('Telemetry after sync:', telemetry);
+            console.log('Calling endGame with telemetry:', telemetry);
+            endGameRef.current.endGame();
+            setIsTelemetrySyncing(false); // Reset syncing flag
         }
-    }, [gameStarted, score]);
+    }, [telemetry, isTelemetrySyncing]);
 
     const handleStartGameStatusChange = useCallback(
         (status: 'idle' | 'pending' | 'success' | 'error', errorMessage?: string) => {

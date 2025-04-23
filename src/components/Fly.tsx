@@ -377,8 +377,8 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         };
 
         if (gameStarted && !gameOver) {
-            telemetryRef.current = [];
-            setTelemetry([]);
+            // telemetryRef.current = [];
+            // setTelemetry([]);
             setStats({
                 game: 'fly',
                 score: 0,
@@ -444,9 +444,12 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             // Sync telemetry and update stats.score before ending the game
             console.log('Telemetry before sync:', telemetryRef.current);
             setTelemetry(telemetryRef.current);
-            setStats(prev => ({ ...prev, score }));
+            console.log('Telemetry after setTelemetry:', telemetry);
             setEndGameStatus('pending');
-            await endGameRef.current.endGame();
+            setTimeout(() => {
+                console.log('Calling endGame with telemetry:', telemetry);
+                endGameRef.current?.endGame();
+            }, 0);
         }
     }, [gameStarted, score]);
 

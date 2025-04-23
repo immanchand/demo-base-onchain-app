@@ -443,7 +443,7 @@ export async function POST(request) {
               // expected total spawn calculation and validations
               const spawnStdDev = Math.sqrt(Math.abs(expectedSpawns * (1 + 0.3) * (1 - (1 + 0.3)))); // Approximate variance for obstacles
               const spawnTolerance = 1.3 * spawnStdDev;
-              const minExpectedSpawns = expectedSpawns - spawnTolerance;
+              const minExpectedSpawns = Math.floor(expectedSpawns - spawnTolerance);
               const maxExpectedSpawns = expectedSpawns + spawnTolerance*1.5;
               console.log('minExpectedSpawns',minExpectedSpawns);
               console.log('maxExpectedSpawns',maxExpectedSpawns);
@@ -461,7 +461,7 @@ export async function POST(request) {
               // Expected Double spawn calculations and validations
               const doubleSpawnStdDev = Math.sqrt(expectedDoubleSpawns * 0.3 * (1 - 0.3)); // Variance for double spawns
               const doubleSpawnTolerance = 1.7 * doubleSpawnStdDev;
-              const minExpectedDoubleSpawns = expectedDoubleSpawns - doubleSpawnTolerance;
+              const minExpectedDoubleSpawns = Math.floor(expectedDoubleSpawns - doubleSpawnTolerance);
               const maxExpectedDoubleSpawns = expectedDoubleSpawns + doubleSpawnTolerance*1.5;
               console.log('minExpectedDoubleSpawns',minExpectedDoubleSpawns);
               console.log('maxExpectedDoubleSpawns',maxExpectedDoubleSpawns);
@@ -479,7 +479,7 @@ export async function POST(request) {
               // expected maxObstacles range calcuations and validations
               const maxObstaclesStdDev = Math.sqrt(Math.abs(expectedMaxObstacles * (1 + 0.3) * (1 - (1 + 0.3))));
               const maxObstaclesTolerance = 1.3 * maxObstaclesStdDev;
-              const minExpectedMaxObstacles = expectedMaxObstacles - maxObstaclesTolerance;
+              const minExpectedMaxObstacles = Math.floor(expectedMaxObstacles - maxObstaclesTolerance);
               const maxExpectedMaxObstacles = expectedMaxObstacles + maxObstaclesTolerance*2;
               console.log('minExpectedMaxObstacles',minExpectedMaxObstacles);
               console.log('maxExpectedMaxObstacles',maxExpectedMaxObstacles);

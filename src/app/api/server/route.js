@@ -497,7 +497,7 @@ export async function POST(request) {
                 return new Response(JSON.stringify({status: 'error', message: 'Suspicious double spawn count' }), { status: 400 });
               }
               // expected maxObstacles range calcuations and validations
-              const maxObstaclesStdDev = Math.sqrt(expectedMaxObstacles * (1 + 0.3) * (1 - (1 + 0.3)));
+              const maxObstaclesStdDev = Math.sqrt(Math.abs(expectedMaxObstacles * (1 + 0.3) * (1 - (1 + 0.3))));
               const maxObstaclesTolerance = 1.5 * maxObstaclesStdDev;
               const minExpectedMaxObstacles = Math.max(1, expectedMaxObstacles - maxObstaclesTolerance);
               const maxExpectedMaxObstacles = expectedMaxObstacles + maxObstaclesTolerance;

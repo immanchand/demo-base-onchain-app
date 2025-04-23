@@ -378,8 +378,8 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         };
 
         if (gameStarted && !gameOver) {
-            // telemetryRef.current = [];
-            // setTelemetry([]);
+            telemetryRef.current = [];
+            setTelemetry([]);
             setStats({
                 game: 'fly',
                 score: 0,
@@ -454,7 +454,6 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
     useEffect(() => {
         if (isTelemetrySyncing && telemetry.length > 0 && endGameRef.current) {
             console.log('Telemetry after sync:', telemetry);
-            console.log('Calling endGame with telemetry:', telemetry);
             endGameRef.current.endGame();
             setIsTelemetrySyncing(false); // Reset syncing flag
         }
@@ -528,8 +527,8 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 score={Math.floor(score).toString()}
                 highScore={existingHighScore.toString()}
                 onStatusChange={handleEndGameStatusChange}
-                telemetry={telemetry}//{score >= TELEMETRY_SCORE_THRESHOLD && score > existingHighScore ? telemetry : []}
-                stats={stats}//{score >= TELEMETRY_SCORE_THRESHOLD && score > existingHighScore ? stats : null}
+                telemetry={score >= TELEMETRY_SCORE_THRESHOLD && score > existingHighScore ? telemetry : []}
+                stats={score >= TELEMETRY_SCORE_THRESHOLD && score > existingHighScore ? stats : null}
             />
             {!gameStarted ? (
                 <div className="text-center text-primary-text font-mono">

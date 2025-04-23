@@ -519,6 +519,8 @@ export async function POST(request) {
               // validate stats.flapsPerSec matches the number of flap and events in telemetry
               const flapEvents = telemetry.filter(e => e.event === 'flap').length;
               const expectedFlapsPerSec = flapEvents / gameTimeSec;
+              console.log('expectedFlapsPerSec', expectedFlapsPerSec);
+              console.log('stats.flapsPerSec', stats.flapsPerSec);
               if (Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.5) {
                 console.log('Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.5',
                   'Math.abs(',stats.flapsPerSec,' - ',expectedFlapsPerSec,') > 0.5'
@@ -526,6 +528,7 @@ export async function POST(request) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flapsPerSec vs flap events patterns' }), { status: 400 });
               }
               //validate the flapspersec against inputsPerSec
+              console.log('stats.flapsPerSec vs stats.inputsPerSec');
               if (Math.abs(stats.flapsPerSec - stats.inputsPerSec) > 0.01) {
                 console.log('Math.abs(stats.flapsPerSec - stats.inputsPerSec) > 0.01',
                   'Math.abs(',stats.flapsPerSec,' - ',stats.inputsPerSec,') > 0.01'
@@ -540,6 +543,8 @@ export async function POST(request) {
                   if (lastFlapTime && lastY) {
                     const timeDiff = (event.time - lastFlapTime) / 1000;
                     const expectedY = lastY + event.data.vy * timeDiff + 0.5 * timeDiff * timeDiff * FLY_PARAMETERS.GRAVITY; // GRAVITY = 0.2
+                    console.log('event.data.y', event.data.y);
+                    console.log('expectedY', expectedY);
                     if (Math.abs(event.data.y - expectedY) > 10) {
                       console.log('Math.abs(event.data.y - expectedY) > 10 Math.abs(',event.data.y,' - ',expectedY,') > 10');
                       return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: flap position' }), {

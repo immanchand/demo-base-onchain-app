@@ -1,4 +1,3 @@
-// Fly.tsx
 'use client';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTicketContext } from 'src/context/TicketContext';
@@ -43,7 +42,8 @@ interface TelemetryEvent {
         score?: number;
         fps?: number;
         width?: number;
-        height?: number; };
+        height?: number;
+    };
 }
 
 type EnemyType = 'alien' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
@@ -75,6 +75,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
     const [endGameMessage, setEndGameMessage] = useState<string>('');
     const { address } = useAccount();
     const [telemetry, setTelemetry] = useState<TelemetryEvent[]>([]);
+    const telemetryRef = useRef<TelemetryEvent[]>([]);
     const [stats, setStats] = useState<GameStats>({
         game: 'fly',
         score: 0,
@@ -155,10 +156,10 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
     // Game logic
     const spawnObstacle = useCallback((canvas: HTMLCanvasElement, speed: number): Obstacle => {
         const y = Math.random() * (canvas.height - FLY_PARAMETERS.OBSTACLE_SIZE*3);
-        setTelemetry((prev) => {
-            if (prev.length >= TELEMETRY_LIMIT) return [...prev.slice(1), { event: 'spawn', time: performance.now(), data: { y, speed, width: FLY_PARAMETERS.OBSTACLE_SIZE, height: FLY_PARAMETERS.OBSTACLE_SIZE } }];
-            return [...prev, { event: 'spawn', time: performance.now(), data: { y, speed, width: FLY_PARAMETERS.OBSTACLE_SIZE, height: FLY_PARAMETERS.OBSTACLE_SIZE } }];
-        });
+        const newEvent = { event: 'spawn' as const, time: performance.now(), data: { y, speed, width: FLY_PARAMETERS.OBSTACLE_SIZE, height: FLY_PARAMETERS.OBSTACLE_SIZE } };
+        telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
+            ? [...telemetryRef.current.slice(1), newEvent]
+            : [...telemetryRef.current, newEvent];
         return {
             x: canvas.width,
             y,
@@ -189,6 +190,13 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             ctx.drawImage(image, obstacle.x, obstacle.y, FLY_PARAMETERS.OBSTACLE_SIZE, FLY_PARAMETERS.OBSTACLE_SIZE);
         });
     };
+
+    // Sync telemetry state at game end
+    useEffect(() => {
+        if (gameOver && gameStarted) {
+            setTelemetry(telemetryRef.current);
+        }
+    }, [gameOver, gameStarted]);
 
     // Game loop setup
     useEffect(() => {
@@ -236,10 +244,10 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             drawObstacles(ctx, obstaclePool);
         };
 
-		let frameCount = 0;
+        let frameCount = 0;
         let pendingStatsUpdate = { ...stats };
         let frameTimes: number[] = [];
-        let maxObstacles = 0;									  
+        let maxObstacles = 0;                                      
         const update = (deltaTime: number) => {
             const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
             const difficultyFactor = Math.min(elapsedTime / 90, 1);
@@ -257,36 +265,34 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 }
                 if (ship.y > canvas.height - FLY_PARAMETERS.SHIP_HEIGHT) {
                     setGameOver(true);
-                    setTelemetry((prev) => {
-                        if (prev.length >= TELEMETRY_LIMIT) return [...prev.slice(1), { event: 'collision', time: performance.now() }];
-                        return [...prev, { event: 'collision', time: performance.now() }];
-                    });
+                    const newEvent = { event: 'collision' as const, time: performance.now() };
+                    telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
+                        ? [...telemetryRef.current.slice(1), newEvent]
+                        : [...telemetryRef.current, newEvent];
                 }
                 if (ship.x > canvas.width) {
                     ship.x = -FLY_PARAMETERS.SHIP_WIDTH;
                 }
                 setScore((prev) => prev + deltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER);
-				frameCount++;
+                frameCount++;
                 if (frameCount % 10 === 0) {
-                    setTelemetry((prev) => {
-                      const newEvent: TelemetryEvent = {
+                    const newEvent: TelemetryEvent = {
                         event: 'frame',
                         time: performance.now(),
                         frameId: frameCount,
                         data: { deltaTime: deltaTime * 10, difficulty: difficultyFactor, score, y: ship.y, vy: ship.vy }
-                      };
-                      if (prev.length >= TELEMETRY_LIMIT) return [...prev.slice(1), newEvent];
-                      return [...prev, newEvent];
-                    });
+                    };
+                    telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
+                        ? [...telemetryRef.current.slice(1), newEvent]
+                        : [...telemetryRef.current, newEvent];
                 }
                 frameTimes.push(deltaTime);
                 if (frameCount % 100 === 0) {
                     const avgFps = 1 / (frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length);
-                    setTelemetry((prev) => {
-                        const newEvent: TelemetryEvent = { event: 'fps', time: performance.now(), data: { fps: avgFps } };
-                      if (prev.length >= TELEMETRY_LIMIT) return [...prev.slice(1), newEvent];
-                      return [...prev, newEvent];
-                    });
+                    const newEvent: TelemetryEvent = { event: 'fps', time: performance.now(), data: { fps: avgFps } };
+                    telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
+                        ? [...telemetryRef.current.slice(1), newEvent]
+                        : [...telemetryRef.current, newEvent];
                     frameTimes = [];
                 }
                 maxObstacles = Math.max(maxObstacles, obstaclePool.length);
@@ -310,10 +316,10 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
             obstaclePool.forEach((obstacle) => {
                 obstacle.x += obstacle.dx;
-				if (obstacle.x + obstacleSize < ship.x && !obstacle.dodged) {
+                if (obstacle.x + obstacleSize < ship.x && !obstacle.dodged) {
                     pendingStatsUpdate = { ...pendingStatsUpdate, obstaclesCleared: pendingStatsUpdate.obstaclesCleared + 1 };
                     obstacle.dodged = true;
-                }															 
+                }                                                             
             });
             obstaclePool = obstaclePool.filter((obstacle) => obstacle.x + obstacleSize > 0);
 
@@ -323,7 +329,6 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 for (let i = 0; i < numObstacles; i++) {
                     const obstacle = spawnObstacle(canvas, obstacleSpeed);
                     obstaclePool.push({ ...obstacle, y: obstacle.y + (i * obstacleSize * 2) });
-
                 }
                 lastSpawnTimeRef.current = currentTime;
             }
@@ -335,14 +340,14 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     if (distance < (FLY_PARAMETERS.SHIP_WIDTH + obstacleSize) / 2) {
                         setGameOver(true);
-                        setTelemetry((prev) => {
-                            if (prev.length >= TELEMETRY_LIMIT) return [...prev.slice(1), { event: 'collision', time: performance.now() }];
-                            return [...prev, { event: 'collision', time: performance.now() }];
-                        });
+                        const newEvent = { event: 'collision' as const, time: performance.now() };
+                        telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
+                            ? [...telemetryRef.current.slice(1), newEvent]
+                            : [...telemetryRef.current, newEvent];
                     }
                 });
             }
-			setStats(pendingStatsUpdate);						 
+            setStats(pendingStatsUpdate);                         
         };
 
         const gameLoop = (time: number) => {
@@ -357,13 +362,13 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             if (!gameOver) {
                 ship.vy = FLY_PARAMETERS.FLAP_VELOCITY;
                 const currentTime = performance.now();
-                const deltaTime = (currentTime - lastFrameTimeRef.current) / 1000; // Time since last frame in seconds
-                setTelemetry((prev) => {
-                    if (prev.length >= TELEMETRY_LIMIT) return [...prev.slice(1), { event: 'flap', time: currentTime, data: { y: ship.y, vy: ship.vy, deltaTime } }];
-                    return [...prev, { event: 'flap', time: currentTime, data: { y: ship.y, vy: ship.vy, deltaTime } }];
-                  });
-                  pendingStatsUpdate = { ...pendingStatsUpdate, flaps: pendingStatsUpdate.flaps + 1 };
-                }
+                const deltaTime = (currentTime - lastFrameTimeRef.current) / 1000;
+                const newEvent = { event: 'flap' as const, time: currentTime, data: { y: ship.y, vy: ship.vy, deltaTime } };
+                telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
+                    ? [...telemetryRef.current.slice(1), newEvent]
+                    : [...telemetryRef.current, newEvent];
+                pendingStatsUpdate = { ...pendingStatsUpdate, flaps: pendingStatsUpdate.flaps + 1 };
+            }
         };
         let inputCount = 0;
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -379,6 +384,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         };
 
         if (gameStarted && !gameOver) {
+            telemetryRef.current = [];
             setTelemetry([]);
             setStats({
                 game: 'fly',
@@ -396,7 +402,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 inputsPerSec: 0,
                 canvasWidth: canvasRef.current.width,
             });
-			pendingStatsUpdate = {
+            pendingStatsUpdate = {
                 game: 'fly',
                 score: 0,
                 shots: 0,

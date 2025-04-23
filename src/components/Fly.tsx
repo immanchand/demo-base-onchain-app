@@ -274,7 +274,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                         event: 'frame',
                         time: performance.now(),
                         frameId: frameCount,
-                        data: { deltaTime: deltaTime * 10, difficulty: difficultyFactor, score, y: ship.y, vy: ship.vy }
+                        data: { deltaTime: deltaTime * 10, difficulty: difficultyFactor, score, y: ship.y, vy: ship.vy, width: ship.width, height: ship.height}
                     };
                     telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
                         ? [...telemetryRef.current.slice(1), newEvent]
@@ -357,7 +357,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 ship.vy = FLY_PARAMETERS.FLAP_VELOCITY;
                 const currentTime = performance.now();
                 const deltaTime = (currentTime - lastFrameTimeRef.current) / 1000;
-                const newEvent = { event: 'flap' as const, time: currentTime, data: { y: ship.y, vy: ship.vy, deltaTime } };
+                const newEvent = { event: 'flap' as const, time: currentTime, frameId: frameCount, data: { y: ship.y, vy: ship.vy, deltaTime } };
                 telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
                     ? [...telemetryRef.current.slice(1), newEvent]
                     : [...telemetryRef.current, newEvent];

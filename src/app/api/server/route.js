@@ -517,7 +517,7 @@ export async function POST(request) {
                   lastFrame = event;
 
                   // Frame physics check (replaces separate frameFlapEvents loop)
-                  if (lastFrame && frameIndex > 50) { //skip first 10 frame events (500 frames ~ 10 second)
+                  if (lastFrame && frameIndex > 10) { //skip first 10 frame events (100 frames ~ 2 second) for start velocity
                     const deltaTime = event.data.deltaTime; // Time for 10 frames
                     const frameDeltaTime = deltaTime / 10; // Per-frame time
                     let currentY = lastFrame.data.y;
@@ -595,10 +595,35 @@ export async function POST(request) {
                     }
 
                     // Cross-validate with recent frame event
-                    if (lastFrameY && lastFrameTime && lastFrameVy && (event.time - lastFrameTime) / 1000 < 0.2) { // Frame within 200ms
+                    if (lastFrameY && lastFrameTime && lastFrameVy && (event.time - lastFrameTime) / 1000 < 0.2) {
                       const timeSinceFrame = (event.time - lastFrameTime) / 1000;
-                      const frameExpectedY = lastFrameY + lastFrameVy * timeSinceFrame + 0.5 * FLY_PARAMETERS.GRAVITY * timeSinceFrame * timeSinceFrame;
-                      console.log('event.data.y - frameExpectedY',event.data.y - frameExpectedY);
+                      const frameDelta = Math.floor(timeSinceFrame * avgFps); // Number of frames since last frame event
+                      let currentY = lastFrameY;
+                      let currentVy = lastFrameVy;
+                    
+                      // Simulate discrete physics up to the flap's frame
+                      for (let i = 0; i < frameDelta; i++) {
+                        currentVy += FLY_PARAMETERS.GRAVITY; // 0.2 per frame
+                        currentY += currentVy;
+                      }
+                    
+                      // If flap's frameId matches or is close to last frame's frameId, adjust for flap
+                      const lastFrameId = lastFrame.frameId || 0; // Ensure frameId exists
+                      const flapFrameId = event.frameId || 0; // From flap event
+                      let frameExpectedY = currentY;
+                    
+                      if (flapFrameId >= lastFrameId && flapFrameId <= lastFrameId + 10) {
+                        // Flap occurred in or after the frame; simulate flap effect
+                        const framesSinceFrame = flapFrameId - lastFrameId;
+                        for (let i = 0; i < framesSinceFrame; i++) {
+                          currentVy += FLY_PARAMETERS.GRAVITY;
+                          currentY += currentVy;
+                        }
+                        // Flap event reports pre-flap y, so don't apply flap's vy yet
+                        frameExpectedY = currentY;
+                      }
+                    
+                      const tolerance = 15; // Increased to account for discrete updates
                       if (Math.abs(event.data.y - frameExpectedY) > tolerance) {
                         console.log('Suspicious play: flap position inconsistent with frame', {
                           address,
@@ -608,8 +633,11 @@ export async function POST(request) {
                           lastFrameY,
                           lastFrameVy,
                           timeSinceFrame,
+                          lastFrameId,
+                          flapFrameId,
                         });
-                        return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: flap position inconsistent with frame telemetry' }), { status: 400 });
+                        return new Response(JSON.stringify({
+                          status: 'error', message: 'Suspicious play: flap position inconsistent with frame telemetry' }), { status: 400 });
                       }
                     }
                   }

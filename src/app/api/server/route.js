@@ -495,201 +495,107 @@ export async function POST(request) {
               // END SPAWN RELATED VALIDATION
               
 
-              // FLAPS RELATED VALIDATOINS
-              // 1. Flap Plausibility Validation
-              let lastFlapTime = null;
-              let lastY = null;
-              let lastVy = null;
-              let lastFrameY = null;
-              let lastFrameTime = null;
-              let lastFrameVy = null;
-              let lastFrame = null;
-              let frameIndex = 0;
-              let recentFlaps = []; // { frameId, time, vy }
-
-              for (let i = 0; i < telemetry.length; i++) {
-                const event = telemetry[i];
-
-                // Track recent frame event
-                if (event.event === 'frame') {
-                  lastFrameY = event.data.y;
-                  lastFrameTime = event.time;
-                  lastFrameVy = event.data.vy;
-                  lastFrame = event;
-
-                  // Frame physics check (replaces separate frameFlapEvents loop)
-                  if (lastFrame && frameIndex > 10) { //skip first 10 frame events (100 frames ~ 2 second) for start velocity
-                    const deltaTime = event.data.deltaTime; // Time for 10 frames
-                    const frameDeltaTime = deltaTime / 10; // Per-frame time
-                    let currentY = lastFrame.data.y;
-                    let currentVy = lastFrame.data.vy;
-
-                    // Collect flaps between lastFrame.time and event.time
-                    const flapsBetween = telemetry.slice(frameIndex + 1, i).filter(e => e.event === 'flap');
-
-                    for (let k = 0; k < 10; k++) {
-                      const frameStartTime = lastFrame.time + k * frameDeltaTime * 1000;
-                      const frameEndTime = frameStartTime + frameDeltaTime * 1000;
-                      const hasFlap = flapsBetween.some(flap => flap.time > frameStartTime && flap.time <= frameEndTime);
-                      if (hasFlap) {
-                        currentVy = FLY_PARAMETERS.FLAP_VELOCITY; // -5
-                      }
-                      currentVy += FLY_PARAMETERS.GRAVITY; // 0.2
-                      currentY += currentVy;
-                    }
-                    console.log('Math.abs(event.data.y - currentY) > 15', Math.abs(event.data.y - currentY),' > 15');
-                    if (Math.abs(event.data.y - currentY) > 15) {
-                      console.log('Frame position check failed', {
-                        address,
-                        expectedY: currentY,
-                        actualY: event.data.y,
-                        lastFrame,
-                        flapsBetween,
-                      });
-                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
-                    }
-                  }
-                  frameIndex = i;
-                }
-
-                if (event.event === 'flap') {
-                  console.log('!event.data.deltaTime || !Number.isFinite(event.data.deltaTime) || event.data.deltaTime < 0 || event.data.deltaTime > 0.025',
-                    !event.data.deltaTime,' || ',!Number.isFinite(event.data.deltaTime),' || ',
-                    event.data.deltaTime,' < 0 || ',event.data.deltaTime,' > 0.025'
-                  );
-                  if (!event.data.deltaTime || !Number.isFinite(event.data.deltaTime) || event.data.deltaTime < 0 || event.data.deltaTime > 0.025) {
-                    console.log('Invalid deltaTime in flap event', { event });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Invalid flap telemetry: missing or invalid deltaTime' }), { status: 400 });
-                  }
-
-                  if (lastFlapTime && lastY && lastVy) {
-                    const timeDiff = (event.time - lastFlapTime) / 1000; // Total time between flaps in seconds
-                    const wholeFrames = Math.floor((timeDiff - event.data.deltaTime) * avgFps); // Number of whole frames
-                    const partialTime = timeDiff - (wholeFrames / avgFps); // Remaining time (including flap's deltaTime)
-
-                    // Simulate discrete physics for whole frames
-                    let currentY = lastY;
-                    let currentVy = lastVy;
-                    for (let i = 0; i < wholeFrames; i++) {
-                      currentVy += FLY_PARAMETERS.GRAVITY; // 0.2 per frame
-                      currentY += currentVy; // Update y
-                    }
-
-                    // Apply continuous physics for the partial frame
-                    const expectedY = currentY + currentVy * partialTime + 0.5 * FLY_PARAMETERS.GRAVITY * partialTime * partialTime;
-
-                    // Check if reported y is within tolerance
-                    const tolerance = 10; // Tighter tolerance due to precise timing
-                    console.log('event.data.y - expectedY', event.data.y - expectedY);
-                    if (Math.abs(event.data.y - expectedY) > tolerance) {
-                      console.log('Suspicious play: flap position', {
-                        address,
-                        expectedY,
-                        eventY: event.data.y,
-                        event,
-                        timeDiff,
-                        wholeFrames,
-                        partialTime,
-                        currentVy,
-                      });
-                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: flap position' }), { status: 400 });
-                    }
-
-                    recentFlaps.push({ frameId: event.frameId, time: event.time, vy: event.data.vy });
-                    recentFlaps = recentFlaps.filter(f => f.frameId >= event.frameId - 10); // Keep last 10 frames
-                    // Cross-check with last frame
-                    if (lastFrameY && lastFrameTime && lastFrameVy && (event.time - lastFrameTime) / 1000 < 0.2) {
-                      const timeSinceFrame = (event.time - lastFrameTime) / 1000;
-                      const frameDelta = Math.floor(timeSinceFrame * avgFps); // Approx frames
-                      let currentY = lastFrameY;
-                      let currentVy = lastFrameVy;
-                      let currentFrameId = lastFrame.frameId || 0;
-
-                      // Simulate discrete physics up to flapFrameId
-                      const flapFrameId = event.frameId || 0;
-                      for (let i = 0; i <= flapFrameId - currentFrameId; i++) {
-                        // Check for flaps at current frame
-                        const flapAtFrame = recentFlaps.find(f => f.frameId === currentFrameId + i);
-                        if (flapAtFrame) {
-                          currentVy = flapAtFrame.vy; // Apply flap's vy (-5)
-                        } else {
-                          currentVy += FLY_PARAMETERS.GRAVITY; // 0.2
-                        }
-                        currentY += currentVy; // Update position
-                      }
-
-                      const frameExpectedY = currentY; // Pre-flap y
-                      const tolerance = 15;
-
-                      if (Math.abs(event.data.y - frameExpectedY) > tolerance) {
-                        console.log('Suspicious play: flap position inconsistent with frame', {
-                          address,
-                          frameExpectedY,
-                          eventY: event.data.y,
-                          event,
-                          lastFrameY,
-                          lastFrameVy,
-                          timeSinceFrame,
-                          lastFrameId: lastFrame.frameId,
-                          flapFrameId,
-                          recentFlaps,
-                        });
-                        return new Response(JSON.stringify({
-                          status: 'error', message: 'Suspicious play: flap position inconsistent with frame telemetry' }), { status: 400 });
-                      }
-                    }
-                  }
-                  lastFlapTime = event.time;
-                  lastY = event.data.y;
-                  lastVy = event.data.vy;
-                }
-              }
-
-              // 2. Validate deltaTime Consistency
+              // FLY GAME FLAPS VALIDATIONS
+              const frameEvents = telemetry.filter(e => e.event === 'frame');
               const flapEvents = telemetry.filter(e => e.event === 'flap');
-              const totalDeltaTime = flapEvents.reduce((sum, e) => sum + (e.data.deltaTime || 0), 0);
-              const expectedDeltaTime = frameEvents.length / avgFps; // Total frame time based on frame count and avgFps
-              console.log('totalDeltaTime - expectedDeltaTime',totalDeltaTime - expectedDeltaTime);
-              if (Math.abs(totalDeltaTime - expectedDeltaTime) > 0.5) {
-                console.log('Suspicious deltaTime sum', { totalDeltaTime, expectedDeltaTime });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious deltaTime in telemetry' }), { status: 400 });
+
+              // 1. Flap Plausibility and DeltaTime Consistency
+              let totalFlapDeltaTime = 0;
+              let lastFrameIndex = 0;
+              for (const flap of flapEvents) {
+                totalFlapDeltaTime += flap.data.deltaTime;
+                // Find preceding frame
+                while (lastFrameIndex < frameEvents.length - 1 && frameEvents[lastFrameIndex + 1].frameId <= flap.frameId) {
+                  lastFrameIndex++;
+                }
+                const prevFrame = frameEvents[lastFrameIndex];
+                if (!prevFrame || prevFrame.frameId > flap.frameId) {
+                  console.log('No valid preceding frame for flap', { flap });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Invalid flap telemetry: no preceding frame' }), { status: 400 });
+                }
+
+                // Validate deltaTime
+                const expectedDeltaTime = prevFrame.data.deltaTime / 10;
+                if (flap.data.deltaTime > expectedDeltaTime * 1.5 || flap.data.deltaTime < expectedDeltaTime * 0.5) {
+                  console.log('Flap deltaTime inconsistent with frame', { flap, prevFrame, expectedDeltaTime });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap deltaTime' }), { status: 400 });
+                }
+
+                // Calculate frame difference
+                const frameDiff = (flap.frameId - prevFrame.frameId) / 10;
+                const expectedFrameTime = frameDiff * prevFrame.data.deltaTime / 10;
+                const actualTimeDiff = (flap.time - prevFrame.time) / 1000;
+                if (Math.abs(actualTimeDiff - expectedFrameTime) > 0.05) {
+                  console.log('Flap timing inconsistent with frame', { flap, prevFrame, actualTimeDiff, expectedFrameTime });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap timing' }), { status: 400 });
+                }
+
+                // Simulate physics
+                let currentY = prevFrame.data.y;
+                let currentVy = prevFrame.data.vy;
+                for (let i = 0; i < Math.floor(frameDiff); i++) {
+                  currentVy += FLY_PARAMETERS.GRAVITY;
+                  currentY += currentVy;
+                }
+                currentVy = FLY_PARAMETERS.FLAP_VELOCITY;
+                currentY += currentVy * (frameDiff - Math.floor(frameDiff));
+
+                // Validate position
+                const tolerance = stats.canvasHeight * 0.05;
+                if (Math.abs(flap.data.y - currentY) > tolerance) {
+                  console.log('Flap position check failed', { flap, prevFrame, expectedY: currentY, actualY: flap.data.y });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap position' }), { status: 400 });
+                }
+
+                // Validate velocity
+                if (Math.abs(flap.data.vy - FLY_PARAMETERS.FLAP_VELOCITY) > 0.1) {
+                  console.log('Flap velocity check failed', { flap, expectedVy: FLY_PARAMETERS.FLAP_VELOCITY, actualVy: flap.data.vy });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap velocity' }), { status: 400 });
+                }
               }
-              // check flap interval timing
+
+              // Validate total flap deltaTime
+              const telemetryDuration = (frameEvents[frameEvents.length - 1].time - frameEvents[0].time) / 1000;
+              const deltaTimeTolerance = telemetryDuration * 0.1;
+              if (Math.abs(totalFlapDeltaTime - telemetryDuration) > deltaTimeTolerance) {
+                console.log('Total flap deltaTime inconsistent', { totalFlapDeltaTime, telemetryDuration });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious total flap deltaTime' }), { status: 400 });
+              }
+
+              // 2. Flap Interval Variance
               const flapIntervals = [];
               for (let i = 1; i < flapEvents.length; i++) {
-                flapIntervals.push(flapEvents[i].time - flapEvents[i - 1].time);
+                const frameInterval = (flapEvents[i].frameId - flapEvents[i - 1].frameId) / 10;
+                flapIntervals.push(frameInterval);
               }
               const avgInterval = flapIntervals.reduce((a, b) => a + b, 0) / flapIntervals.length;
-              const flapIntervalVariance = flapIntervals.reduce((a, b) => a + Math.pow(b - avgInterval, 2), 0) / flapIntervals.length;
-              if (flapIntervalVariance < 10) { // Low variance indicates robotic consistency
-                console.log('flapIntervalVariance < 10',flapIntervalVariance, '< 10');
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious play: flap timing too robotic' }), { status: 400 });
-              }
-              // Check individual deltaTime values
-              for (const event of flapEvents) {
-                console.log('event.data.deltaTime > 1 / minFps || event.data.deltaTime < 1 / maxFps',
-                              event.data.deltaTime,' > ',1 / minFps,' || ',event.data.deltaTime,' < ',1 / maxFps);
-                if (event.data.deltaTime > 1 / minFps || event.data.deltaTime < 1 / maxFps) {
-                  console.log('Suspicious deltaTime value', { deltaTime: event.data.deltaTime, minFps, maxFps });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious deltaTime value in flap telemetry' }), { status: 400 });
-                }
+              const variance = flapIntervals.reduce((a, b) => a + Math.pow(b - avgInterval, 2), 0) / flapIntervals.length;
+              const minVariance = 0.5;
+              const maxVariance = 10;
+              if (variance < minVariance || variance > maxVariance) {
+                console.log('Suspicious flap interval variance', { variance, minVariance, maxVariance });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap interval variance' }), { status: 400 });
               }
 
-              // 3. Check Frame Event Gaps
-              let lastFrameTimeCheck = null;
-              for (const event of telemetry) {
-                if (event.event === 'frame') {
-                  if (lastFrameTimeCheck) {
-                    const frameGap = (event.time - lastFrameTimeCheck) / 1000; // Time between frame events in seconds
-                    const expectedGap = 10 / avgFps; // Expected gap for 10 frames
-                    console.log('Math.abs(frameGap - expectedGap) > expectedGap * 0.2', (Math.abs(frameGap - expectedGap),' > ',expectedGap * 0.2));
-                    if (Math.abs(frameGap - expectedGap) > expectedGap * 0.2) { // Allow 20% variance
-                      console.log('Suspicious frame event timing', { frameGap, expectedGap });
-                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame event timing' }), { status: 400 });
-                    }
+              // 3. Flap Effect Frames
+              let flapEffectFrameCount = 0;
+              for (const flap of flapEvents) {
+                const nextFrame = frameEvents.find(f => f.frameId > flap.frameId);
+                if (nextFrame) {
+                  const frameDiff = (nextFrame.frameId - flap.frameId) / 10;
+                  const expectedVy = FLY_PARAMETERS.FLAP_VELOCITY + FLY_PARAMETERS.GRAVITY * frameDiff;
+                  if (Math.abs(nextFrame.data.vy - expectedVy) < 0.5) {
+                    flapEffectFrameCount++;
+                  } else {
+                    console.log('Flap effect not reflected in frame', { flap, nextFrame, expectedVy, actualVy: nextFrame.data.vy });
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap effect in frame telemetry' }), { status: 400 });
                   }
-                  lastFrameTimeCheck = event.time;
                 }
+              }
+              const expectedFlapEffectFrames = flapEvents.length * 0.8;
+              if (flapEffectFrameCount < expectedFlapEffectFrames) {
+                console.log('Insufficient flap effect frames', { flapEffectFrameCount, expectedFlapEffectFrames });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap effect frequency' }), { status: 400 });
               }
 
               // 4. Validate Flap Frequency
@@ -706,19 +612,7 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flapsPerSec vs flap events patterns' }), { status: 400 });
               }
 
-              // Cross-check flap effects in frame events
-              const flapEffectFrames = frameEvents.filter(e => Math.abs(e.data.vy - FLY_PARAMETERS.FLAP_VELOCITY) < 0.1).length;
-              const expectedFlapEffectFrames = flapCount * (avgFps / 10); // Approximate frames showing vy ≈ -5
-              console.log('flapEffectFrames < expectedFlapEffectFrames * 0.5', flapEffectFrames,' < ',expectedFlapEffectFrames * 0.5);
-              if (flapEffectFrames < expectedFlapEffectFrames * 0.5) { // Allow 50% variance
-                console.log('Suspicious flap frequency in frame events', {
-                  flapEffectFrames,
-                  expectedFlapEffectFrames,
-                });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap frequency: inconsistent with frame telemetry' }), { status: 400 });
-              }
-
-              // Existing flapsPerSec vs inputsPerSec check
+              // 5. Existing flapsPerSec vs inputsPerSec check
               console.log('Math.abs(stats.flapsPerSec - stats.inputsPerSec) > 0.01', Math.abs(stats.flapsPerSec - stats.inputsPerSec),' > 0.01');
               if (Math.abs(stats.flapsPerSec - stats.inputsPerSec) > 0.01) {
                 console.log('Suspicious flapsPerSec vs inputsPerSec', {
@@ -728,7 +622,7 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious stats flapsPerSec vs inputsPerSec' }), { status: 400 });
               }
 
-              // Existing min/max flaps per second checks
+              // 6. Existing min/max flaps per second checks
               console.log('stats.flapsPerSec < FLY_PARAMETERS.MIN_FLAPS_PER_SEC',stats.flapsPerSec,' < ',FLY_PARAMETERS.MIN_FLAPS_PER_SEC);
               if (stats.flapsPerSec < FLY_PARAMETERS.MIN_FLAPS_PER_SEC) {
                 console.log('stats.flapsPerSec < MIN_FLAPS_PER_SEC', stats.flapsPerSec, '<', FLY_PARAMETERS.MIN_FLAPS_PER_SEC);
@@ -739,7 +633,7 @@ export async function POST(request) {
                 console.log('stats.flapsPerSec > MAX_FLAPS_PER_SEC', stats.flapsPerSec, '>', FLY_PARAMETERS.MAX_FLAPS_PER_SEC);
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats: excessive flaps per second' }), { status: 400 });
               }
-              // END FLAPS RELATED VALIDATIONS
+              // END FLY GAME FLAPS VALIDATIONS
               
               // SHOOT GAME
             } else if (stats.game === 'shoot') {

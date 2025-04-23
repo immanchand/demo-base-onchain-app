@@ -25,7 +25,7 @@ const provider = new ethers.JsonRpcProvider(PROVIDER_URL);
 const wallet = new ethers.Wallet(GAME_MASTER_PRIVATE_KEY, provider);
 const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, wallet);
 
-function validateFlyFlapTelemetry(telemetry, stats, frameEvents, flapEvents, gameTimeSec, address, avgFps) {
+function validateFlyFlapTelemetry(telemetry, stats, frameEvents, gameTimeSec, address, avgFps) {
   
   // 1. Flap Plausibility Validation
   let lastFlapTime = null;

@@ -81,6 +81,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         flapsPerSec: 0,
         maxObstacles: 0,
         inputsPerSec: 0,
+        canvasWidth: canvasRef.current?.width || 1008,
     });
 
     // Preload images
@@ -268,7 +269,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     ship.vy = 0;
                     jumpCountRef.current = 0;
                 }
-                setScore((prev) => prev + deltaTime * 100);
+                setScore((prev) => prev + deltaTime * JUMP_PARAMETERS.SCORE_MULTIPLIER);
                 setTelemetry((prev) => {
                     if (prev.length >= 1000) return [...prev.slice(1), { event: 'frame', time: performance.now(), data: { deltaTime, speed: speedMultiplier } }];
                     return [...prev, { event: 'frame', time: performance.now(), data: { deltaTime, speed: speedMultiplier } }];
@@ -378,6 +379,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 flapsPerSec: 0,
                 maxObstacles: 0,
                 inputsPerSec: 0,
+                canvasWidth: canvasRef.current.width,
             });
 
             window.addEventListener('keydown', handleKeyDown);

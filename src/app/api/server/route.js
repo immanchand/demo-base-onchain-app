@@ -324,7 +324,7 @@ export async function POST(request) {
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious deltaTime variance' }), { status: 400 });
             }
             //all games check total telemetry frame delta time against stats.time/1000=gameTimeSec
-            if (totalFrameDeltaTime > gameTimeSec  * 1.001 || totalFrameDeltaTime < gameTimeSec * 0.999) {
+            if (totalFrameDeltaTime > gameTimeSec  * 1.001 || totalFrameDeltaTime < gameTimeSec * 0.999) { //0.1% variance allowed
               console.log('Frame delta time and stats total time mismatch', {
                 address,
                 gameId,
@@ -522,7 +522,7 @@ export async function POST(request) {
               let lastTime = lastFrame.time;
               let lastFrameId = lastFrame.frameId;
               const perFrameDeltaTime = 1 / avgFps;
-              for (const event of flapEvents) {
+              for (const event of flapFrameEvents) {
                 // Skip the initial frame used for initialization
                 if (event === lastFrame) continue;
                 const framesElapsed = event.frameId - lastFrameId;

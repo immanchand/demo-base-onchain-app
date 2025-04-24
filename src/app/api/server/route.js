@@ -537,6 +537,7 @@ export async function POST(request) {
                   if (currentY < 0) {
                     currentY = 0; // Clamp y-position to 0
                     currentVy = 0; // Clamp vy to 0
+                  }
                 }
 
                 if (event.event === 'flap') {

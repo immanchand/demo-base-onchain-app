@@ -310,10 +310,12 @@ export async function POST(request) {
 
 
             // All games Check for identical deltaTime values (suspicious for manipulation)
-            const deltaTimes = frameEvents.map(e => e.data.deltaTime);
-            const avgDeltaTime = deltaTimes.reduce((a, b) => a + b, 0) / deltaTimes.length;
-            const deltaVariance = deltaTimes.reduce((a, b) => a + Math.pow(b - avgDeltaTime, 2), 0) / deltaTimes.length;
-            if (deltaVariance < 1e-7 || deltaVariance > 0.0012) { // 0.0000001 to 0.0001 s²
+            const frameDeltaTimes = frameEvents.map(e => e.data.deltaTime);
+            const totalFrameDeltaTime = frameDeltaTimes.reduce((a, b) => a + b, 0)
+            const avgFrameDeltaTime = totalFrameDeltaTime / frameDeltaTimes.length;
+            const frameDeltaTimieVariance = frameDeltaTimes.reduce((a, b) => a + Math.pow(b - avgFrameDeltaTime, 2), 0) / frameDeltaTimes.length;
+            console.log('frameDeltaTimieVariance',frameDeltaTimieVariance);
+            if (frameDeltaTimieVariance < 1e-7 || frameDeltaTimieVariance > 0.0012) { // 0.0000001 to 0.0001 s²
               console.log('Delta time variance check failed for',{ 
                 address,
                 gameId,
@@ -323,7 +325,23 @@ export async function POST(request) {
               });
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious deltaTime variance' }), { status: 400 });
             }
-            
+            //all games check total telemetry frame delta time against stats.time
+            console.log('totalDeltaTime',totalFrameDeltaTime);
+            console.log('stats.time',stats.time);
+            console.log('stats.time * 1.01',stats.time * 1.01);
+            if (totalFrameDeltaTime > stats.time || totalFrameDeltaTime < stats.time * 1.01) {
+              console.log('Frame delta time and stats total time mismatch', {
+                address,
+                gameId,
+                gameName: stats.gameName,
+                totalFrameDeltaTime,
+                statTime: stats.time,
+              })
+              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious time: delta time and total time dont match' }), {
+                status: 400,
+              });
+            }
+                        
             //All games events filtered required
             const spawnEvents = telemetry.filter(e => e.event === 'spawn');
             //const frameSwpawnEvents = telemetry.filter(e => e.event === 'frame' || e.event === 'spawn');
@@ -362,12 +380,12 @@ export async function POST(request) {
               }
 
               // TIME based games telemetry computed score validation
-              let computedScore = 0;
-              // Simple sum for games with complete telemetry
-              for (const event of frameEvents) {
-                  computedScore += event.data.deltaTime;// * FLY_PARAMETERS.SCORE_MULTIPLIER;
-              }
-              comuptedScore = computedScore * FLY_PARAMETERS.SCORE_MULTIPLIER;
+              // let computedScore = 0;
+              // // Simple sum for games with complete telemetry
+              // for (const event of frameEvents) {
+              //     computedScore += event.data.deltaTime;// * FLY_PARAMETERS.SCORE_MULTIPLIER;
+              // }
+              let computedScore = totalFrameDeltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER;
               console.log('computedScore max', computedScore * 1.1);
               if (Number(score) > computedScore * 1.1) {
                 console.log('Number(score) > computedScore * 1.1', Number(score), '>', computedScore, '* 1.1');

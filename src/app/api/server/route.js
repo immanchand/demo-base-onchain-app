@@ -462,7 +462,7 @@ export async function POST(request) {
               const doubleSpawnStdDev = Math.sqrt(expectedDoubleSpawns * 0.3 * (1 - 0.3)); // Variance for double spawns
               const doubleSpawnTolerance = 1.7 * doubleSpawnStdDev;
               const minExpectedDoubleSpawns = Math.floor(expectedDoubleSpawns - doubleSpawnTolerance);
-              const maxExpectedDoubleSpawns = expectedDoubleSpawns + doubleSpawnTolerance*1.5;
+              const maxExpectedDoubleSpawns = Math.ceil(expectedDoubleSpawns + doubleSpawnTolerance*1.5);
               console.log('minExpectedDoubleSpawns',minExpectedDoubleSpawns);
               console.log('maxExpectedDoubleSpawns',maxExpectedDoubleSpawns);
               console.log('actual double spawn',doubleSpawnCount);
@@ -499,7 +499,7 @@ export async function POST(request) {
               const frameEvents = telemetry.filter(e => e.event === 'frame');
               const flapEvents = telemetry.filter(e => e.event === 'flap');
 
-              // 1. Flap Plausibility and DeltaTime Consistency
+              // 1. Flap Plausibility
               let totalFlapDeltaTime = 0;
               let lastFrameIndex = 0;
               for (const flap of flapEvents) {
@@ -509,16 +509,10 @@ export async function POST(request) {
                   lastFrameIndex++;
                 }
                 const prevFrame = frameEvents[lastFrameIndex];
+                console.log('!prevFrame || prevFrame.frameId > flap.frameId',!prevFrame,' || ',prevFrame.frameId,' > ',flap.frameId);
                 if (!prevFrame || prevFrame.frameId > flap.frameId) {
                   console.log('No valid preceding frame for flap', { flap });
                   return new Response(JSON.stringify({ status: 'error', message: 'Invalid flap telemetry: no preceding frame' }), { status: 400 });
-                }
-
-                // Validate deltaTime
-                const expectedDeltaTime = prevFrame.data.deltaTime / 10;
-                if (flap.data.deltaTime > expectedDeltaTime * 1.5 || flap.data.deltaTime < expectedDeltaTime * 0.5) {
-                  console.log('Flap deltaTime inconsistent with frame', { flap, prevFrame, expectedDeltaTime });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap deltaTime' }), { status: 400 });
                 }
 
                 // Calculate frame difference
@@ -527,6 +521,7 @@ export async function POST(request) {
                 const expectedFrameTime = framesElapsed * perFrameDeltaTime; // Expected time for framesElapsed frames
                 const actualTimeDiff = (flap.time - prevFrame.time) / 1000; // Actual time in seconds
                 const timingTolerance = Math.max(0.05, framesElapsed * 0.01); // 10ms per frame, minimum 50ms
+                console.log('Math.abs(actualTimeDiff - expectedFrameTime) > timingTolerance','Math.abs(',actualTimeDiff,' - ',expectedFrameTime,') > ',timingTolerance);
                 if (Math.abs(actualTimeDiff - expectedFrameTime) > timingTolerance) {
                   console.log('Flap timing inconsistent with frame', { flap, prevFrame, actualTimeDiff, expectedFrameTime, timingTolerance });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap timing' }), { status: 400 });

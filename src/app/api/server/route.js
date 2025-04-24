@@ -287,7 +287,6 @@ export async function POST(request) {
                     stats.game === 'fly'? FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME:
                     stats.game === 'jump'? JUMP_PARAMETERS.DIFFICULTY_FACTOR_TIME:
                     stats.game === 'shoot'? SHOOT_PARAMETERS.DIFFICULTY_FACTOR_TIME: 0;
-            
             const gameStartTime = telemetry[0].time;
             // loop over frame events and check difficulty factor progress
             for (const event of frameEvents) {
@@ -306,7 +305,6 @@ export async function POST(request) {
                 }
             }
 
-
             // All games Check for identical deltaTime values (suspicious for manipulation)
             const frameDeltaTimes = frameEvents.map(e => e.data.deltaTime);
             const totalFrameDeltaTime = frameDeltaTimes.reduce((a, b) => a + b, 0)
@@ -324,7 +322,7 @@ export async function POST(request) {
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious deltaTime variance' }), { status: 400 });
             }
             //all games check total telemetry frame delta time against stats.time/1000=gameTimeSec
-            if (totalFrameDeltaTime > gameTimeSec  * 1.01 || totalFrameDeltaTime < gameTimeSec * 0.99) { //0.1% variance allowed
+            if (totalFrameDeltaTime > gameTimeSec  * 1.01 || totalFrameDeltaTime < gameTimeSec * 0.99) { //1% variance allowed
               console.log('Frame delta time and stats total time mismatch', {
                 address,
                 gameId,
@@ -536,6 +534,9 @@ export async function POST(request) {
                 for (let i = 0; i < Math.floor(framesElapsed); i++) {
                   currentVy += FLY_PARAMETERS.GRAVITY;
                   currentY += currentVy;
+                  if (currentY < 0) {
+                    currentY = 0; // Clamp y-position to 0
+                    currentVy = 0; // Clamp vy to 0
                 }
 
                 if (event.event === 'flap') {

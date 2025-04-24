@@ -538,8 +538,7 @@ export async function POST(request) {
                 const perFrameDeltaTime = prevFrame.data.deltaTime / 10; // Per-frame deltaTime (e.g., 0.166 / 10 = 0.0166)
                 const expectedFrameTime = framesElapsed * perFrameDeltaTime; // Expected time for framesElapsed frames
                 const actualTimeDiff = (flap.time - prevFrame.time) / 1000; // Actual time in seconds
-                const timingTolerance = Math.max(0.05, framesElapsed * 0.01); // 10ms per frame, minimum 50ms
-                console.log('frame difference timingTolerance',timingTolerance, 'actual diff',Math.abs(actualTimeDiff - expectedFrameTime));
+                const timingTolerance = 0.05//minimum 50ms
                 if (Math.abs(actualTimeDiff - expectedFrameTime) > timingTolerance) {
                   console.log('Flap event time inconsistent with frame time', { flap, prevFrame, actualTimeDiff, expectedFrameTime, timingTolerance });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap event time' }), { status: 400 });

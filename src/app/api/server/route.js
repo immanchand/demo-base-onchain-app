@@ -528,7 +528,6 @@ export async function POST(request) {
                   lastFrameIndex++;
                 }
                 const prevFrame = frameEvents[lastFrameIndex];
-                console.log('!prevFrame || prevFrame.frameId > flap.frameId',!prevFrame,' || ',prevFrame.frameId,' > ',flap.frameId);
                 if (!prevFrame || prevFrame.frameId > flap.frameId) {
                   console.log('No valid preceding frame for flap', { flap });
                   return new Response(JSON.stringify({ status: 'error', message: 'Invalid flap telemetry: no preceding frame' }), { status: 400 });
@@ -540,10 +539,10 @@ export async function POST(request) {
                 const expectedFrameTime = framesElapsed * perFrameDeltaTime; // Expected time for framesElapsed frames
                 const actualTimeDiff = (flap.time - prevFrame.time) / 1000; // Actual time in seconds
                 const timingTolerance = Math.max(0.05, framesElapsed * 0.01); // 10ms per frame, minimum 50ms
-                console.log('Math.abs(actualTimeDiff - expectedFrameTime) > timingTolerance',Math.abs(actualTimeDiff - expectedFrameTime),' > ',timingTolerance);
+                console.log('frame difference timingTolerance',timingTolerance, 'actual diff',Math.abs(actualTimeDiff - expectedFrameTime));
                 if (Math.abs(actualTimeDiff - expectedFrameTime) > timingTolerance) {
-                  console.log('Flap timing inconsistent with frame', { flap, prevFrame, actualTimeDiff, expectedFrameTime, timingTolerance });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap timing' }), { status: 400 });
+                  console.log('Flap event time inconsistent with frame time', { flap, prevFrame, actualTimeDiff, expectedFrameTime, timingTolerance });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap event time' }), { status: 400 });
                 }
 
                 // Simulate physics
@@ -559,14 +558,14 @@ export async function POST(request) {
 
                 // Validate position
                 const tolerance = stats.canvasHeight * 0.05;
-                console.log('Math.abs(flap.data.y - currentY) > tolerance','Math.abs(',flap.data.y-currentY,') > ',tolerance);
+                console.log('Validate position tolerance',tolerance,'actual',Math.abs(flap.data.y-currentY));
                 if (Math.abs(flap.data.y - currentY) > tolerance) {
                   console.log('Flap position check failed', { flap, prevFrame, expectedY: currentY, actualY: flap.data.y });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap position' }), { status: 400 });
                 }
 
                 // Validate velocity
-                console.log('Math.abs(flap.data.y - FLY_PARAMETERS.FLAP_VELOCITY) > 0.1','Math.abs(',flap.data.y,' - ',FLY_PARAMETERS.FLAP_VELOCITY,') > 0.1');
+                console.log('Validate velocity tolerance 0.1, actual',Math.abs(flap.data.y - FLY_PARAMETERS.FLAP_VELOCITY));
                 if (Math.abs(flap.data.vy - FLY_PARAMETERS.FLAP_VELOCITY) > 0.1) {
                   console.log('Flap velocity check failed', { flap, expectedVy: FLY_PARAMETERS.FLAP_VELOCITY, actualVy: flap.data.vy });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap velocity' }), { status: 400 });

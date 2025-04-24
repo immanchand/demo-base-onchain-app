@@ -287,9 +287,7 @@ export async function POST(request) {
                     stats.game === 'fly'? FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME:
                     stats.game === 'jump'? JUMP_PARAMETERS.DIFFICULTY_FACTOR_TIME:
                     stats.game === 'shoot'? SHOOT_PARAMETERS.DIFFICULTY_FACTOR_TIME: 0;
-            //const firstFrameId = telemetry.find(e => e.event === 'frame')?.data?.frameId || 10;
-            //const frameInterval = 1000 / minFps; // Assume 60 FPS
-            //const offset = (firstFrameId - 1) * frameInterval; // Adjust for frames before first logged event and miliseconds to seconds  
+            
             const gameStartTime = telemetry[0].time;
             // loop over frame events and check difficulty factor progress
             for (const event of frameEvents) {
@@ -326,9 +324,6 @@ export async function POST(request) {
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious deltaTime variance' }), { status: 400 });
             }
             //all games check total telemetry frame delta time against stats.time/1000=gameTimeSec
-            console.log('totalFrameDeltaTime',totalFrameDeltaTime);
-            console.log('gameTimeSec',gameTimeSec);
-            console.log('gameTimeSec * 0.98',gameTimeSec * 0.98);
             if (totalFrameDeltaTime > gameTimeSec || totalFrameDeltaTime < gameTimeSec * 0.98) {
               console.log('Frame delta time and stats total time mismatch', {
                 address,
@@ -479,7 +474,7 @@ export async function POST(request) {
               }
               // Expected Double spawn calculations and validations
               const doubleSpawnStdDev = Math.sqrt(expectedDoubleSpawns * 0.3 * (1 - 0.3)); // Variance for double spawns
-              const doubleSpawnTolerance = 1.7 * doubleSpawnStdDev;
+              const doubleSpawnTolerance = 2 * doubleSpawnStdDev;
               const minExpectedDoubleSpawns = Math.floor(expectedDoubleSpawns - doubleSpawnTolerance);
               const maxExpectedDoubleSpawns = Math.ceil(expectedDoubleSpawns + doubleSpawnTolerance*1.5);
               console.log('minExpectedDoubleSpawns',minExpectedDoubleSpawns);
@@ -497,7 +492,7 @@ export async function POST(request) {
               }
               // expected maxObstacles range calcuations and validations
               const maxObstaclesStdDev = Math.sqrt(Math.abs(expectedMaxObstacles * (1 + 0.3) * (1 - (1 + 0.3))));
-              const maxObstaclesTolerance = 1.3 * maxObstaclesStdDev;
+              const maxObstaclesTolerance = 1.5 * maxObstaclesStdDev;
               const minExpectedMaxObstacles = Math.floor(expectedMaxObstacles - maxObstaclesTolerance);
               const maxExpectedMaxObstacles = Math.ceil(expectedMaxObstacles + maxObstaclesTolerance*2);
               console.log('minExpectedMaxObstacles',minExpectedMaxObstacles);
@@ -537,18 +532,13 @@ export async function POST(request) {
                   console.log('Time inconsistency', { event, lastFrameId, actualTime, expectedTime });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious event timing' }), { status: 400 });
                 }
-
+                // Simulate physics up to the event
                 for (let i = 0; i < Math.floor(framesElapsed); i++) {
                   currentVy += FLY_PARAMETERS.GRAVITY;
                   currentY += currentVy;
                 }
 
                 if (event.event === 'flap') {
-                  // Simulate physics up to the flap event
-                  for (let i = 0; i < Math.floor(framesElapsed); i++) {
-                    currentVy += FLY_PARAMETERS.GRAVITY;
-                    currentY += currentVy;
-                  }
                   // Apply flap velocity
                   currentVy = FLY_PARAMETERS.FLAP_VELOCITY;
                   // Validate flap position and velocity
@@ -561,11 +551,6 @@ export async function POST(request) {
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap velocity' }), { status: 400 });
                   }
                 } else if (event.event === 'frame') {
-                  // Simulate physics up to this frame
-                  for (let i = 0; i < Math.floor(framesElapsed); i++) {
-                    currentVy += FLY_PARAMETERS.GRAVITY;
-                    currentY += currentVy;
-                  }
                   // Validate frame position and velocity
                   if (Math.abs(event.data.y - currentY) > 0.001) {
                     console.log('Frame position check failed', { event, expectedY: currentY, actualY: event.data.y });

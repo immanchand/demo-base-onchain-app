@@ -586,7 +586,7 @@ export async function POST(request) {
                 if (nextFrame) {
                   const frameDiff = (nextFrame.frameId - flap.frameId) / 10;
                   const expectedVy = FLY_PARAMETERS.FLAP_VELOCITY + FLY_PARAMETERS.GRAVITY * frameDiff;
-                  console.log('if false: Math.abs(nextFrame.data.vy - expectedVy) < 0.5 Math.abs(,'nextFrame.data.vy,' - ',expectedVy,') < 0.5');
+                  console.log('if false: Math.abs(nextFrame.data.vy - expectedVy) < 0.5 Math.abs(,',nextFrame.data.vy,' - ',expectedVy,') < 0.5');
                   if (Math.abs(nextFrame.data.vy - expectedVy) < 0.5) {
                     flapEffectFrameCount++;
                   } else {

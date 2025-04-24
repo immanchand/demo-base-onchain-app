@@ -538,9 +538,8 @@ export async function POST(request) {
                 const perFrameDeltaTime = prevFrame.data.deltaTime / 10; // Per-frame deltaTime (e.g., 0.166 / 10 = 0.0166)
                 const expectedFrameTime = framesElapsed * perFrameDeltaTime; // Expected time for framesElapsed frames
                 const actualTimeDiff = (flap.time - prevFrame.time) / 1000; // Actual time in seconds
-                const timingTolerance = 0.05//minimum 50ms
-                if (Math.abs(actualTimeDiff - expectedFrameTime) > timingTolerance) {
-                  console.log('Flap event time inconsistent with frame time', { flap, prevFrame, actualTimeDiff, expectedFrameTime, timingTolerance });
+                if (Math.abs(actualTimeDiff - expectedFrameTime) > 0.05) {//minimum 50ms
+                  console.log('Flap event time inconsistent with frame time', { flap, prevFrame, actualTimeDiff, expectedFrameTime, timingTolerance:  0.05});
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap event time' }), { status: 400 });
                 }
 
@@ -556,16 +555,13 @@ export async function POST(request) {
                 currentY += currentVy * (frameDiff - Math.floor(frameDiff));
 
                 // Validate position
-                const tolerance = stats.canvasHeight * 0.05;
-                console.log('Validate position tolerance',tolerance,'actual',Math.abs(flap.data.y-currentY));
-                if (Math.abs(flap.data.y - currentY) > tolerance) {
+                if (Math.abs(flap.data.y - currentY) > 0.001) {
                   console.log('Flap position check failed', { flap, prevFrame, expectedY: currentY, actualY: flap.data.y });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap position' }), { status: 400 });
                 }
 
                 // Validate velocity
-                console.log('Validate velocity tolerance 0.1, actual',Math.abs(flap.data.vy - FLY_PARAMETERS.FLAP_VELOCITY));
-                if (Math.abs(flap.data.vy - FLY_PARAMETERS.FLAP_VELOCITY) > 0.1) {
+                if (Math.abs(flap.data.vy - FLY_PARAMETERS.FLAP_VELOCITY) > 0.001) {
                   console.log('Flap velocity check failed', { flap, expectedVy: FLY_PARAMETERS.FLAP_VELOCITY, actualVy: flap.data.vy });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap velocity' }), { status: 400 });
                 }

@@ -211,10 +211,10 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
         let ship = {
             x: canvas.width * 0.15,
-            y: canvas.height / 2,
+            y: 0,
             width: FLY_PARAMETERS.SHIP_WIDTH,
             height: FLY_PARAMETERS.SHIP_HEIGHT,
-            vy: FLY_PARAMETERS.FLAP_VELOCITY*2,
+            vy: 0,
         };
         
         let obstaclePool: Obstacle[] = [];

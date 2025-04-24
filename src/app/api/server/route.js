@@ -499,7 +499,7 @@ export async function POST(request) {
               const maxObstaclesStdDev = Math.sqrt(Math.abs(expectedMaxObstacles * (1 + 0.3) * (1 - (1 + 0.3))));
               const maxObstaclesTolerance = 1.3 * maxObstaclesStdDev;
               const minExpectedMaxObstacles = Math.floor(expectedMaxObstacles - maxObstaclesTolerance);
-              const maxExpectedMaxObstacles = Match.ceil(expectedMaxObstacles + maxObstaclesTolerance*2);
+              const maxExpectedMaxObstacles = Math.ceil(expectedMaxObstacles + maxObstaclesTolerance*2);
               console.log('minExpectedMaxObstacles',minExpectedMaxObstacles);
               console.log('maxExpectedMaxObstacles',maxExpectedMaxObstacles);
               console.log('stats.maxObstacles',stats.maxObstacles);

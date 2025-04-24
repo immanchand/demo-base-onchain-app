@@ -30,6 +30,8 @@ export const FLY_PARAMETERS = {
   DIFFICULTY_FACTOR_TIME: 90, //seonds till max difficulty
 };
 export const JUMP_PARAMETERS = {
+  SHIP_WIDTH: 40 * (3/4),
+  SHIP_HEIGHT: 50,
   BASE_OBSTACLE_SPEED: -3, // Higher (e.g., -5) = faster obstacles, harder; Lower (e.g., -2) = easier
   MIN_GAP: 300, // Lower (e.g., 200) = tighter gaps, harder; Higher (e.g., 400) = easier
   GRAVITY: 0.4, // Higher (e.g., 0.5) = faster fall, harder; Lower (e.g., 0.3) = easier
@@ -38,6 +40,8 @@ export const JUMP_PARAMETERS = {
   DIFFICULTY_FACTOR_TIME: 90, //seonds till max difficulty
 };
 export const SHOOT_PARAMETERS = {
+  SHIP_WIDTH: 30,
+  SHIP_HEIGHT: 30 * (3/4),
   ENEMY_SPEED_BASE: 2, // Higher (e.g., 3) = faster enemies, harder; Lower (e.g., 1) = easier
   MAX_ENEMY_COUNT: 10, // Higher (e.g., 15) = more enemies, harder; Lower (e.g., 5) = easier
   SPAWN_INTERVAL: 1000, // Lower (e.g., 500) = faster spawns, harder; Higher (e.g., 1500) = easier
@@ -481,6 +485,7 @@ export interface GameStats {
   maxObstacles: number;
   inputsPerSec: number;
   canvasWidth: number;
+  canvasHeight: number;
 };
 export interface Entity {
   x: number;

@@ -547,7 +547,7 @@ export async function POST(request) {
                 // Simulate physics
                 let currentY = prevFrame.data.y;
                 let currentVy = prevFrame.data.vy;
-                const frameDiff = framesElapsed / 10; // For physics simulation, as in original code
+                const frameDiff = framesElapsed;// / 10; // For physics simulation, as in original code
                 for (let i = 0; i < Math.floor(frameDiff); i++) {
                   currentVy += FLY_PARAMETERS.GRAVITY;
                   currentY += currentVy;
@@ -564,7 +564,7 @@ export async function POST(request) {
                 }
 
                 // Validate velocity
-                console.log('Validate velocity tolerance 0.1, actual',Math.abs(flap.data.y - FLY_PARAMETERS.FLAP_VELOCITY));
+                console.log('Validate velocity tolerance 0.1, actual',Math.abs(flap.data.vy - FLY_PARAMETERS.FLAP_VELOCITY));
                 if (Math.abs(flap.data.vy - FLY_PARAMETERS.FLAP_VELOCITY) > 0.1) {
                   console.log('Flap velocity check failed', { flap, expectedVy: FLY_PARAMETERS.FLAP_VELOCITY, actualVy: flap.data.vy });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap velocity' }), { status: 400 });

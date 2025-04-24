@@ -546,13 +546,15 @@ export async function POST(request) {
                 // Simulate physics
                 let currentY = prevFrame.data.y;
                 let currentVy = prevFrame.data.vy;
-                const frameDiff = framesElapsed;// / 10; // For physics simulation, as in original code
-                for (let i = 0; i < Math.floor(frameDiff); i++) {
+                //const frameDiff = framesElapsed;// / 10; // For physics simulation, as in original code
+                for (let i = 0; i < Math.floor(framesElapsed); i++) {
                   currentVy += FLY_PARAMETERS.GRAVITY;
                   currentY += currentVy;
                 }
                 currentVy = FLY_PARAMETERS.FLAP_VELOCITY;
-                currentY += currentVy * (frameDiff - Math.floor(frameDiff));
+                console.log('currentY before',currentY);
+                currentY += currentVy * (framesElapsed - Math.floor(framesElapsed));
+                console.log('currentY after',currentY);
 
                 // Validate position
                 if (Math.abs(flap.data.y - currentY) > 0.001) {

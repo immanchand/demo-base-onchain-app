@@ -90,6 +90,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         maxObstacles: 0,
         inputsPerSec: 0,
         canvasWidth: canvasRef.current?.width || 1008,
+        canvasHeight: canvasRef.current?.height || 900,
     });
 
     // Preload images
@@ -478,6 +479,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                 maxObstacles: 0,
                 inputsPerSec: 0,
                 canvasWidth: canvasRef.current.width,
+                canvasHeight: canvasRef.current.height,
             });
 
             window.addEventListener('mousemove', handleMouseMove);

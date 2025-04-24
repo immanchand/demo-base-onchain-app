@@ -530,7 +530,7 @@ export async function POST(request) {
                   console.log('Time inconsistency', { event, lastFrameId, actualTime, expectedTime });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious event timing' }), { status: 400 });
                 }
-                // Simulate physics up to the event
+                // Simulate frame by frame physics up to the event
                 for (let i = 0; i < Math.floor(framesElapsed); i++) {
                   currentVy += FLY_PARAMETERS.GRAVITY;
                   currentY += currentVy;
@@ -588,30 +588,7 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap interval variance' }), { status: 400 });
               }
 
-              // 3. Flap Effect Frames
-              let flapEffectFrameCount = 0;
-              for (const flap of flapEvents) {
-                const nextFrame = frameEvents.find(f => f.frameId > flap.frameId);
-                if (nextFrame) {
-                  const frameDiff = (nextFrame.frameId - flap.frameId) / 10;
-                  const expectedVy = FLY_PARAMETERS.FLAP_VELOCITY + FLY_PARAMETERS.GRAVITY * frameDiff;
-                  console.log('if false: Math.abs(nextFrame.data.vy - expectedVy) < 0.5', Math.abs(nextFrame.data.vy - expectedVy),' < 0.5');
-                  if (Math.abs(nextFrame.data.vy - expectedVy) < 0.5) {
-                    flapEffectFrameCount++;
-                  } else {
-                    console.log('Flap effect not reflected in frame', { flap, nextFrame, expectedVy, actualVy: nextFrame.data.vy });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap effect in frame telemetry' }), { status: 400 });
-                  }
-                }
-              }
-              const expectedFlapEffectFrames = flapEvents.length * 0.8;
-              console.log('flapEffectFrameCount < expectedFlapEffectFrames',flapEffectFrameCount,' < ',expectedFlapEffectFrames);
-              if (flapEffectFrameCount < expectedFlapEffectFrames) {
-                console.log('Insufficient flap effect frames', { flapEffectFrameCount, expectedFlapEffectFrames });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap effect frequency' }), { status: 400 });
-              }
-
-              // 4. Validate Flap Frequency
+              // 3. Validate Flap Frequency
               const flapCount = flapEvents.length;
               const expectedFlapsPerSec = flapCount / gameTimeSec;
               console.log('Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.5',
@@ -625,7 +602,7 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flapsPerSec vs flap events patterns' }), { status: 400 });
               }
 
-              // 5. Existing flapsPerSec vs inputsPerSec check
+              // 4. Existing flapsPerSec vs inputsPerSec check
               console.log('Math.abs(stats.flapsPerSec - stats.inputsPerSec) > 0.01', Math.abs(stats.flapsPerSec - stats.inputsPerSec),' > 0.01');
               if (Math.abs(stats.flapsPerSec - stats.inputsPerSec) > 0.01) {
                 console.log('Suspicious flapsPerSec vs inputsPerSec', {
@@ -635,7 +612,7 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious stats flapsPerSec vs inputsPerSec' }), { status: 400 });
               }
 
-              // 6. Existing min/max flaps per second checks
+              // 5. Existing min/max flaps per second checks
               console.log('stats.flapsPerSec < FLY_PARAMETERS.MIN_FLAPS_PER_SEC',stats.flapsPerSec,' < ',FLY_PARAMETERS.MIN_FLAPS_PER_SEC);
               if (stats.flapsPerSec < FLY_PARAMETERS.MIN_FLAPS_PER_SEC) {
                 console.log('stats.flapsPerSec < MIN_FLAPS_PER_SEC', stats.flapsPerSec, '<', FLY_PARAMETERS.MIN_FLAPS_PER_SEC);

@@ -365,9 +365,10 @@ export async function POST(request) {
               let computedScore = 0;
               // Simple sum for games with complete telemetry
               for (const event of frameEvents) {
-                  computedScore += event.data.deltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER;
+                  computedScore += event.data.deltaTime;// * FLY_PARAMETERS.SCORE_MULTIPLIER;
               }
-              console.log('computedScore', computedScore);
+              comuptedScore = computedScore * FLY_PARAMETERS.SCORE_MULTIPLIER;
+              console.log('computedScore max', computedScore * 1.1);
               if (Number(score) > computedScore * 1.1) {
                 console.log('Number(score) > computedScore * 1.1', Number(score), '>', computedScore, '* 1.1');
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score: computed events and reported score don’t match' }), { status: 400 });
@@ -521,7 +522,7 @@ export async function POST(request) {
                 const expectedFrameTime = framesElapsed * perFrameDeltaTime; // Expected time for framesElapsed frames
                 const actualTimeDiff = (flap.time - prevFrame.time) / 1000; // Actual time in seconds
                 const timingTolerance = Math.max(0.05, framesElapsed * 0.01); // 10ms per frame, minimum 50ms
-                console.log('Math.abs(actualTimeDiff - expectedFrameTime) > timingTolerance','Math.abs(',actualTimeDiff,' - ',expectedFrameTime,') > ',timingTolerance);
+                console.log('Math.abs(actualTimeDiff - expectedFrameTime) > timingTolerance',Math.abs(actualTimeDiff - expectedFrameTime),' > ',timingTolerance);
                 if (Math.abs(actualTimeDiff - expectedFrameTime) > timingTolerance) {
                   console.log('Flap timing inconsistent with frame', { flap, prevFrame, actualTimeDiff, expectedFrameTime, timingTolerance });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap timing' }), { status: 400 });
@@ -540,7 +541,7 @@ export async function POST(request) {
 
                 // Validate position
                 const tolerance = stats.canvasHeight * 0.05;
-                console.log('Math.abs(flap.data.y - currentY) > tolerance','Math.abs(',flap.data.y,' - ',currentY,') > ',tolerance);
+                console.log('Math.abs(flap.data.y - currentY) > tolerance','Math.abs(',flap.data.y-currentY,') > ',tolerance);
                 if (Math.abs(flap.data.y - currentY) > tolerance) {
                   console.log('Flap position check failed', { flap, prevFrame, expectedY: currentY, actualY: flap.data.y });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap position' }), { status: 400 });
@@ -552,15 +553,6 @@ export async function POST(request) {
                   console.log('Flap velocity check failed', { flap, expectedVy: FLY_PARAMETERS.FLAP_VELOCITY, actualVy: flap.data.vy });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap velocity' }), { status: 400 });
                 }
-              }
-
-              // Validate total flap deltaTime
-              const telemetryDuration = (frameEvents[frameEvents.length - 1].time - frameEvents[0].time) / 1000;
-              const deltaTimeTolerance = telemetryDuration * 0.1;
-              console.log('Math.abs(totalFlapDeltaTime - telemetryDuration) > deltaTimeTolerance','Math.abs(',totalFlapDeltaTime,' - ',telemetryDuration,') > ',deltaTimeTolerance);
-              if (Math.abs(totalFlapDeltaTime - telemetryDuration) > deltaTimeTolerance) {
-                console.log('Total flap deltaTime inconsistent', { totalFlapDeltaTime, telemetryDuration });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious total flap deltaTime' }), { status: 400 });
               }
 
               // 2. Flap Interval Variance
@@ -586,7 +578,7 @@ export async function POST(request) {
                 if (nextFrame) {
                   const frameDiff = (nextFrame.frameId - flap.frameId) / 10;
                   const expectedVy = FLY_PARAMETERS.FLAP_VELOCITY + FLY_PARAMETERS.GRAVITY * frameDiff;
-                  console.log('if false: Math.abs(nextFrame.data.vy - expectedVy) < 0.5 Math.abs(,',nextFrame.data.vy,' - ',expectedVy,') < 0.5');
+                  console.log('if false: Math.abs(nextFrame.data.vy - expectedVy) < 0.5', Math.abs(nextFrame.data.vy - expectedVy),' < 0.5');
                   if (Math.abs(nextFrame.data.vy - expectedVy) < 0.5) {
                     flapEffectFrameCount++;
                   } else {
@@ -606,7 +598,7 @@ export async function POST(request) {
               const flapCount = flapEvents.length;
               const expectedFlapsPerSec = flapCount / gameTimeSec;
               console.log('Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.5',
-                        Math.abs(stats.flapsPerSec - expectedFlapsPerSec),' > ',0.5
+                        Math.abs(stats.flapsPerSec - expectedFlapsPerSec),' > 0.5'
               );
               if (Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.5) {
                 console.log('Suspicious flapsPerSec vs flap events', {

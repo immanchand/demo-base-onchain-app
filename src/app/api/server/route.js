@@ -325,19 +325,19 @@ export async function POST(request) {
               });
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious deltaTime variance' }), { status: 400 });
             }
-            //all games check total telemetry frame delta time against stats.time
+            //all games check total telemetry frame delta time against stats.time/1000=gameTimeSec
             console.log('totalFrameDeltaTime',totalFrameDeltaTime);
-            console.log('stats.time',stats.time);
-            console.log('stats.time * 1.01',stats.time * 0.95);
-            if (totalFrameDeltaTime > stats.time || totalFrameDeltaTime < stats.time * 0.95) {
+            console.log('gameTimeSec',gameTimeSec);
+            console.log('gameTimeSec * 0.98',gameTimeSec * 0.98);
+            if (totalFrameDeltaTime > gameTimeSec || totalFrameDeltaTime < gameTimeSec * 0.98) {
               console.log('Frame delta time and stats total time mismatch', {
                 address,
                 gameId,
                 gameName: stats.gameName,
                 totalFrameDeltaTime,
-                statTime: stats.time,
+                gameTimeSec,
               })
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious time: delta time and total time dont match' }), {
+              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious time: delta time and total game Time dont match' }), {
                 status: 400,
               });
             }

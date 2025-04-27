@@ -168,6 +168,31 @@ export async function POST(request) {
             const telemetryLength = telemetry.length;
             console.log('telemetryLength', telemetryLength);
 
+
+            // validate recaptcha token for bot detection
+            const RECAPTCHA_END_THRESHOLD = 
+                    stats.game === 'fly'? FLY_PARAMETERS.RECAPTCHA_END_THRESHOLD:
+                    stats.game === 'jump'? JUMP_PARAMETERS.RECAPTCHA_END_THRESHOLD:
+                    stats.game === 'shoot'? SHOOT_PARAMETERS.RECAPTCHA_END_THRESHOLD: 0.7;
+            try {
+              const recaptchaResponse = await fetch(
+                `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaTokenEnd}`
+              );
+              const recaptchaData = await recaptchaResponse.json();
+              console.log('reCAPTCHA END data:', recaptchaData);
+              if (!recaptchaData.success || recaptchaData.score < RECAPTCHA_END_THRESHOLD) {
+                console.log('!recaptchaData.success || recaptchaData.score < RECAPTCHA_END_THRESHOLD',
+                  !recaptchaData.success, '||', recaptchaData.score, '<', RECAPTCHA_END_THRESHOLD);
+                return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA failed. You behaved like a bot' }), {
+                  status: 403,
+                });
+              }
+            } catch (error) {
+              console.error('reCAPTCHA error:', error);
+              //continue because backend mistake and not player's fault
+              //assume player is human
+            }
+
             //first easy check thats score is 0 in stats
             if (stats.score != 0 ) {
               console.log('Stats score should be 0', {
@@ -180,7 +205,7 @@ export async function POST(request) {
             //ALL games check ship size in frame events and telemetry score is 0, and
             //common frame events filter for subsequent checks
             const frameEvents = telemetry.filter(e => e.event === 'frame');
-            console.log('telemetry frameEvents[1].obsData', frameEvents[1].obsData);
+            console.log('telemetry frameEvents[last].obsData', frameEvents[telemetryLength - 1].obsData);
             const shipHeight = 
                     stats.game === 'fly'? FLY_PARAMETERS.SHIP_HEIGHT:
                     stats.game === 'jump'? JUMP_PARAMETERS.SHIP_HEIGHT:
@@ -401,25 +426,7 @@ export async function POST(request) {
             //const frameSwpawnEvents = telemetry.filter(e => e.event === 'frame' || e.event === 'spawn');
             // common duration and score checks for TIME based games
             if (stats.game === 'fly' || stats.game === 'jump') {
-              // validate recaptcha token for bot detection
-              try {
-                const recaptchaResponse = await fetch(
-                  `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaTokenEnd}`
-                );
-                const recaptchaData = await recaptchaResponse.json();
-                console.log('reCAPTCHA END data:', recaptchaData);
-                if (!recaptchaData.success || recaptchaData.score < FLY_PARAMETERS.RECAPTCHA_END_THRESHOLD) {
-                  console.log('!recaptchaData.success || recaptchaData.score < FLY_PARAMETERS.RECAPTCHA_END_THRESHOLD',
-                    !recaptchaData.success, '||', recaptchaData.score, '<', FLY_PARAMETERS.RECAPTCHA_END_THRESHOLD);
-                  return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA failed. You behaved like a bot' }), {
-                    status: 403,
-                  });
-                }
-              } catch (error) {
-                console.error('reCAPTCHA error:', error);
-                //continue because backend mistake and not player's fault
-                //assume player is human
-              }
+              
               // TIME based games Check if score is less than client side game duration with 1 seconds tolerance for start game
               if (score > (stats.time + TIME_VARIANCE_MS)/SCORE_DIVISOR_TIME) {
                 console.log('Duration and score check failed for', {
@@ -700,22 +707,7 @@ export async function POST(request) {
               
               // SHOOT GAME
             } else if (stats.game === 'shoot') {
-              // validate recaptcha token for bot detection
-              try {
-                const recaptchaResponse = await fetch(
-                  `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaTokenEnd}`
-                );
-                const recaptchaData = await recaptchaResponse.json();
-                if (!recaptchaData.success || recaptchaData.score < SHOOT_PARAMETERS.RECAPTCHA_END_THRESHOLD) {
-                  return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA failed. You behaved like a bot' }), {
-                    status: 403,
-                  });
-                }
-              } catch (error) {
-                console.error('reCAPTCHA error:', error);
-                //continue because backend mistake and not player's fault
-                //assume player is human
-              }
+              
               const hitRate = stats.kills / (stats.shots || 1);
               if (hitRate > 0.8 || stats.kills > gameTimeSec || Number(score) > stats.kills * 31) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {

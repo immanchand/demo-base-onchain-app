@@ -431,7 +431,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 canvasWidth: canvasRef.current.width,
                 canvasHeight: canvasRef.current.height,
                 framesCount: 0,
-                shipX: 0,
+                shipX: canvasRef.current.width * 0.15,
             });
             pendingStatsUpdate = {
                 game: 'fly',
@@ -450,7 +450,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 canvasWidth: canvasRef.current.width,
                 canvasHeight: canvasRef.current.height,
                 framesCount: 0,
-                shipX: 0,
+                shipX: canvasRef.current.width * 0.15,
             };
             obstaclePool = [spawnObstacle(canvas, FLY_PARAMETERS.BASE_OBSTACLE_SPEED)];
             lastSpawnTimeRef.current = performance.now();

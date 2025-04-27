@@ -501,7 +501,7 @@ export async function POST(request) {
               console.log('Playable height:', playableHeight);
 
               // Perform chi-squared test for uniform distribution
-              const numBins =  Math.floor(stats.canvasHeight/(FLY_PARAMETERS.OBSTACLE_SIZE+FLY_PARAMETERS.SHIP_HEIGHT)); // Divide playable height into SHIP_HEIGHT bins
+              const numBins =  Math.floor(stats.canvasHeight/FLY_PARAMETERS.OBSTACLE_SIZE); // Divide playable height into SHIP_HEIGHT bins
               console.log('numBins', numBins);
               const binSize = playableHeight / numBins;
               const observedFrequencies = Array(numBins).fill(0);
@@ -521,17 +521,30 @@ export async function POST(request) {
 
               // Calculate chi-squared statistic
               let chiSquared = 0;
+              let minObservered = observedFrequencies[1];
+              let maxObservered = 0;
               for (let i = 0; i < numBins; i++) {
                 const observed = observedFrequencies[i];
+                minObservered = Math.min(minObservered,observedFrequencies[i]);
+                maxObservered = Math.max(maxObservered,observedFrequencies[i]);
                 const diff = observed - expectedFrequency;
                 chiSquared += (diff * diff) / expectedFrequency;
               }
-
               console.log('Chi-squared statistic:', chiSquared, 'max chi: 16.919');
+              if(minObservered < maxObservered * 0.3) {
+                console.log('Insufficient obstacle y position spawns in min bin', {
+                  address,
+                  gameId,
+                  gameName: stats.game,
+                  minObservered,
+                  maxObservered,
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
+              }
 
               // Critical value for chi-squared test with 9 degrees of freedom (numBins - 1)
               // at 95% confidence level (alpha = 0.05) is approximately 16.919
-              const CHI_SQUARED_CRITICAL_VALUE = 16.919;
+              const CHI_SQUARED_CRITICAL_VALUE = 60;
 
               if (chiSquared > CHI_SQUARED_CRITICAL_VALUE) {
                 console.log('Suspicious obstacle y position distribution', {
@@ -792,11 +805,11 @@ export async function POST(request) {
               }
 
               // 5. Existing min/max flaps per second checks
-              if (stats.flapsPerSec < FLY_PARAMETERS.MIN_FLAPS_PER_SEC || stats.flapsPerSec > FLY_PARAMETERS.MAX_FLAPS_PER_SEC) {
+              if (stats.flapsPerSec < 1 || stats.flapsPerSec > 4) {
                 console.log('stats.flapsPerSec is out of range', {
                   flapsPerSec,
-                  minFlapsPerSec: FLY_PARAMETERS.MIN_FLAPS_PER_SEC,
-                  maxFlapsPerSec: FLY_PARAMETERS.MAX_FLAPS_PER_SEC,
+                  minFlapsPerSec: 1,
+                  maxFlapsPerSec: 4,
                 });
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay flapsPerSec out of range' }), { status: 400 });
               }

@@ -471,13 +471,8 @@ export async function POST(request) {
             if (stats.game === 'fly') {
               const frameEvents = telemetry.filter(e => e.event === 'frame');
               // SPAWN RELATED VALIDATION
-              // attempted obsData validation for maxObstaclesInPool vs stats.
+              // obsData validation for maxObstaclesInPool vs stats.maxObstacles
               let maxObstaclesInPool = 0;
-              console.log('first maxObstaclesInPool',maxObstaclesInPool);
-              const obsDataMap = frameEvents.map(e => e.obsData); 
-              console.log('obsDataMap',obsDataMap);
-              const obsYPosition = obsDataMap.map(e => e.y); 
-              console.log('obsYPosition',obsYPosition);
               for (const event of frameEvents) {
                 maxObstaclesInPool = Math.max(maxObstaclesInPool, event.obsData.obstacles.length);
               }
@@ -492,6 +487,83 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
               }
               console.log('maxObstaclesInPool',maxObstaclesInPool);
+              // Extract y positions from all obstacles in obsData
+              const yPositions = [];
+              for (const event of frameEvents) {
+                if (event.obsData && event.obsData.obstacles) {
+                  event.obsData.obstacles.forEach(obstacle => {
+                    yPositions.push(obstacle.y);
+                  });
+                }
+              }
+              console.log('Extracted yPositions:', yPositions.length, 'positions');
+              const playableHeight = stats.canvasHeight - 3 * FLY_PARAMETERS.OBSTACLE_SIZE;
+              console.log('Playable height:', playableHeight);
+
+              // Perform chi-squared test for uniform distribution
+              const numBins = 10; // Divide playable height into 10 bins
+              const binSize = playableHeight / numBins;
+              const observedFrequencies = Array(numBins).fill(0);
+
+              // Assign y positions to bins
+              yPositions.forEach(y => {
+                if (y >= 0 && y <= playableHeight) {
+                  const binIndex = Math.min(Math.floor(y / binSize), numBins - 1);
+                  observedFrequencies[binIndex]++;
+                }
+              });
+
+              console.log('Observed frequencies:', observedFrequencies);
+
+              // Expected frequency for uniform distribution
+              const expectedFrequency = yPositions.length / numBins;
+
+              // Calculate chi-squared statistic
+              let chiSquared = 0;
+              for (let i = 0; i < numBins; i++) {
+                const observed = observedFrequencies[i];
+                const diff = observed - expectedFrequency;
+                chiSquared += (diff * diff) / expectedFrequency;
+              }
+
+              console.log('Chi-squared statistic:', chiSquared, 'max chi: 16.919');
+
+              // Critical value for chi-squared test with 9 degrees of freedom (numBins - 1)
+              // at 95% confidence level (alpha = 0.05) is approximately 16.919
+              const CHI_SQUARED_CRITICAL_VALUE = 16.919;
+
+              if (chiSquared > CHI_SQUARED_CRITICAL_VALUE) {
+                console.log('Suspicious obstacle y position distribution', {
+                  address,
+                  gameId,
+                  gameName: stats.game,
+                  chiSquared,
+                  observedFrequencies,
+                });
+                return new Response(JSON.stringify({
+                  status: 'error',
+                  message: 'Obstacle y positions show suspicious distribution',
+                }), { status: 400 });
+              }
+
+              // Additional check: Ensure y positions are not too clustered (e.g., identical values)
+              const uniqueYPositions = new Set(yPositions);
+              const uniqueRatio = uniqueYPositions.size / yPositions.length;
+              console.log('obstacle y position uniqueRatio',uniqueRatio, 'min 0.5');
+              if (uniqueRatio < 0.5) {
+                console.log('Too many identical y positions', {
+                  address,
+                  gameId,
+                  gameName: stats.game,
+                  uniqueYPositions: uniqueYPositions.size,
+                  totalYPositions: yPositions.length,
+                });
+                return new Response(JSON.stringify({
+                  status: 'error',
+                  message: 'Obstacle y positions are too similar',
+                }), { status: 400 });
+              }
+              
 
               // Validate spawn events vs. obstacles cleared and maxObstacles
               if (stats.obstaclesCleared < spawnEvents.length - stats.maxObstacles

@@ -293,7 +293,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 setScore((prev) => prev + deltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER);
                 frameCount++;
                 if (frameCount % 10 === 0) {
-                    console.log('Frame telemetry obstacles:', JSON.stringify(obstacles)); // Debug log
+                    console.log('Frame telemetry obstacles:', JSON.stringify(obstaclePool.map(o => ({ x: o.x, y: o.y, dx: o.dx, dodged: o.dodged, width: o.width, height: o.height })))); // Debug log
                     const newEvent: TelemetryEvent = {
                         event: 'frame',
                         time: performance.now(),

@@ -433,7 +433,7 @@ export async function POST(request) {
               }
 
               // TIME based games telemetry computed score validation
-              let computedScore = totalFrameDeltaTime * 1000 * FLY_PARAMETERS.SCORE_MULTIPLIER;
+              let computedScore = totalFrameDeltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER;
               console.log('computedScore max', computedScore * 1.1);
               if (Number(score) > computedScore * 1.1) {
                 console.log('Number(score) > computedScore * 1.1', Number(score), '>', computedScore, '* 1.1');
@@ -657,9 +657,9 @@ export async function POST(request) {
               }
               const avgInterval = flapIntervals.reduce((a, b) => a + b, 0) / flapIntervals.length;
               const variance = flapIntervals.reduce((a, b) => a + Math.pow(b - avgInterval, 2), 0) / flapIntervals.length;
-              const minVariance = 0.5;
-              const maxVariance = 10;
-              console.log('variance < minVariance || variance > maxVariance',variance,' < ',minVariance,' || ',variance,' > ',maxVariance);
+              const minVariance = 2;
+              const maxVariance = 8;
+              console.log('Flap Interval Variance (min 2, max 8, variance:', variance);
               if (variance < minVariance || variance > maxVariance) {
                 console.log('Suspicious flap interval variance', { variance, minVariance, maxVariance });
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap interval variance' }), { status: 400 });
@@ -668,9 +668,7 @@ export async function POST(request) {
               // 3. Validate Flap Frequency
               const flapCount = flapEvents.length;
               const expectedFlapsPerSec = flapCount / gameTimeSec;
-              console.log('Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.5',
-                        Math.abs(stats.flapsPerSec - expectedFlapsPerSec),' > 0.5'
-              );
+              console.log('Flap Frequency difference:', Math.abs(stats.flapsPerSec - expectedFlapsPerSec), ' should be more than 0.5');
               if (Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.5) {
                 console.log('Suspicious flapsPerSec vs flap events', {
                   statsFlapsPerSec: stats.flapsPerSec,
@@ -680,7 +678,6 @@ export async function POST(request) {
               }
 
               // 4. Existing flapsPerSec vs inputsPerSec check
-              console.log('Math.abs(stats.flapsPerSec - stats.inputsPerSec) > 0.01', Math.abs(stats.flapsPerSec - stats.inputsPerSec),' > 0.01');
               if (Math.abs(stats.flapsPerSec - stats.inputsPerSec) > 0.01) {
                 console.log('Suspicious flapsPerSec vs inputsPerSec', {
                   statsFlapsPerSec: stats.flapsPerSec,
@@ -690,15 +687,13 @@ export async function POST(request) {
               }
 
               // 5. Existing min/max flaps per second checks
-              console.log('stats.flapsPerSec < FLY_PARAMETERS.MIN_FLAPS_PER_SEC',stats.flapsPerSec,' < ',FLY_PARAMETERS.MIN_FLAPS_PER_SEC);
-              if (stats.flapsPerSec < FLY_PARAMETERS.MIN_FLAPS_PER_SEC) {
-                console.log('stats.flapsPerSec < MIN_FLAPS_PER_SEC', stats.flapsPerSec, '<', FLY_PARAMETERS.MIN_FLAPS_PER_SEC);
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats: too few flaps per second' }), { status: 400 });
-              }
-              console.log('stats.flapsPerSec > FLY_PARAMETERS.MAX_FLAPS_PER_SEC',stats.flapsPerSec,' > ',FLY_PARAMETERS.MAX_FLAPS_PER_SEC);
-              if (stats.flapsPerSec > FLY_PARAMETERS.MAX_FLAPS_PER_SEC) {
-                console.log('stats.flapsPerSec > MAX_FLAPS_PER_SEC', stats.flapsPerSec, '>', FLY_PARAMETERS.MAX_FLAPS_PER_SEC);
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats: excessive flaps per second' }), { status: 400 });
+              if (stats.flapsPerSec < FLY_PARAMETERS.MIN_FLAPS_PER_SEC || stats.flapsPerSec > FLY_PARAMETERS.MAX_FLAPS_PER_SEC) {
+                console.log('stats.flapsPerSec is out of range', {
+                  flapsPerSec,
+                  minFlapsPerSec: FLY_PARAMETERS.MIN_FLAPS_PER_SEC,
+                  maxFlapsPerSec: FLY_PARAMETERS.MAX_FLAPS_PER_SEC,
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay flapsPerSec out of range' }), { status: 400 });
               }
               // END FLY GAME FLAPS VALIDATIONS
               

@@ -577,6 +577,8 @@ export async function POST(request) {
 
               // Additional check: Ensure y positions are not too clustered (e.g., identical values)
               const uniqueYPositions = new Set(yPositions);
+              console.log('yPositions',yPositions);
+              console.log('Set(yPositions)',Set(yPositions));
               const uniqueRatio = uniqueYPositions.size / yPositions.length;
               console.log('obstacle y position uniqueRatio',uniqueRatio, 'min 0.5');
               if (uniqueRatio < 0.5) {

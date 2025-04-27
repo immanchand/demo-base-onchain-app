@@ -495,11 +495,21 @@ export async function POST(request) {
               }
               // check for yPositionPairs, i.e. clusters
               const yPositionPairs = new Set();
-              yPositions.forEach((y, i) => {
-                for (let j = i + 1; j < yPositions.length; j++) {
-                  const diff = Math.abs(y - yPositions[j]);
+              const uniqueYPositions = new Set(yPositions);
+              console.log('uniqueYPositions.size',uniqueYPositions.size);
+              console.log('spawnEvents.length',spawnEvents.length);
+              if(uniqueYPositions.size < spawnEvents.length * 0.99 || uniqueYPositions.size > spawnEvents.length){
+                console.log('uniqueYPositions and spawns mismatch', {
+                  address,
+                  uniqueYPositions: uniqueYPositions.size,
+                  spawns: spawnEvents.length,
+                })
+              }
+              uniqueYPositions.forEach((y, i) => {
+                for (let j = i + 1; j < uniqueYPositions.length; j++) {
+                  const diff = Math.abs(y - uniqueYPositions[j]);
                   if (Math.abs(diff - FLY_PARAMETERS.OBSTACLE_SIZE * 2) < 1) {
-                    yPositionPairs.add(`${y}-${yPositions[j]}`);
+                    yPositionPairs.add(`${y}-${uniqueYPositions[j]}`);
                   }
                 }
               });
@@ -516,7 +526,7 @@ export async function POST(request) {
 
               // Assign y positions to bins
               let isInvalidYPosition = false;
-              yPositions.forEach(y => {
+              uniqueYPositions.forEach(y => {
                 if (y >= 0 && y <= stats.canvasHeight) {
                   const binIndex = Math.min(Math.floor(y / binSize), numBins - 1);
                   observedFrequencies[binIndex]++;
@@ -532,7 +542,7 @@ export async function POST(request) {
               console.log('Observed frequencies:', observedFrequencies);
 
               // Expected frequency for uniform distribution
-              const expectedFrequency = yPositions.length / numBins;
+              const expectedFrequency = uniqueYPositions.length / numBins;
 
               // Calculate chi-squared statistic
               let chiSquared = 0;
@@ -574,27 +584,6 @@ export async function POST(request) {
                 //  message: 'Obstacle y positions show suspicious distribution',
                 //}), { status: 400 });
               }
-
-              // Additional check: Ensure y positions are not too clustered (e.g., identical values)
-              const uniqueYPositions = new Set(yPositions);
-              console.log('yPositions',yPositions);
-              console.log('uniqueYPositions',uniqueYPositions);
-              const uniqueRatio = uniqueYPositions.size / yPositions.length;
-              console.log('obstacle y position uniqueRatio',uniqueRatio, 'min 0.5');
-              if (uniqueRatio < 0.5) {
-                console.log('Too many identical y positions', {
-                  address,
-                  gameId,
-                  gameName: stats.game,
-                  uniqueYPositions: uniqueYPositions.size,
-                  totalYPositions: yPositions.length,
-                });
-                return new Response(JSON.stringify({
-                  status: 'error',
-                  message: 'Obstacle y positions are too similar',
-                }), { status: 400 });
-              }
-              
 
               // Validate spawn events vs. obstacles cleared and maxObstacles
               if (stats.obstaclesCleared < spawnEvents.length - stats.maxObstacles

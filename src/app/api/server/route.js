@@ -501,7 +501,7 @@ export async function POST(request) {
               console.log('Playable height:', playableHeight);
 
               // Perform chi-squared test for uniform distribution
-              const numBins =  stats.canvasHeight/FLY_PARAMETERS.OBSTACLE_SIZE; // Divide playable height into 10 bins
+              const numBins =  Math.floor(stats.canvasHeight/FLY_PARAMETERS.SHIP_HEIGHT); // Divide playable height into SHIP_HEIGHT bins
               console.log('numBins', numBins);
               const binSize = playableHeight / numBins;
               const observedFrequencies = Array(numBins).fill(0);

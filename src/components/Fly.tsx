@@ -181,7 +181,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
     // Game logic
     const spawnObstacle = useCallback((canvas: HTMLCanvasElement, speed: number): Obstacle => {
-        const y = Math.random() * (canvas.height - FLY_PARAMETERS.OBSTACLE_SIZE*2);
+        const y = Math.random() * (canvas.height - FLY_PARAMETERS.OBSTACLE_SIZE*3);
         const newEvent = { event: 'spawn' as const, time: performance.now(), data: { y, speed, width: FLY_PARAMETERS.OBSTACLE_SIZE, height: FLY_PARAMETERS.OBSTACLE_SIZE } };
         telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
             ? [...telemetryRef.current.slice(1), newEvent]

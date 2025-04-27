@@ -293,7 +293,6 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 setScore((prev) => prev + deltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER);
                 frameCount++;
                 if (frameCount % 10 === 0) {
-                    console.log('Frame telemetry obstacles:', JSON.stringify(obstaclePool.map(o => ({ x: o.x, y: o.y, dx: o.dx, dodged: o.dodged, width: o.width, height: o.height })))); // Debug log
                     const newEvent: TelemetryEvent = {
                         event: 'frame',
                         time: performance.now(),
@@ -301,9 +300,6 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                         data: { deltaTime: deltaTime * 10, difficulty: difficultyFactor, score, x: ship.x, y: ship.y, vy: ship.vy, width: ship.width, height: ship.height},
                         obsData: { obstacles: obstaclePool.map(o => ({ x: o.x, y: o.y, dx: o.dx, dodged: o.dodged, width: o.width, height: o.height })) }
                     };
-                    console.log('Frame telemetry newEvent:', JSON.stringify(newEvent)); // Debug log
-                    console.log('Frame telemetry newEvent.obsData:', JSON.stringify(newEvent.obsData)); // Debug log
-                    console.log('Frame telemetry obstacles:', JSON.stringify(obstaclePool.map(o => ({ x: o.x, y: o.y, dx: o.dx, dodged: o.dodged, width: o.width, height: o.height })))); // Debug log
                     telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
                         ? [...telemetryRef.current.slice(1), newEvent]
                         : [...telemetryRef.current, newEvent];

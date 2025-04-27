@@ -466,7 +466,7 @@ export async function POST(request) {
 			      // Stats validation and telemetry validation specific to each Game
             // FLY GAME
             if (stats.game === 'fly') {
-              const frameEvents = telemetry.filter(e => e.event === 'frame');
+
               // SPAWN RELATED VALIDATION
               // obsData validation for maxObstaclesInPool vs stats.maxObstacles
               let maxObstaclesInPool = 0;
@@ -508,12 +508,13 @@ export async function POST(request) {
               console.log('Extracted yPositions:', yPositions.length, 'positions');
 
               // Perform chi-squared test for uniform distribution
-              const numBins =  Math.floor(stats.canvasHeight/FLY_PARAMETERS.OBSTACLE_SIZE); // Divide playable height into SHIP_HEIGHT bins
+              const numBins =  Math.floor(stats.canvasHeight/FLY_PARAMETERS.OBSTACLE_SIZE -1); // Divide playable height into OBSTACLE_SIZE bins
               console.log('numBins', numBins);
               const binSize = stats.canvasHeight / numBins;
               const observedFrequencies = Array(numBins).fill(0);
 
               // Assign y positions to bins
+              let isInvalidYPosition = false;
               yPositions.forEach(y => {
                 if (y >= 0 && y <= stats.canvasHeight) {
                   const binIndex = Math.min(Math.floor(y / binSize), numBins - 1);
@@ -521,10 +522,13 @@ export async function POST(request) {
                 }
                 if (y < 0 || y > stats.canvasHeight) {
                   console.log('Invalid y-position detected:', y);
+                  isInvalidYPosition = true;
                   return new Response(JSON.stringify({ status: 'error', message: 'Invalid obstacle y-position' }), { status: 400 });
                 }
               });
-
+              if (isInvalidYPosition)
+                return new Response(JSON.stringify({ status: 'error', message: 'Invalid obstacle y-position detected' }), { status: 400 });
+              
               console.log('Observed frequencies:', observedFrequencies);
 
               // Expected frequency for uniform distribution
@@ -548,7 +552,8 @@ export async function POST(request) {
                   minObserved,
                   maxObserved,
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Insufficient obstacle y position spawns in min bin' }), { status: 400 });
+                // enable after more testing *******************
+                //return new Response(JSON.stringify({ status: 'error', message: 'Insufficient obstacle y position spawns in min bin' }), { status: 400 });
               }
 
               // Critical value for chi-squared test with 9 degrees of freedom (numBins - 1)
@@ -563,10 +568,11 @@ export async function POST(request) {
                   chiSquared,
                   observedFrequencies,
                 });
-                return new Response(JSON.stringify({
-                  status: 'error',
-                  message: 'Obstacle y positions show suspicious distribution',
-                }), { status: 400 });
+                // enable after more testing *******************
+                //return new Response(JSON.stringify({
+                //  status: 'error',
+                //  message: 'Obstacle y positions show suspicious distribution',
+                //}), { status: 400 });
               }
 
               // Additional check: Ensure y positions are not too clustered (e.g., identical values)

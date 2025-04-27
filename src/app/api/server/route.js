@@ -180,6 +180,7 @@ export async function POST(request) {
             //ALL games check ship size in frame events and telemetry score is 0, and
             //common frame events filter for subsequent checks
             const frameEvents = telemetry.filter(e => e.event === 'frame');
+            console.log('telemetry frameEvents[1].obsData', frameEvents[1].obsData);
             const shipHeight = 
                     stats.game === 'fly'? FLY_PARAMETERS.SHIP_HEIGHT:
                     stats.game === 'jump'? JUMP_PARAMETERS.SHIP_HEIGHT:

@@ -206,6 +206,8 @@ export async function POST(request) {
             //common frame events filter for subsequent checks
             const frameEvents = telemetry.filter(e => e.event === 'frame');
             console.log('telemetry frameEvents[last].obsData', frameEvents[frameEvents.length - 1].obsData);
+            console.log('telemetry frameEvents[secondLast].obsData', frameEvents[frameEvents.length - 2].obsData);
+            console.log('telemetry frameEvents[thirdLast].obsData', frameEvents[frameEvents.length - 3].obsData);
             const shipHeight = 
                     stats.game === 'fly'? FLY_PARAMETERS.SHIP_HEIGHT:
                     stats.game === 'jump'? JUMP_PARAMETERS.SHIP_HEIGHT:

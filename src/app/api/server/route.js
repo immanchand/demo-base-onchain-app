@@ -469,6 +469,16 @@ export async function POST(request) {
             if (stats.game === 'fly') {
                            
               // SPAWN RELATED VALIDATION
+              let maxObstaclesInPool = 0;
+              const obsDataMap = fpsEvents.map(e => e.obsData); 
+              const obsXPosition = obsDataMap.map(x => x.obsData.x); 
+              console.log('obsDataMap',obsDataMap);
+              console.log('obsXPosition',obsXPosition);
+              for (const event of frameEvents) {
+                maxObstaclesInPool = Math.max(maxObstaclesInPool, event.obsData.length);
+              }
+              console.log('maxObstaclesInPool',maxObstaclesInPool);
+
               // Validate spawn events vs. obstacles cleared and maxObstacles
               if (stats.obstaclesCleared < spawnEvents.length - stats.maxObstacles
                 || stats.obstaclesCleared > spawnEvents.length) {

@@ -506,22 +506,20 @@ export async function POST(request) {
               console.log('counted yPositionPairs', yPositionPairs.size);
 
               console.log('Extracted yPositions:', yPositions.length, 'positions');
-              const playableHeight = stats.canvasHeight - 3 * FLY_PARAMETERS.OBSTACLE_SIZE;
-              console.log('Playable height:', playableHeight);
 
               // Perform chi-squared test for uniform distribution
               const numBins =  Math.floor(stats.canvasHeight/FLY_PARAMETERS.OBSTACLE_SIZE); // Divide playable height into SHIP_HEIGHT bins
               console.log('numBins', numBins);
-              const binSize = playableHeight / numBins;
+              const binSize = stats.canvasHeight / numBins;
               const observedFrequencies = Array(numBins).fill(0);
 
               // Assign y positions to bins
               yPositions.forEach(y => {
-                if (y >= 0 && y <= playableHeight) {
+                if (y >= 0 && y <= stats.canvasHeight) {
                   const binIndex = Math.min(Math.floor(y / binSize), numBins - 1);
                   observedFrequencies[binIndex]++;
                 }
-                if (y < 0 || y > playableHeight) {
+                if (y < 0 || y > stats.canvasHeight) {
                   console.log('Invalid y-position detected:', y);
                   return new Response(JSON.stringify({ status: 'error', message: 'Invalid obstacle y-position' }), { status: 400 });
                 }

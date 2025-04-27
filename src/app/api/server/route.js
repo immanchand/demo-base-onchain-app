@@ -467,16 +467,27 @@ export async function POST(request) {
 			      // Stats validation and telemetry validation specific to each Game
             // FLY GAME
             if (stats.game === 'fly') {
-                           
+              const frameEvents = telemetry.filter(e => e.event === 'frame');
               // SPAWN RELATED VALIDATION
+              // attempted obsData validation for maxObstaclesInPool vs stats.
               let maxObstaclesInPool = 0;
               console.log('first maxObstaclesInPool',maxObstaclesInPool);
               const obsDataMap = frameEvents.map(e => e.obsData); 
               console.log('obsDataMap',obsDataMap);
-              const obsXPosition = obsDataMap.map(x => x.obsData.x); 
+              const obsXPosition = obsDataMap.map(e => e.obsData.obstacles.x); 
               console.log('obsXPosition',obsXPosition);
               for (const event of frameEvents) {
-                maxObstaclesInPool = Math.max(maxObstaclesInPool, event.obsData.length);
+                maxObstaclesInPool = Math.max(maxObstaclesInPool, event.obsData.obstacles.length);
+              }
+              if (maxObstaclesInPool != stats.maxObstacles) {
+                console.log('Invalid maxObstaclesInPool vs stats.maxObstacles', {
+                  address,
+                  gameId,
+                  gameName: stats.game,
+                  maxObstaclesInPool,
+                  maxObstaclesStats: stats.maxObstacles,
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
               }
               console.log('maxObstaclesInPool',maxObstaclesInPool);
 

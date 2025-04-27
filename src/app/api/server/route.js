@@ -166,6 +166,49 @@ export async function POST(request) {
             console.log('telemetry (last 100 events): ', telemetry.slice(-100));
             console.log('stats: ', stats);
 
+            //first easy check thats score is 0 in stats
+            if (stats.score != 0 ) {
+              console.log('Stats score should be 0', {
+                address,
+                gameId,
+                gameName: stats.game,
+            });
+              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score in stats' }), { status: 400 });
+            }
+            //ALL games check ship size in frame events and telemetry score is 0, and
+            //common frame events filter for subsequent checks
+            const frameEvents = telemetry.filter(e => e.event === 'frame');
+            const shipHeight = 
+                    stats.game === 'fly'? FLY_PARAMETERS.SHIP_HEIGHT:
+                    stats.game === 'jump'? JUMP_PARAMETERS.SHIP_HEIGHT:
+                    stats.game === 'shoot'? SHOOT_PARAMETERS.SHIP_HEIGHT: 0;
+            const shipWidth = 
+                    stats.game === 'fly'? FLY_PARAMETERS.SHIP_WIDTH:
+                    stats.game === 'jump'? JUMP_PARAMETERS.SHIP_WIDTH:
+                    stats.game === 'shoot'? SHOOT_PARAMETERS.SHIP_WIDTH: 0;
+            for (const event in frameEvents) {
+              if(event.data.height != shipWidth || event.data.width != shipWidth) {
+                console.log('Ship dimensions mismatch:', {
+                  address,
+                  gameId,
+                  gameName: stats.game,
+                  shipHeight,
+                  shipWidth,
+                  eventShipHeight: event.data.height,
+                  eventShipWidth: event.data.width,
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship size' }), { status: 400 });
+              }
+              if(event.data.score != 0) {
+                console.log('Frame event score should be 0', {
+                  address,
+                  gameId,
+                  gameName: stats.game,
+              });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious event score' }), { status: 400 });
+              }
+            }
+
             const gameTimeSec = stats.time / 1000;
             // All games check that telemetry in in order by time and frameId
             let lastTime = -Infinity;
@@ -238,8 +281,7 @@ export async function POST(request) {
                     status: 400,
                 });
             }
-            //common frame events filter for subsequent checks
-            const frameEvents = telemetry.filter(e => e.event === 'frame');
+            
             // Detect Game Clock Manipulation
             // check telemetry time agains server time only if telemetry length is less than limit
             const telemetryDuration = frameEvents[frameEvents.length-1].time - frameEvents[0].time;
@@ -265,19 +307,33 @@ export async function POST(request) {
               return new Response(JSON.stringify({ status: 'error', message: 'Missing FPS events in telemetry' }), { status: 400 });
             }
             const fpsValues = fpsEvents.map(e => e.data.fps);
+            const canvasHeightValues = fpsEvents.map(e => e.data.canvasHeight);
+            const canvasWidthValues = fpsEvents.map(e => e.data.canvasWidth);
             const minFps = Math.min(...fpsValues);
             const maxFps = Math.max(...fpsValues);
             const avgFps = fpsValues.reduce((sum, fps) => sum + fps, 0) / fpsValues.length;
+            const minCanvH = Math.min(...canvasHeightValues);
+            const maxCanvH = Math.min(...canvasHeightValues);
+            const avgCanvH = canvasHeightValues.reduce((sum, fps) => sum + fps, 0) / canvasHeightValues.length;
+            const minCanvW = Math.min(...canvasWidthValues);
+            const maxCanvW = Math.min(...canvasWidthValues);
+            const avgCanvW = canvasWidthValues.reduce((sum, fps) => sum + fps, 0) / canvasWidthValues.length;
             console.log('minFps',minFps);
             console.log('maxFps',maxFps);
             console.log('avgFps',avgFps);
+            console.log('minCanvH',minCanvH);
+            console.log('maxCanvH',maxCanvH);
+            console.log('avgCanvH',avgCanvH);
+            console.log('minCanvW',minCanvW);
+            console.log('maxCanvW',maxCanvW);
+            console.log('avgCanvW',avgCanvW);
             // Allow 40–72 FPS for mobile compatibility. No upper bound as game is harder when faster.
             if (minFps < 57) {
               console.log('minFps < 57',minFps, '<', '57');
               return new Response(JSON.stringify({ status: 'error', message: 'FPS out of acceptable range' }), { status: 400 });
             }
             // Check for suspicious FPS variance (e.g., >10 FPS change)
-            if (maxFps - minFps > 10) {
+            if (maxFps - minFps > 5) {
               console.log('maxFps - minFps > 15',maxFps,' -', minFps, '>',' 15');
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious FPS variance during game' }), { status: 400 });
             }
@@ -334,27 +390,7 @@ export async function POST(request) {
                 status: 400,
               });
             }
-            //ALL games check ship size in frame events
-            const shipHeight = 
-                    stats.game === 'fly'? FLY_PARAMETERS.SHIP_HEIGHT:
-                    stats.game === 'jump'? JUMP_PARAMETERS.SHIP_HEIGHT:
-                    stats.game === 'shoot'? SHOOT_PARAMETERS.SHIP_HEIGHT: 0;
-            const shipWidth = 
-                    stats.game === 'fly'? FLY_PARAMETERS.SHIP_WIDTH:
-                    stats.game === 'jump'? JUMP_PARAMETERS.SHIP_WIDTH:
-                    stats.game === 'shoot'? SHOOT_PARAMETERS.SHIP_WIDTH: 0;
-            for (const event in frameEvents) {
-              if(event.data.height != shipWidth || event.data.width != shipWidth) {
-                console.log('Ship dimensions mismatch:', {
-                  shipHeight,
-                  shipWidth,
-                  eventShipHeight: event.data.height,
-                  eventShipWidth: event.data.width,
-                });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship size' }), { status: 400 });
-              }
-            }
-                        
+                                    
             //All games events filtered required
             const spawnEvents = telemetry.filter(e => e.event === 'spawn');
             //const frameSwpawnEvents = telemetry.filter(e => e.event === 'frame' || e.event === 'spawn');
@@ -399,6 +435,21 @@ export async function POST(request) {
                 console.log('Number(score) > computedScore * 1.1', Number(score), '>', computedScore, '* 1.1');
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score: computed events and reported score don’t match' }), { status: 400 });
               }
+
+              //Time based games check ship x position
+              for (const event in frameEvents) {
+                if(event.data.x != stats.shipX) {
+                  console.log('Ship x position mismatch:', {
+                    address,
+                    gameId,
+                    gameName: stats.game,
+                    statsShipPosition: stats.shipX,
+                    eventShipPosition: event.data.x,
+                  });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship size' }), { status: 400 });
+                }
+              }
+              
             }
                         
 			      // Stats validation and telemetry validation specific to each Game

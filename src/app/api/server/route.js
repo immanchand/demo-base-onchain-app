@@ -190,6 +190,7 @@ export async function POST(request) {
             console.log('second log');
             for (const event in frameEvents) {
               console.log('third log');
+              console.log('event', event);
               console.log('event.data.height', event.data.height);
               console.log('event.data.width', event.data.width);
               console.log('shipHeight', shipHeight);

@@ -476,8 +476,8 @@ export async function POST(request) {
               console.log('first maxObstaclesInPool',maxObstaclesInPool);
               const obsDataMap = frameEvents.map(e => e.obsData); 
               console.log('obsDataMap',obsDataMap);
-              const obsXPosition = obsDataMap.map(e => e.obsData.obstacles.x); 
-              console.log('obsXPosition',obsXPosition);
+              const obsYPosition = obsDataMap.map(e => e.y); 
+              console.log('obsYPosition',obsYPosition);
               for (const event of frameEvents) {
                 maxObstaclesInPool = Math.max(maxObstaclesInPool, event.obsData.obstacles.length);
               }

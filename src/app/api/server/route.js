@@ -434,7 +434,7 @@ export async function POST(request) {
 
               // TIME based games telemetry computed score validation
               let computedScore = totalFrameDeltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER;
-              console.log('computedScore max', computedScore * 1.1);
+              console.log('computedScore max', computedScore * 1.01); // 1 percent variance
               if (Number(score) > computedScore * 1.1) {
                 console.log('Number(score) > computedScore * 1.1', Number(score), '>', computedScore, '* 1.1');
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score: computed events and reported score don’t match' }), { status: 400 });
@@ -668,8 +668,8 @@ export async function POST(request) {
               // 3. Validate Flap Frequency
               const flapCount = flapEvents.length;
               const expectedFlapsPerSec = flapCount / gameTimeSec;
-              console.log('Flap Frequency difference:', Math.abs(stats.flapsPerSec - expectedFlapsPerSec), ' should be more than 0.5');
-              if (Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.5) {
+              console.log('Flap Frequency difference:', Math.abs(stats.flapsPerSec - expectedFlapsPerSec), ' should be less than 0.05');
+              if (Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.05) {
                 console.log('Suspicious flapsPerSec vs flap events', {
                   statsFlapsPerSec: stats.flapsPerSec,
                   expectedFlapsPerSec,

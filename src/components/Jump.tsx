@@ -83,6 +83,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         inputsPerSec: 0,
         canvasWidth: canvasRef.current?.width || 1008,
         canvasHeight: canvasRef.current?.height || 900,
+        framesCount: 0,
     });
 
     // Preload images
@@ -382,6 +383,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 inputsPerSec: 0,
                 canvasWidth: canvasRef.current.width,
                 canvasHeight: canvasRef.current.height,
+                framesCount: 0,
             });
 
             window.addEventListener('keydown', handleKeyDown);

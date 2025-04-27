@@ -165,6 +165,8 @@ export async function POST(request) {
             console.log('telemetry (first 100 events): ', telemetry.slice(0, 100));
             console.log('telemetry (last 100 events): ', telemetry.slice(-100));
             console.log('stats: ', stats);
+            const telemetryLength = telemetry.length;
+            console.log('telemetryLength', telemetryLength);
 
             //first easy check thats score is 0 in stats
             if (stats.score != 0 ) {
@@ -188,6 +190,7 @@ export async function POST(request) {
                     stats.game === 'jump'? JUMP_PARAMETERS.SHIP_WIDTH:
                     stats.game === 'shoot'? SHOOT_PARAMETERS.SHIP_WIDTH: 0;
             console.log('second log');
+            console.log('frameEvents:', frameEvents);
             for (const event in frameEvents) {
               console.log('third log');
               console.log('event', event);
@@ -221,8 +224,6 @@ export async function POST(request) {
             // All games check that telemetry in in order by time and frameId
             let lastTime = -Infinity;
             let lastFrameId = 0;
-            const telemetryLength = telemetry.length;
-            console.log('telemetryLength', telemetryLength);
             for (let i = 0; i < telemetryLength; i++) {
               const event = telemetry[i];
               // Verify time is non-decreasing

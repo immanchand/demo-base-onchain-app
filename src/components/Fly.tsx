@@ -181,7 +181,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
     // Game logic
     const spawnObstacle = useCallback((canvas: HTMLCanvasElement, speed: number): Obstacle => {
-        const y = Math.random() * (canvas.height - FLY_PARAMETERS.OBSTACLE_SIZE);
+        const y = Math.random() * (canvas.height - FLY_PARAMETERS.OBSTACLE_SIZE*2);
         const newEvent = { event: 'spawn' as const, time: performance.now(), data: { y, speed, width: FLY_PARAMETERS.OBSTACLE_SIZE, height: FLY_PARAMETERS.OBSTACLE_SIZE } };
         telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
             ? [...telemetryRef.current.slice(1), newEvent]
@@ -354,10 +354,16 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             const currentTime = performance.now();
             if (currentTime - lastSpawnTimeRef.current >= spawnInterval && !gameOver) {
                 const numObstacles = Math.random() < clusterChance ? 2 : 1;
-                for (let i = 0; i < numObstacles; i++) {
-                    const obstacle = spawnObstacle(canvas, obstacleSpeed);
-                    //obstaclePool.push({ ...obstacle, y: obstacle.y + (i * obstacleSize * 2) });
-                    obstaclePool.push(obstacle);
+                if (numObstacles === 2) {
+                    let obstacle1 = spawnObstacle(canvas, obstacleSpeed);
+                    let obstacle2 = spawnObstacle(canvas, obstacleSpeed);
+                    // Ensure obstacles are not too close
+                    while (Math.abs(obstacle1.y - obstacle2.y) < FLY_PARAMETERS.OBSTACLE_SIZE * 1.5) {
+                        obstacle2 = spawnObstacle(canvas, obstacleSpeed);
+                    }
+                    obstaclePool.push(obstacle1, obstacle2);
+                } else {
+                    obstaclePool.push(spawnObstacle(canvas, obstacleSpeed));
                 }
                 lastSpawnTimeRef.current = currentTime;
             }

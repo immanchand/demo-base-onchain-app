@@ -175,6 +175,7 @@ export async function POST(request) {
             });
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score in stats' }), { status: 400 });
             }
+            console.log('first log');
             //ALL games check ship size in frame events and telemetry score is 0, and
             //common frame events filter for subsequent checks
             const frameEvents = telemetry.filter(e => e.event === 'frame');
@@ -186,8 +187,14 @@ export async function POST(request) {
                     stats.game === 'fly'? FLY_PARAMETERS.SHIP_WIDTH:
                     stats.game === 'jump'? JUMP_PARAMETERS.SHIP_WIDTH:
                     stats.game === 'shoot'? SHOOT_PARAMETERS.SHIP_WIDTH: 0;
+            console.log('second log');
             for (const event in frameEvents) {
-              if(event.data.height != shipWidth || event.data.width != shipWidth) {
+              console.log('third log');
+              console.log('event.data.height', event.data.height);
+              console.log('event.data.width', event.data.width);
+              console.log('shipHeight', shipHeight);
+              console.log('shipHeight', shipWidth);
+              if(event.data.height != shipHeight || event.data.width != shipWidth) {
                 console.log('Ship dimensions mismatch:', {
                   address,
                   gameId,

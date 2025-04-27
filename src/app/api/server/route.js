@@ -205,9 +205,6 @@ export async function POST(request) {
             //ALL games check ship size in frame events and telemetry score is 0, and
             //common frame events filter for subsequent checks
             const frameEvents = telemetry.filter(e => e.event === 'frame');
-            console.log('telemetry frameEvents[last].obsData', frameEvents[frameEvents.length - 1].obsData);
-            console.log('telemetry frameEvents[secondLast].obsData', frameEvents[frameEvents.length - 2].obsData);
-            console.log('telemetry frameEvents[thirdLast].obsData', frameEvents[frameEvents.length - 3].obsData);
             const shipHeight = 
                     stats.game === 'fly'? FLY_PARAMETERS.SHIP_HEIGHT:
                     stats.game === 'jump'? JUMP_PARAMETERS.SHIP_HEIGHT:
@@ -496,6 +493,18 @@ export async function POST(request) {
                   });
                 }
               }
+              // check for yPositionPairs, i.e. clusters
+              const yPositionPairs = new Set();
+              yPositions.forEach((y, i) => {
+                for (let j = i + 1; j < yPositions.length; j++) {
+                  const diff = Math.abs(y - yPositions[j]);
+                  if (Math.abs(diff - FLY_PARAMETERS.OBSTACLE_SIZE * 2) < 1) {
+                    yPositionPairs.add(`${y}-${yPositions[j]}`);
+                  }
+                }
+              });
+              console.log('counted yPositionPairs', yPositionPairs.size);
+
               console.log('Extracted yPositions:', yPositions.length, 'positions');
               const playableHeight = stats.canvasHeight - 3 * FLY_PARAMETERS.OBSTACLE_SIZE;
               console.log('Playable height:', playableHeight);
@@ -512,6 +521,10 @@ export async function POST(request) {
                   const binIndex = Math.min(Math.floor(y / binSize), numBins - 1);
                   observedFrequencies[binIndex]++;
                 }
+                if (y < 0 || y > playableHeight) {
+                  console.log('Invalid y-position detected:', y);
+                  return new Response(JSON.stringify({ status: 'error', message: 'Invalid obstacle y-position' }), { status: 400 });
+                }
               });
 
               console.log('Observed frequencies:', observedFrequencies);
@@ -521,31 +534,29 @@ export async function POST(request) {
 
               // Calculate chi-squared statistic
               let chiSquared = 0;
-              let minObservered = observedFrequencies[1];
-              let maxObservered = 0;
+              let minObserved = Math.min(...observedFrequencies);
+              let maxObserved = Math.max(...observedFrequencies);
               for (let i = 0; i < numBins; i++) {
                 const observed = observedFrequencies[i];
-                minObservered = Math.min(minObservered,observedFrequencies[i]);
-                maxObservered = Math.max(maxObservered,observedFrequencies[i]);
                 const diff = observed - expectedFrequency;
                 chiSquared += (diff * diff) / expectedFrequency;
               }
-              console.log('Chi-squared statistic:', chiSquared, 'max chi: 16.919');
-              if(minObservered < maxObservered * 0.3) {
+              
+              if(minObserved < maxObserved * 0.3) {
                 console.log('Insufficient obstacle y position spawns in min bin', {
                   address,
                   gameId,
                   gameName: stats.game,
-                  minObservered,
-                  maxObservered,
+                  minObserved,
+                  maxObserved,
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: 'Insufficient obstacle y position spawns in min bin' }), { status: 400 });
               }
 
               // Critical value for chi-squared test with 9 degrees of freedom (numBins - 1)
               // at 95% confidence level (alpha = 0.05) is approximately 16.919
-              const CHI_SQUARED_CRITICAL_VALUE = 60;
-
+              const CHI_SQUARED_CRITICAL_VALUE = 100;
+              console.log('Chi-squared statistic:', chiSquared, 'max chi: 100');
               if (chiSquared > CHI_SQUARED_CRITICAL_VALUE) {
                 console.log('Suspicious obstacle y position distribution', {
                   address,

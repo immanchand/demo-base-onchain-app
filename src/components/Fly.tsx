@@ -356,7 +356,8 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 const numObstacles = Math.random() < clusterChance ? 2 : 1;
                 for (let i = 0; i < numObstacles; i++) {
                     const obstacle = spawnObstacle(canvas, obstacleSpeed);
-                    obstaclePool.push({ ...obstacle, y: obstacle.y + (i * obstacleSize * 2) });
+                    //obstaclePool.push({ ...obstacle, y: obstacle.y + (i * obstacleSize * 2) });
+                    obstaclePool.push(obstacle);
                 }
                 lastSpawnTimeRef.current = currentTime;
             }

@@ -541,8 +541,8 @@ export async function POST(request) {
                   if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT) {
                     console.log('THE GAME SHOULD BE OVER HERE!! ' );
                   }
-                  if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT*3) {
-                    console.log('SUPER CLOSE TO DEATH!! ' );
+                  if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT*1.1) {
+                    console.log('SUPER CLOSE TO DEATH!! frame id:',  event.frameId+i);
                   }
                 }
 

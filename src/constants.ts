@@ -33,7 +33,7 @@ export const JUMP_PARAMETERS = {
   SHIP_WIDTH: 40 * (3/4),
   SHIP_HEIGHT: 50,
   BASE_OBSTACLE_SPEED: -3, // Higher (e.g., -5) = faster obstacles, harder; Lower (e.g., -2) = easier
-  MIN_GAP: 300, // Lower (e.g., 200) = tighter gaps, harder; Higher (e.g., 400) = easier
+  MIN_SPAWN_INTERVAL: 300, // Lower (e.g., 200) = tighter gaps, harder; Higher (e.g., 400) = easier
   GRAVITY: 0.4, // Higher (e.g., 0.5) = faster fall, harder; Lower (e.g., 0.3) = easier
   JUMP_VELOCITY: -12, // Higher (e.g., -14) = higher jumps, easier; Lower (e.g., -10) = harder
   SCORE_MULTIPLIER: 100,
@@ -42,11 +42,11 @@ export const JUMP_PARAMETERS = {
 export const SHOOT_PARAMETERS = {
   SHIP_WIDTH: 30,
   SHIP_HEIGHT: 30 * (3/4),
-  ENEMY_SPEED_BASE: 2, // Higher (e.g., 3) = faster enemies, harder; Lower (e.g., 1) = easier
+  BASE_OBSTACLE_SPEED: 2, // Higher (e.g., 3) = faster enemies, harder; Lower (e.g., 1) = easier
   MAX_ENEMY_COUNT: 10, // Higher (e.g., 15) = more enemies, harder; Lower (e.g., 5) = easier
-  SPAWN_INTERVAL: 1000, // Lower (e.g., 500) = faster spawns, harder; Higher (e.g., 1500) = easier
+  MIN_SPAWN_INTERVAL: 1000, // Lower (e.g., 500) = faster spawns, harder; Higher (e.g., 1500) = easier
   BULLET_SPEED: 5, // Higher (e.g., 6) = faster bullets, easier; Lower (e.g., 4) = harder
-  SCORE_PER_KILL: 100, 
+  SCORE_MULTIPLIER: 100, 
   RECAPTCHA_END_THRESHOLD: 0.6, // Higher is more human check; Lower (e.g., 0.2) is less human check. Higher for shoot which needs a mouse
   DIFFICULTY_FACTOR_TIME: 90, //seonds till max difficulty
 };
@@ -487,6 +487,7 @@ export interface GameStats {
   canvasWidth: number;
   canvasHeight: number;
   framesCount: number;
+  shipX: number,
 };
 export interface Entity {
   x: number;

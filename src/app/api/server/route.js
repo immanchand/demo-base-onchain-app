@@ -334,6 +334,26 @@ export async function POST(request) {
                 status: 400,
               });
             }
+            //ALL games check ship size in frame events
+            const shipHeight = 
+                    stats.game === 'fly'? FLY_PARAMETERS.SHIP_HEIGHT:
+                    stats.game === 'jump'? JUMP_PARAMETERS.SHIP_HEIGHT:
+                    stats.game === 'shoot'? SHOOT_PARAMETERS.SHIP_HEIGHT: 0;
+            const shipWidth = 
+                    stats.game === 'fly'? FLY_PARAMETERS.SHIP_WIDTH:
+                    stats.game === 'jump'? JUMP_PARAMETERS.SHIP_WIDTH:
+                    stats.game === 'shoot'? SHOOT_PARAMETERS.SHIP_WIDTH: 0;
+            for (const event in frameEvents) {
+              if(event.data.height != shipWidth || event.data.width != shipWidth) {
+                console.log('Ship dimensions mismatch:', {
+                  shipHeight,
+                  shipWidth,
+                  eventShipHeight: event.data.height,
+                  eventShipWidth: event.data.width,
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship size' }), { status: 400 });
+              }
+            }
                         
             //All games events filtered required
             const spawnEvents = telemetry.filter(e => e.event === 'spawn');
@@ -373,11 +393,6 @@ export async function POST(request) {
               }
 
               // TIME based games telemetry computed score validation
-              // let computedScore = 0;
-              // // Simple sum for games with complete telemetry
-              // for (const event of frameEvents) {
-              //     computedScore += event.data.deltaTime;// * FLY_PARAMETERS.SCORE_MULTIPLIER;
-              // }
               let computedScore = totalFrameDeltaTime * 1000 * FLY_PARAMETERS.SCORE_MULTIPLIER;
               console.log('computedScore max', computedScore * 1.1);
               if (Number(score) > computedScore * 1.1) {
@@ -539,9 +554,10 @@ export async function POST(request) {
                     currentVy = 0; // Clamp vy to 0
                   }
                   if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT) {
-                    console.log('THE GAME SHOULD BE OVER HERE!! ' );
+                    console.log('Suspicious ship no collision with ground' );
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship no collision with ground' }), { status: 400 });
                   }
-                  if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT*1.1) {
+                  if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT*1.5) {
                     console.log('SUPER CLOSE TO DEATH!! frame id:',  event.frameId+i);
                   }
                 }

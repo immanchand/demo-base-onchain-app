@@ -272,8 +272,8 @@ export async function POST(request) {
             console.log('maxFps',maxFps);
             console.log('avgFps',avgFps);
             // Allow 40–72 FPS for mobile compatibility. No upper bound as game is harder when faster.
-            if (minFps < 40) {
-              console.log('minFps < 40',minFps, '<', '40');
+            if (minFps < 57) {
+              console.log('minFps < 57',minFps, '<', '57');
               return new Response(JSON.stringify({ status: 'error', message: 'FPS out of acceptable range' }), { status: 400 });
             }
             // Check for suspicious FPS variance (e.g., >10 FPS change)
@@ -537,6 +537,12 @@ export async function POST(request) {
                   if (currentY < 0) {
                     currentY = 0; // Clamp y-position to 0
                     currentVy = 0; // Clamp vy to 0
+                  }
+                  if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT) {
+                    console.log('THE GAME SHOULD BE OVER HERE!! ' );
+                  }
+                  if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT*3) {
+                    console.log('SUPER CLOSE TO DEATH!! ' );
                   }
                 }
 

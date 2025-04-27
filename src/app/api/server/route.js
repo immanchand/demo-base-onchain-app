@@ -470,9 +470,10 @@ export async function POST(request) {
                            
               // SPAWN RELATED VALIDATION
               let maxObstaclesInPool = 0;
-              const obsDataMap = fpsEvents.map(e => e.obsData); 
-              const obsXPosition = obsDataMap.map(x => x.obsData.x); 
+              console.log('first maxObstaclesInPool',maxObstaclesInPool);
+              const obsDataMap = frameEvents.map(e => e.obsData); 
               console.log('obsDataMap',obsDataMap);
+              const obsXPosition = obsDataMap.map(x => x.obsData.x); 
               console.log('obsXPosition',obsXPosition);
               for (const event of frameEvents) {
                 maxObstaclesInPool = Math.max(maxObstaclesInPool, event.obsData.length);

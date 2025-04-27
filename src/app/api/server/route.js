@@ -190,8 +190,7 @@ export async function POST(request) {
                     stats.game === 'jump'? JUMP_PARAMETERS.SHIP_WIDTH:
                     stats.game === 'shoot'? SHOOT_PARAMETERS.SHIP_WIDTH: 0;
             console.log('second log');
-            console.log('frameEvents:', frameEvents);
-            for (const event in frameEvents) {
+            for (const event of frameEvents) {
               console.log('third log');
               console.log('event', event);
               console.log('event.data.height', event.data.height);
@@ -446,7 +445,7 @@ export async function POST(request) {
               }
 
               //Time based games check ship x position
-              for (const event in frameEvents) {
+              for (const event of frameEvents) {
                 if(event.data.x != stats.shipX) {
                   console.log('Ship x position mismatch:', {
                     address,

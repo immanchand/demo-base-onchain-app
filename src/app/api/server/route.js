@@ -506,6 +506,7 @@ export async function POST(request) {
               }
 
               // check for yPositionPairs, i.e. clusters
+              // what is this used for??? Keep till compare with cluster spawns
               const yPositionPairs = new Set();
               uniqueYPositions.forEach((y, i) => {
                 for (let j = i + 1; j < uniqueYPositions.length; j++) {
@@ -516,8 +517,6 @@ export async function POST(request) {
                 }
               });
               console.log('counted yPositionPairs', yPositionPairs.size);
-
-              console.log('Extracted yPositions:', yPositions.length, 'positions');
 
               // Perform chi-squared test for uniform distribution
               const playableHeight = stats.canvasHeight - 3 * FLY_PARAMETERS.OBSTACLE_SIZE;
@@ -544,7 +543,7 @@ export async function POST(request) {
               console.log('Observed frequencies:', observedFrequencies);
 
               // Expected frequency for uniform distribution
-              const expectedFrequency = uniqueYPositions.length / numBins;
+              const expectedFrequency = uniqueYPositions.size / numBins;
 
               // Calculate chi-squared statistic
               let chiSquared = 0;

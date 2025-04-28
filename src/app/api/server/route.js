@@ -497,7 +497,7 @@ export async function POST(request) {
               const uniqueYPositions = new Set(yPositions);
               console.log('uniqueYPositions.size',uniqueYPositions.size);
               console.log('spawnEvents.length',spawnEvents.length);
-              if(uniqueYPositions.size < spawnEvents.length * 0.99 || uniqueYPositions.size > spawnEvents.length){
+              if(uniqueYPositions.size < spawnEvents.length * 0.95 || uniqueYPositions.size > spawnEvents.length){
                 console.log('uniqueYPositions and spawns mismatch', {
                   address,
                   uniqueYPositions: uniqueYPositions.size,
@@ -527,21 +527,10 @@ export async function POST(request) {
               
               console.log('Observed frequencies:', observedFrequencies);
 
-              // Expected frequency for uniform distribution
-              const expectedFrequency = uniqueYPositions.size / numBins;
-
-              // Calculate chi-squared statistic
-              let chiSquared = 0;
+              //calculate variance between min and max
               let minObserved = Math.min(...observedFrequencies);
               let maxObserved = Math.max(...observedFrequencies);
-              for (let i = 0; i < numBins; i++) {
-                const observed = observedFrequencies[i];
-                console.log('observedFrequency',observed, 'expectedFrequency',expectedFrequency);
-                const diff = observed - expectedFrequency;
-                chiSquared += (diff * diff) / expectedFrequency;
-              }
-              
-              if(minObserved < maxObserved * 0.3) {
+              if(minObserved < (maxObserved/2) * 0.5) {
                 console.log('Insufficient obstacle y position spawns in min bin', {
                   address,
                   gameId,
@@ -553,6 +542,18 @@ export async function POST(request) {
                 //return new Response(JSON.stringify({ status: 'error', message: 'Insufficient obstacle y position spawns in min bin' }), { status: 400 });
               }
 
+              // Calculate chi-squared statistic
+              let chiSquared = 0;
+              // Expected frequency for uniform distribution
+              const expectedFrequency = (uniqueYPositions.size-maxObserved) / (numBins-1);
+              for (let i = 0; i < numBins; i++) {
+                if(observedFrequencies[i] === maxObserved)
+                  continue
+                const observed = observedFrequencies[i];
+                console.log('observedFrequency',observed, 'expectedFrequency',expectedFrequency);
+                const diff = observed - expectedFrequency;
+                chiSquared += (diff * diff) / expectedFrequency;
+              }
               // Critical value for chi-squared test with 9 degrees of freedom (numBins - 1)
               // at 95% confidence level (alpha = 0.05) is approximately 16.919
               const CHI_SQUARED_CRITICAL_VALUE = 100;

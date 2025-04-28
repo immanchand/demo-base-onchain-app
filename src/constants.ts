@@ -24,10 +24,9 @@ export const FLY_PARAMETERS = {
   GRAVITY: 0.2, // Higher (e.g., 0.3) = faster fall, harder; Lower (e.g., 0.1) = easier
   FLAP_VELOCITY: -5, // Higher (e.g., -6) = stronger flaps, easier; Lower (e.g., -4) = harder
   SCORE_MULTIPLIER: 100,
-  MAX_FLAPS_PER_SEC: 4,
-  MIN_FLAPS_PER_SEC: 1,
   RECAPTCHA_END_THRESHOLD: 0.3,//make 0.5 // Higher is more human check; Lower (e.g., 0.2) is less human check.
   DIFFICULTY_FACTOR_TIME: 90, //seonds till max difficulty
+  CLUSTER_CHANCE: 0.5,
 };
 export const JUMP_PARAMETERS = {
   SHIP_WIDTH: 40 * (3/4),

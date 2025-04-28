@@ -35,7 +35,8 @@ async function getCurrentNonce(address) {
     throw new Error('Failed to fetch nonce');
   }
 }
-// Helper function to estimate gas price
+
+// Helper function to estimate gas price (updated for ethers@6.x)
 async function getGasPrice() {
   try {
     const feeData = await provider.getFeeData();
@@ -44,21 +45,19 @@ async function getGasPrice() {
     console.log('Fee data from provider:', feeData);
 
     // Check if EIP-1559 fields are available (Base Sepolia uses EIP-1559)
-    if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
-      // Use maxFeePerGas with a 10% buffer
-      const maxFeePerGas = feeData.maxFeePerGas.mul(110).div(100);
-      // Ensure maxPriorityFeePerGas is reasonable (e.g., at least 0.1 Gwei, max 10% of maxFeePerGas)
-      const maxPriorityFeePerGas = ethers.BigNumber.from(feeData.maxPriorityFeePerGas)
-        .mul(110)
-        .div(100)
-        .gt(ethers.utils.parseUnits('0.1', 'gwei'))
+    if (feeData.maxFeePerGas !== null && feeData.maxPriorityFeePerGas !== null) {
+      // Apply a 10% buffer to maxFeePerGas (BigInt arithmetic)
+      const maxFeePerGas = (feeData.maxFeePerGas * 110n) / 100n;
+      // Ensure maxPriorityFeePerGas is reasonable (at least 0.1 Gwei)
+      const minPriorityFee = ethers.parseUnits('0.1', 'gwei'); // Returns BigInt in ethers@6
+      const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas > minPriorityFee
         ? feeData.maxPriorityFeePerGas
-        : ethers.utils.parseUnits('0.1', 'gwei');
+        : minPriorityFee;
       
       return { maxFeePerGas, maxPriorityFeePerGas };
-    } else if (feeData.gasPrice) {
-      // Fallback to legacy gasPrice with a 10% buffer
-      const gasPrice = feeData.gasPrice.mul(110).div(100);
+    } else if (feeData.gasPrice !== null) {
+      // Fallback to legacy gasPrice with a 10% buffer (BigInt arithmetic)
+      const gasPrice = (feeData.gasPrice * 110n) / 100n;
       return { gasPrice };
     } else {
       throw new Error('No valid gas price data returned from provider');
@@ -67,8 +66,8 @@ async function getGasPrice() {
     console.error('Error fetching gas price:', error);
     // Fallback to reasonable defaults for Base Sepolia (EIP-1559)
     return {
-      maxFeePerGas: ethers.utils.parseUnits('2', 'gwei'),
-      maxPriorityFeePerGas: ethers.utils.parseUnits('0.1', 'gwei')
+      maxFeePerGas: ethers.parseUnits('2', 'gwei'), // BigInt
+      maxPriorityFeePerGas: ethers.parseUnits('0.1', 'gwei') // BigInt
     };
   }
 }

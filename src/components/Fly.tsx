@@ -354,16 +354,10 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             const currentTime = performance.now();
             if (currentTime - lastSpawnTimeRef.current >= spawnInterval && !gameOver) {
                 const numObstacles = Math.random() < clusterChance ? 2 : 1;
-                if (numObstacles === 2) {
-                    let obstacle1 = spawnObstacle(canvas, obstacleSpeed);
-                    let obstacle2 = spawnObstacle(canvas, obstacleSpeed);
-                    // Ensure obstacles are not too close
-                    while (Math.abs(obstacle1.y - obstacle2.y) < FLY_PARAMETERS.OBSTACLE_SIZE * 1.5) {
-                        obstacle2 = spawnObstacle(canvas, obstacleSpeed);
-                    }
-                    obstaclePool.push(obstacle1, obstacle2);
-                } else {
-                    obstaclePool.push(spawnObstacle(canvas, obstacleSpeed));
+                for (let i = 0; i < numObstacles; i++) {
+                    const obstacle = spawnObstacle(canvas, obstacleSpeed);
+                    //obstaclePool.push({ ...obstacle, y: obstacle.y + (i * obstacleSize * 2) });
+                    obstaclePool.push(obstacle);
                 }
                 lastSpawnTimeRef.current = currentTime;
             }

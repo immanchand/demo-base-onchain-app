@@ -128,9 +128,7 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                         credentials: 'include',
                         body: JSON.stringify({ action: 'start-game', gameId, address, recaptchaTokenStart }),
                     });
-                    console.log('going to do const data = await response.json();');
                     const data = await response.json();
-                    console.log('data = await response.json() = ',data);
                     if (data.status === 'success') {
                         console.log('Game started successfully, hash:', data.txHash);
                         onStatusChange('success', `Transaction hash: ${data.txHash}`);

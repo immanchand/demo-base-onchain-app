@@ -916,7 +916,7 @@ export async function POST(request) {
 
               for (const event of telemetry) {
                 // Skip the initial frame used for initialization
-                if (event === lastFrame || event.frameId === 10) continue;
+                if (event === lastFrame) continue;
                 if (event.event === 'frame' || event.event === 'flap') {
                   const framesElapsed = event.frameId - lastFrameId;
                   const expectedTime = framesElapsed * perFrameDeltaTime * 1000; // Convert to ms
@@ -1027,13 +1027,14 @@ export async function POST(request) {
                     dodged: false
                   });
                 }
-
-                // Update state
-                lastFrame = event;
-                lastFrameId = event.frameId;
-                lastTime = event.time;
-                currentY = event.data.y;
-                currentVy = event.data.vy;
+                if (event.event != 'spawn') {
+                  // Update state
+                  lastFrame = event;
+                  lastFrameId = event.frameId;
+                  lastTime = event.time;
+                  currentY = event.data.y;
+                  currentVy = event.data.vy;
+                }
               }
               // END FLY GAME FULL SIMULATION
               // END FLY GAME VALIDATIONS

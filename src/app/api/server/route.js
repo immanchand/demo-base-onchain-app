@@ -1027,7 +1027,7 @@ export async function POST(request) {
                     dodged: false
                   });
                 }
-                if (event.event != 'spawn') {
+                if (event.event === 'frame' || event.event === 'flap') {
                   // Update state
                   lastFrame = event;
                   lastFrameId = event.frameId;

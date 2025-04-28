@@ -892,6 +892,7 @@ export async function POST(request) {
         }
         // Verify signature and recover address
         let playerAddress;
+        console.log('gameSigRaw',gameSigRaw);
         if (gameSigRaw) {
           try {
             const { message, signature } = JSON.parse(gameSigRaw);
@@ -916,8 +917,9 @@ export async function POST(request) {
           });
         }
 
-
+        console.log('playerAddress',playerAddress);
         tx = await contract.startGame(BigInt(gameId), playerAddress);
+        console.log('start game tx', tx);
         receipt = await tx.wait();
         gameDurationStore.set(address, Date.now());
         return new Response(

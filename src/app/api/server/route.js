@@ -150,7 +150,7 @@ export async function POST(request) {
   }
 
   try {
-    let tx, receipt;
+    let tx, receipt, result;
     switch (action) {
       case 'create-game':
         const nowCreate = Date.now();
@@ -164,13 +164,14 @@ export async function POST(request) {
             { status: 429, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
           );
         }
-        ({ tx, receipt }) = await sendTransaction(async (txOptions) => {
+        result = await sendTransaction(async (txOptions) => {
           return await contract.createGame(txOptions);
         });
+        console.log
         rateLimitStore.set(sessionId, Date.now());
         console.log('Create game successful:', result.tx.hash);
         return new Response(
-          JSON.stringify({ status: 'success', txHash: tx.hash }),
+          JSON.stringify({ status: 'success', txHash: result.tx.hash }),
           { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
         );
       

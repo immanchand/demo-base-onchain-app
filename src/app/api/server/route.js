@@ -39,25 +39,50 @@ async function getCurrentNonce(address) {
 async function getGasPrice() {
   try {
     const feeData = await provider.getFeeData();
-    // Add a 10% buffer to the suggested gas price to ensure reliability
-    const gasPrice = feeData.gasPrice.mul(110).div(100);
-    return gasPrice;
+    
+    // Log feeData for debugging
+    console.log('Fee data from provider:', feeData);
+
+    // Check if EIP-1559 fields are available (Base Sepolia uses EIP-1559)
+    if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
+      // Use maxFeePerGas with a 10% buffer
+      const maxFeePerGas = feeData.maxFeePerGas.mul(110).div(100);
+      // Ensure maxPriorityFeePerGas is reasonable (e.g., at least 0.1 Gwei, max 10% of maxFeePerGas)
+      const maxPriorityFeePerGas = ethers.BigNumber.from(feeData.maxPriorityFeePerGas)
+        .mul(110)
+        .div(100)
+        .gt(ethers.utils.parseUnits('0.1', 'gwei'))
+        ? feeData.maxPriorityFeePerGas
+        : ethers.utils.parseUnits('0.1', 'gwei');
+      
+      return { maxFeePerGas, maxPriorityFeePerGas };
+    } else if (feeData.gasPrice) {
+      // Fallback to legacy gasPrice with a 10% buffer
+      const gasPrice = feeData.gasPrice.mul(110).div(100);
+      return { gasPrice };
+    } else {
+      throw new Error('No valid gas price data returned from provider');
+    }
   } catch (error) {
     console.error('Error fetching gas price:', error);
-    // Fallback to a reasonable default for Base Sepolia (in Gwei)
-    return ethers.utils.parseUnits('2', 'gwei');
+    // Fallback to reasonable defaults for Base Sepolia (EIP-1559)
+    return {
+      maxFeePerGas: ethers.utils.parseUnits('2', 'gwei'),
+      maxPriorityFeePerGas: ethers.utils.parseUnits('0.1', 'gwei')
+    };
   }
 }
+
 // Helper function to send transaction with retry logic
 async function sendTransaction(txFunction, maxRetries = 3) {
   let attempt = 0;
   while (attempt < maxRetries) {
     try {
       const nonce = await getCurrentNonce(wallet.address);
-      const gasPrice = await getGasPrice();
+      const gasSettings = await getGasPrice();
       
       // Execute the transaction with explicit nonce and gas settings
-      const tx = await txFunction({ nonce, gasPrice });
+      const tx = await txFunction({ nonce, ...gasSettings });
       console.log(`Transaction sent, attempt ${attempt + 1}:`, tx.hash);
       
       // Wait for transaction confirmation
@@ -70,8 +95,8 @@ async function sendTransaction(txFunction, maxRetries = 3) {
       if (attempt === maxRetries) {
         throw new Error(`Transaction failed after ${maxRetries} attempts: ${error.message}`);
       }
-      // Wait briefly before retrying to avoid spamming the network
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait briefly before retrying
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
 }

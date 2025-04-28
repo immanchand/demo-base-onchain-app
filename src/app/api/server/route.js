@@ -782,6 +782,11 @@ export async function POST(request) {
               const flapFrameEvents = telemetry.filter(e => e.event === 'frame' || e.event === 'flap');
               const flapEvents = telemetry.filter(e => e.event === 'flap');
 
+              console.log('last frame obsData', frameEvents[frameEvents.length-1].obsData);
+              console.log('second last frame obsData', frameEvents[frameEvents.length-2].obsData);
+              console.log('third last frame obsData', frameEvents[frameEvents.length-3].obsData);
+
+
               // 1. Flap Plausibility
               //let lastFrameIndex = 0;
               //let perFrameDeltaTime = 1 / avgFps;

@@ -559,7 +559,7 @@ export async function POST(request) {
               for (const event of frameEvents) {
                 maxObstaclesInPool = Math.max(maxObstaclesInPool, event.obsData.obstacles.length);
               }
-              if (maxObstaclesInPool != stats.maxObstacles) {
+              if (Math.abs(maxObstaclesInPool - stats.maxObstacles) > 1) {
                 console.log('Invalid maxObstaclesInPool vs stats.maxObstacles', {
                   address,
                   gameId,
@@ -787,73 +787,73 @@ export async function POST(request) {
               console.log('third last frame obsData', frameEvents[frameEvents.length-3].obsData);
 
 
-              // 1. Flap Plausibility
-              //let lastFrameIndex = 0;
-              //let perFrameDeltaTime = 1 / avgFps;
-              let lastFrame = flapFrameEvents.find(e => e.event === 'frame');
-              let currentY = lastFrame.data.y;
-              let currentVy = lastFrame.data.vy;
-              let lastTime = lastFrame.time;
-              let lastFrameId = lastFrame.frameId;
-              const perFrameDeltaTime = 1 / avgFps;
-              for (const event of flapFrameEvents) {
-                // Skip the initial frame used for initialization
-                if (event === lastFrame) continue;
-                const framesElapsed = event.frameId - lastFrameId;
-                const expectedTime = framesElapsed * perFrameDeltaTime * 1000; // Convert to ms
-                const actualTime = event.time - lastTime;
-                if (Math.abs(actualTime - expectedTime) > 50) { // 50ms tolerance
-                  console.log('Time inconsistency', { event, lastFrameId, actualTime, expectedTime });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious event timing' }), { status: 400 });
-                }
-                // Simulate frame by frame physics up to the event
-                for (let i = 0; i < Math.floor(framesElapsed); i++) {
-                  currentVy += FLY_PARAMETERS.GRAVITY;
-                  currentY += currentVy;
-                  if (currentY < 0) {
-                    currentY = 0; // Clamp y-position to 0
-                    currentVy = 0; // Clamp vy to 0
-                  }
-                  if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT) {
-                    console.log('Suspicious ship no collision with ground' );
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship no collision with ground' }), { status: 400 });
-                  }
-                  if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT*1.5) {
-                    console.log('SUPER CLOSE TO DEATH!! frame id:',  event.frameId+i);
-                  }
-                }
+              // // 1. Flap Plausibility
+              // //let lastFrameIndex = 0;
+              // //let perFrameDeltaTime = 1 / avgFps;
+              // let lastFrame = flapFrameEvents.find(e => e.event === 'frame');
+              // let currentY = lastFrame.data.y;
+              // let currentVy = lastFrame.data.vy;
+              // let lastTime = lastFrame.time;
+              // let lastFrameId = lastFrame.frameId;
+              // const perFrameDeltaTime = 1 / avgFps;
+              // for (const event of flapFrameEvents) {
+              //   // Skip the initial frame used for initialization
+              //   if (event === lastFrame) continue;
+              //   const framesElapsed = event.frameId - lastFrameId;
+              //   const expectedTime = framesElapsed * perFrameDeltaTime * 1000; // Convert to ms
+              //   const actualTime = event.time - lastTime;
+              //   if (Math.abs(actualTime - expectedTime) > 50) { // 50ms tolerance
+              //     console.log('Time inconsistency', { event, lastFrameId, actualTime, expectedTime });
+              //     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious event timing' }), { status: 400 });
+              //   }
+              //   // Simulate frame by frame physics up to the event
+              //   for (let i = 0; i < Math.floor(framesElapsed); i++) {
+              //     currentVy += FLY_PARAMETERS.GRAVITY;
+              //     currentY += currentVy;
+              //     if (currentY < 0) {
+              //       currentY = 0; // Clamp y-position to 0
+              //       currentVy = 0; // Clamp vy to 0
+              //     }
+              //     if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT) {
+              //       console.log('Suspicious ship no collision with ground' );
+              //       return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship no collision with ground' }), { status: 400 });
+              //     }
+              //     if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT*1.5 && i < 9) {
+              //       console.log('SUPER CLOSE TO DEATH!! frame id:',  event.frameId+i);
+              //     }
+              //   }
 
-                if (event.event === 'flap') {
-                  // Apply flap velocity
-                  currentVy = FLY_PARAMETERS.FLAP_VELOCITY;
-                  // Validate flap position and velocity
-                  if (Math.abs(event.data.y - currentY) > 0.001) {
-                    console.log('Flap position check failed', { event, expectedY: currentY, actualY: event.data.y });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap position' }), { status: 400 });
-                  }
-                  if (Math.abs(event.data.vy - FLY_PARAMETERS.FLAP_VELOCITY) > 0.001) {
-                    console.log('Flap velocity check failed', { event, expectedVy: FLY_PARAMETERS.FLAP_VELOCITY, actualVy: event.data.vy });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap velocity' }), { status: 400 });
-                  }
-                } else if (event.event === 'frame') {
-                  // Validate frame position and velocity
-                  if (Math.abs(event.data.y - currentY) > 0.001) {
-                    console.log('Frame position check failed', { event, expectedY: currentY, actualY: event.data.y });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
-                  }
-                  if (Math.abs(event.data.vy - currentVy) > 0.001) {
-                    console.log('Frame velocity check failed', { event, expectedVy: currentVy, actualVy: event.data.vy });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame velocity' }), { status: 400 });
-                  }
-                }
-                // Update state
-                lastFrame = event;
-                lastFrameId = event.frameId;
-                lastTime = event.time;
-                currentY = event.data.y;
-                currentVy = event.data.vy;
+              //   if (event.event === 'flap') {
+              //     // Apply flap velocity
+              //     currentVy = FLY_PARAMETERS.FLAP_VELOCITY;
+              //     // Validate flap position and velocity
+              //     if (Math.abs(event.data.y - currentY) > 0.001) {
+              //       console.log('Flap position check failed', { event, expectedY: currentY, actualY: event.data.y });
+              //       return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap position' }), { status: 400 });
+              //     }
+              //     if (Math.abs(event.data.vy - FLY_PARAMETERS.FLAP_VELOCITY) > 0.001) {
+              //       console.log('Flap velocity check failed', { event, expectedVy: FLY_PARAMETERS.FLAP_VELOCITY, actualVy: event.data.vy });
+              //       return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap velocity' }), { status: 400 });
+              //     }
+              //   } else if (event.event === 'frame') {
+              //     // Validate frame position and velocity
+              //     if (Math.abs(event.data.y - currentY) > 0.001) {
+              //       console.log('Frame position check failed', { event, expectedY: currentY, actualY: event.data.y });
+              //       return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
+              //     }
+              //     if (Math.abs(event.data.vy - currentVy) > 0.001) {
+              //       console.log('Frame velocity check failed', { event, expectedVy: currentVy, actualVy: event.data.vy });
+              //       return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame velocity' }), { status: 400 });
+              //     }
+              //   }
+              //   // Update state
+              //   lastFrame = event;
+              //   lastFrameId = event.frameId;
+              //   lastTime = event.time;
+              //   currentY = event.data.y;
+              //   currentVy = event.data.vy;
                 
-              }
+              // }
 
               // 2. Flap Interval Variance
               const flapIntervals = [];
@@ -898,8 +898,153 @@ export async function POST(request) {
                 });
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay flapsPerSec out of range' }), { status: 400 });
               }
-              // END FLY GAME FLAPS VALIDATIONS
+
+
+              //6. FULL GAME PHYSICS SIMULATION
+              let activeObstacles = []; // Track active obstacles
+              let lastFrame = telemetry.find(e => e.event === 'frame');
+              let currentX = lastFrame.data.x; // Initialize ship x
+              let currentY = lastFrame.data.y;
+              let currentVy = lastFrame.data.vy;
+              let lastTime = lastFrame.time;
+              let lastFrameId = lastFrame.frameId;
+              const perFrameDeltaTime = 1 / avgFps;
+
+              // Initialize obstacles from the first frame's obsData or spawn events
+              if (lastFrame.obsData && lastFrame.obsData.obstacles) {
+                activeObstacles = lastFrame.obsData.obstacles.map(obs => ({ ...obs }));
+              }
+
+              for (const event of telemetry) {
+                // Skip the initial frame used for initialization
+                if (event === lastFrame) continue;
+                if (event.event === 'frame' || event.event === 'flap') {
+                  const framesElapsed = event.frameId - lastFrameId;
+                  const expectedTime = framesElapsed * perFrameDeltaTime * 1000; // Convert to ms
+                  const actualTime = event.time - lastTime;
+                  if (Math.abs(actualTime - expectedTime) > 50) { // 50ms tolerance
+                    console.log('Time inconsistency', { event, lastFrameId, actualTime, expectedTime });
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious event timing' }), { status: 400 });
+                  }
+
+                  // Simulate frame by frame physics and obstacle movement
+                  for (let i = 0; i < Math.floor(framesElapsed); i++) {
+                    // Update ship physics
+                    currentVy += FLY_PARAMETERS.GRAVITY;
+                    currentY += currentVy;
+                    if (currentY < 0) {
+                      currentY = 0; // Clamp y-position to 0
+                      currentVy = 0; // Clamp vy to 0
+                    }
+                    if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT) {
+                      console.log('Suspicious ship no collision with ground');
+                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship no collision with ground' }), { status: 400 });
+                    }
+                    if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT * 1.5) {
+                      console.log('SUPER CLOSE TO DEATH!! frame id:', event.frameId + i);
+                    }
+
+                    // Update obstacle positions
+                    activeObstacles.forEach(obs => {
+                      obs.x += obs.dx * perFrameDeltaTime; // Interpolate x using dx
+                    });
+
+                    // Remove obstacles that have moved off-screen (x < 0)
+                    activeObstacles = activeObstacles.filter(obs => obs.x >= 0);
+
+                    // Check for collisions with obstacles
+                    const shipCenterX = currentX + FLY_PARAMETERS.SHIP_WIDTH / 2;
+                    const shipCenterY = currentY + FLY_PARAMETERS.SHIP_HEIGHT / 2;
+                    for (const obs of activeObstacles) {
+                      const obsCenterX = obs.x + FLY_PARAMETERS.OBSTACLE_SIZE / 2;
+                      const obsCenterY = obs.y + FLY_PARAMETERS.OBSTACLE_SIZE / 2;
+                      const distance = Math.sqrt(
+                        Math.pow(shipCenterX - obsCenterX, 2) + Math.pow(shipCenterY - obsCenterY, 2)
+                      );
+                      if (distance < (FLY_PARAMETERS.SHIP_WIDTH + FLY_PARAMETERS.OBSTACLE_SIZE) / 2) {
+                        console.log('Suspicious unreported obstacle collision', { frameId: event.frameId + i, shipX: currentX, shipY: currentY, obs });
+                        return new Response(JSON.stringify({ status: 'error', message: 'Suspicious unreported obstacle collision' }), { status: 400 });
+                      }
+                    }
+                  }
+                }
+
+                // Handle event-specific logic
+                if (event.event === 'flap') {
+                  // Apply flap velocity
+                  currentVy = FLY_PARAMETERS.FLAP_VELOCITY;
+                  // Validate flap position and velocity
+                  if (Math.abs(event.data.y - currentY) > 0.001) {
+                    console.log('Flap position check failed', { event, expectedY: currentY, actualY: event.data.y });
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap position' }), { status: 400 });
+                  }
+                  if (Math.abs(event.data.vy - FLY_PARAMETERS.FLAP_VELOCITY) > 0.001) {
+                    console.log('Flap velocity check failed', { event, expectedVy: FLY_PARAMETERS.FLAP_VELOCITY, actualVy: event.data.vy });
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap velocity' }), { status: 400 });
+                  }
+                  currentX = event.data.x; // Update ship x
+                } else if (event.event === 'frame') {
+                  // Validate frame position and velocity
+                  if (Math.abs(event.data.y - currentY) > 0.001) {
+                    console.log('Frame position check failed', { event, expectedY: currentY, actualY: event.data.y });
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
+                  }
+                  if (Math.abs(event.data.vy - currentVy) > 0.001) {
+                    console.log('Frame velocity check failed', { event, expectedVy: currentVy, actualVy: event.data.vy });
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame velocity' }), { status: 400 });
+                  }
+
+                  // Validate that obstacles haven't disappeared prematurely
+                  const reportedObstacles = event.obsData.obstacles;
+                  // Check each active obstacle that should still be on-screen
+                  for (const activeObs of activeObstacles) {
+                    if (activeObs.x + FLY_PARAMETERS.OBSTACLE_SIZE >= 0) { // Should be on-screen
+                      // Find a matching obstacle in reported obsData (based on y and proximity of x)
+                      const matchingObs = reportedObstacles.find(obs => 
+                        Math.abs(obs.y - activeObs.y) < 0.001 && 
+                        Math.abs(obs.x - activeObs.x) < Math.abs(activeObs.dx) * perFrameDeltaTime * 2 // Allow small x discrepancy
+                      );
+                      console.log('Math.abs(activeObs.dx) * perFrameDeltaTime * 2',Math.abs(activeObs.dx) * perFrameDeltaTime * 2);
+                      console.log('Math.abs(obs.x - activeObs.x)',Math.abs(obs.x - activeObs.x));
+                      if (!matchingObs) {
+                        console.log('Suspicious obstacle disappearance', { frameId: event.frameId, missingObs: activeObs });
+                        return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle disappearance' }), { status: 400 });
+                      }
+                    }
+                  }
+                  // Update active obstacles with reported ones
+                  activeObstacles = reportedObstacles.map(obs => ({ ...obs }));
+                  currentX = event.data.x; // Update ship x
+
+                } else if (event.event === 'spawn') {
+                  // Add new obstacle from spawn event
+                  activeObstacles.push({
+                    x: stats.canvasWidth, // spawn at right edge
+                    y: event.data.y,
+                    dx: event.data.speed,
+                    width: FLY_PARAMETERS.OBSTACLE_SIZE,
+                    height: FLY_PARAMETERS.OBSTACLE_SIZE,
+                    dodged: false
+                  });
+                }
+
+                // Update state
+                lastFrame = event;
+                lastFrameId = event.frameId;
+                lastTime = event.time;
+                currentY = event.data.y;
+                currentVy = event.data.vy;
+              }
+              // END FLY GAME FULL SIMULATION
+              // END FLY GAME VALIDATIONS
               
+
+
+
+
+
+
+
               // SHOOT GAME
             } else if (stats.game === 'shoot') {
               
@@ -911,6 +1056,10 @@ export async function POST(request) {
               }
               computedScore = stats.kills * 31; // Override telemetry for Shoot
 
+
+
+
+              
             // JUMP GAME
             } else if (stats.game === 'jump') {
               // Check if score is less than client side game duration with 1 seconds tolerance for start game

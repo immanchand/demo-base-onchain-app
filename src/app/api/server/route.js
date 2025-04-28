@@ -164,13 +164,13 @@ export async function POST(request) {
             { status: 429, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
           );
         }
-        result = await sendTransaction(async (txOptions) => {
+        ({ tx, receipt }) = await sendTransaction(async (txOptions) => {
           return await contract.createGame(txOptions);
         });
         rateLimitStore.set(sessionId, Date.now());
         console.log('Create game successful:', result.tx.hash);
         return new Response(
-          JSON.stringify({ status: 'success', txHash: result.tx.hash }),
+          JSON.stringify({ status: 'success', txHash: tx.hash }),
           { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
         );
       

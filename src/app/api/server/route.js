@@ -72,7 +72,6 @@ export async function POST(request) {
         const nowCreate = Date.now();
         const fifteenMinutes = 15 * 60 * 1000; // 15 minutes in milliseconds
         const lastCallCreate = rateLimitStore.get(sessionId);
-        console.log('trying to create a game');
         if (lastCallCreate && nowCreate - lastCallCreate < fifteenMinutes) {
           const timeLeft = Math.ceil((fifteenMinutes - (nowCreate - lastCallCreate)) / (60 * 1000));
           console.log('lastCallCreate && nowCreate - lastCallCreate < fifteenMinutes', lastCallCreate,' &&', nowCreate,' -', lastCallCreate,' <', fifteenMinutes);
@@ -81,13 +80,8 @@ export async function POST(request) {
             { status: 429, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
           );
         }
-        console.log('trying to create a game 2');
-        tx = await contract.getGame(308);
-        console.log('tx', tx);
         tx = await contract.createGame();
-        console.log('tx', tx);
         receipt = await tx.wait();
-        console.log('trying to create a game 3');
         rateLimitStore.set(sessionId, nowCreate);
         console.log('create game successful',tx.hash);
         return new Response(
@@ -938,7 +932,6 @@ export async function POST(request) {
         );
     }
   } catch (error) {
-    console.log('in main catch error', error);
     console.error(`${action} error:`, error);
     return new Response(
       JSON.stringify({ status: 'error', message: error.reason || error.message }),

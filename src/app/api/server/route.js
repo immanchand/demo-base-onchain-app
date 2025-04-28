@@ -504,27 +504,12 @@ export async function POST(request) {
                   spawns: spawnEvents.length,
                 })
               }
-
-              // check for yPositionPairs, i.e. clusters
-              // what is this used for??? Keep till compare with cluster spawns
-              const yPositionPairs = new Set();
-              uniqueYPositions.forEach((y, i) => {
-                for (let j = i + 1; j < uniqueYPositions.length; j++) {
-                  const diff = Math.abs(y - uniqueYPositions[j]);
-                  if (Math.abs(diff - FLY_PARAMETERS.OBSTACLE_SIZE * 2) < 1) {
-                    yPositionPairs.add(`${y}-${uniqueYPositions[j]}`);
-                  }
-                }
-              });
-              console.log('counted yPositionPairs', yPositionPairs.size);
-
               // Perform chi-squared test for uniform distribution
-              const playableHeight = stats.canvasHeight - 3 * FLY_PARAMETERS.OBSTACLE_SIZE;
+              const playableHeight = stats.canvasHeight - FLY_PARAMETERS.OBSTACLE_SIZE;
               const numBins =  Math.floor(playableHeight/FLY_PARAMETERS.OBSTACLE_SIZE); // Divide playable height into OBSTACLE_SIZE bins
               console.log('numBins', numBins);
               const binSize = playableHeight / numBins;
               const observedFrequencies = Array(numBins).fill(0);
-
               // Assign y positions to bins
               let isInvalidYPosition = false;
               uniqueYPositions.forEach(y => {

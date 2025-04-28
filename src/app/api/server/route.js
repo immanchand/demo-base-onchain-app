@@ -721,8 +721,11 @@ export async function POST(request) {
                 expectedDoubleSpawns += spawnsPerSecond * clusterChance;
               }
               // expected total spawn calculation and validations
+              console.log('FLY_PARAMETERS.CLUSTER_CHANCE', FLY_PARAMETERS.CLUSTER_CHANCE);
               const spawnStdDev = Math.sqrt(Math.abs(expectedSpawns * (1 + FLY_PARAMETERS.CLUSTER_CHANCE) * (1 - (1 + FLY_PARAMETERS.CLUSTER_CHANCE)))); // Approximate variance for obstacles
+              console.log('spawnStdDev',spawnStdDev);
               const spawnTolerance = 1.3 * spawnStdDev;
+              console.log('spawnTolerance',spawnTolerance);
               const minExpectedSpawns = Math.floor(expectedSpawns - spawnTolerance);
               const maxExpectedSpawns = Math.ceil(expectedSpawns + spawnTolerance*1.5);
               console.log('minExpectedSpawns',minExpectedSpawns);
@@ -855,19 +858,16 @@ export async function POST(request) {
               }
               const avgInterval = flapIntervals.reduce((a, b) => a + b, 0) / flapIntervals.length;
               const variance = flapIntervals.reduce((a, b) => a + Math.pow(b - avgInterval, 2), 0) / flapIntervals.length;
-              const minVariance = 2;
-              const maxVariance = 8;
               console.log('Flap Interval Variance (min 2, max 8, variance:', variance);
-              if (variance < minVariance || variance > maxVariance) {
-                console.log('Suspicious flap interval variance', { variance, minVariance, maxVariance });
+              if (variance < 2 || variance > 8) {
+                console.log('Suspicious flap interval variance not between 2< >8', variance);
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap interval variance' }), { status: 400 });
               }
 
               // 3. Validate Flap Frequency
               const flapCount = flapEvents.length;
               const expectedFlapsPerSec = flapCount / gameTimeSec;
-              console.log('Flap Frequency difference:', Math.abs(stats.flapsPerSec - expectedFlapsPerSec), ' should be less than 0.05');
-              if (Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.05) {
+              if (Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.005) {
                 console.log('Suspicious flapsPerSec vs flap events', {
                   statsFlapsPerSec: stats.flapsPerSec,
                   expectedFlapsPerSec,
@@ -924,27 +924,6 @@ export async function POST(request) {
             
         } //end if score >= telemetry threshold and > contractHighScore
         //now submit the validated high score to the contract
-                      // tx = await contract.endGame(BigInt(gameId), address, BigInt(score));
-                      //     receipt = await tx.wait();
-                      //     //let isHighScore = false;
-                      //     try {
-                      //       isHighScore = receipt.logs[1].args[3]? true : false;
-                      //       // code after new contract deployment is:
-                      //       // isHighScore = receipt.logs[0].args[3];
-                      //     } catch (error) {
-                      //       isHighScore = false;
-                      //     }
-                                  
-                          // return new Response(
-                          //   JSON.stringify({
-                          //     status: 'success',
-                          //     txHash: receipt.hash,
-                          //     isHighScore,
-                          //     highScore: isHighScore ? score : contractHighScore,
-                          //   }),
-                          //   { status: 200 }
-                          // );
-
         result = await sendTransaction(async (txOptions) => {
           return await contract.endGame(BigInt(gameId), address, BigInt(score), txOptions);
         });

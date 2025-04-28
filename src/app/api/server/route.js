@@ -25,6 +25,56 @@ const provider = new ethers.JsonRpcProvider(PROVIDER_URL);
 const wallet = new ethers.Wallet(GAME_MASTER_PRIVATE_KEY, provider);
 const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, wallet);
 
+// Helper function to get the current nonce
+async function getCurrentNonce(address) {
+  try {
+    const nonce = await provider.getTransactionCount(address, 'pending');
+    return nonce;
+  } catch (error) {
+    console.error('Error fetching nonce:', error);
+    throw new Error('Failed to fetch nonce');
+  }
+}
+// Helper function to estimate gas price
+async function getGasPrice() {
+  try {
+    const feeData = await provider.getFeeData();
+    // Add a 10% buffer to the suggested gas price to ensure reliability
+    const gasPrice = feeData.gasPrice.mul(110).div(100);
+    return gasPrice;
+  } catch (error) {
+    console.error('Error fetching gas price:', error);
+    // Fallback to a reasonable default for Base Sepolia (in Gwei)
+    return ethers.utils.parseUnits('2', 'gwei');
+  }
+}
+// Helper function to send transaction with retry logic
+async function sendTransaction(txFunction, maxRetries = 3) {
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      const nonce = await getCurrentNonce(wallet.address);
+      const gasPrice = await getGasPrice();
+      
+      // Execute the transaction with explicit nonce and gas settings
+      const tx = await txFunction({ nonce, gasPrice });
+      console.log(`Transaction sent, attempt ${attempt + 1}:`, tx.hash);
+      
+      // Wait for transaction confirmation
+      const receipt = await tx.wait();
+      console.log('Transaction confirmed:', tx.hash);
+      return { tx, receipt };
+    } catch (error) {
+      console.error(`Transaction failed, attempt ${attempt + 1}:`, error);
+      attempt++;
+      if (attempt === maxRetries) {
+        throw new Error(`Transaction failed after ${maxRetries} attempts: ${error.message}`);
+      }
+      // Wait briefly before retrying to avoid spamming the network
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  }
+}
 
 export async function POST(request) {
   const body = await request.json(); // Parse JSON body
@@ -80,12 +130,13 @@ export async function POST(request) {
             { status: 429, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
           );
         }
-        tx = await contract.createGame();
-        receipt = await tx.wait();
-        rateLimitStore.set(sessionId, nowCreate);
-        console.log('create game successful',tx.hash);
+        result = await sendTransaction(async (txOptions) => {
+          return await contract.createGame(txOptions);
+        });
+        rateLimitStore.set(sessionId, Date.now());
+        console.log('Create game successful:', result.tx.hash);
         return new Response(
-          JSON.stringify({ status: 'success', txHash: tx.hash }),
+          JSON.stringify({ status: 'success', txHash: result.tx.hash }),
           { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
         );
       
@@ -635,7 +686,7 @@ export async function POST(request) {
                 expectedDoubleSpawns += spawnsPerSecond * clusterChance;
               }
               // expected total spawn calculation and validations
-              const spawnStdDev = Math.sqrt(Math.abs(expectedSpawns * (1 + 0.3) * (1 - (1 + 0.3)))); // Approximate variance for obstacles
+              const spawnStdDev = Math.sqrt(Math.abs(expectedSpawns * (1 + FLY_PARAMETERS.CLUSTER_CHANCE) * (1 - (1 + FLY_PARAMETERS.CLUSTER_CHANCE)))); // Approximate variance for obstacles
               const spawnTolerance = 1.3 * spawnStdDev;
               const minExpectedSpawns = Math.floor(expectedSpawns - spawnTolerance);
               const maxExpectedSpawns = Math.ceil(expectedSpawns + spawnTolerance*1.5);
@@ -653,7 +704,7 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn count' }), { status: 400 });
               }
               // Expected Double spawn calculations and validations
-              const doubleSpawnStdDev = Math.sqrt(expectedDoubleSpawns * 0.3 * (1 - 0.3)); // Variance for double spawns
+              const doubleSpawnStdDev = Math.sqrt(expectedDoubleSpawns * FLY_PARAMETERS.CLUSTER_CHANCE * (1 - FLY_PARAMETERS.CLUSTER_CHANCE)); // Variance for double spawns
               const doubleSpawnTolerance = 2 * doubleSpawnStdDev;
               const minExpectedDoubleSpawns = Math.floor(expectedDoubleSpawns - doubleSpawnTolerance);
               const maxExpectedDoubleSpawns = Math.ceil(expectedDoubleSpawns + doubleSpawnTolerance*1.5);
@@ -671,7 +722,7 @@ export async function POST(request) {
                 return new Response(JSON.stringify({status: 'error', message: 'Suspicious double spawn count' }), { status: 400 });
               }
               // expected maxObstacles range calcuations and validations
-              const maxObstaclesStdDev = Math.sqrt(Math.abs(expectedMaxObstacles * (1 + 0.3) * (1 - (1 + 0.3))));
+              const maxObstaclesStdDev = Math.sqrt(Math.abs(expectedMaxObstacles * (1 + FLY_PARAMETERS.CLUSTER_CHANCE) * (1 - (1 + FLY_PARAMETERS.CLUSTER_CHANCE))));
               const maxObstaclesTolerance = 1.5 * maxObstaclesStdDev;
               const minExpectedMaxObstacles = Math.floor(expectedMaxObstacles - maxObstaclesTolerance);
               const maxExpectedMaxObstacles = Math.ceil(expectedMaxObstacles + maxObstaclesTolerance*2);
@@ -918,12 +969,13 @@ export async function POST(request) {
         }
 
         console.log('playerAddress',playerAddress);
-        tx = await contract.startGame(BigInt(gameId), playerAddress);
-        console.log('start game tx', tx);
-        receipt = await tx.wait();
+        result = await sendTransaction(async (txOptions) => {
+          return await contract.startGame(BigInt(gameId), playerAddress, txOptions);
+        });
         gameDurationStore.set(address, Date.now());
+        console.log('Start game successful:', result.tx.hash);
         return new Response(
-          JSON.stringify({ status: 'success', txHash: tx.hash }),
+          JSON.stringify({ status: 'success', txHash: result.tx.hash }),
           { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
         );
       

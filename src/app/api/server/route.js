@@ -497,7 +497,7 @@ export async function POST(request) {
               const uniqueYPositions = new Set(yPositions);
               console.log('uniqueYPositions.size',uniqueYPositions.size);
               console.log('spawnEvents.length',spawnEvents.length);
-              if(uniqueYPositions.size < spawnEvents.length * 0.95 || uniqueYPositions.size > spawnEvents.length){
+              if(uniqueYPositions.size < spawnEvents.length * 0.99 || uniqueYPositions.size > spawnEvents.length){
                 console.log('uniqueYPositions and spawns mismatch', {
                   address,
                   uniqueYPositions: uniqueYPositions.size,
@@ -545,10 +545,10 @@ export async function POST(request) {
               // Calculate chi-squared statistic
               let chiSquared = 0;
               // Expected frequency for uniform distribution
-              const expectedFrequency = (uniqueYPositions.size-maxObserved) / (numBins-1);
+              const expectedFrequency = (uniqueYPositions.size) / (numBins);
               for (let i = 0; i < numBins; i++) {
-                if(observedFrequencies[i] === maxObserved)
-                  continue
+               // if(observedFrequencies[i] === maxObserved)
+                //  continue
                 const observed = observedFrequencies[i];
                 console.log('observedFrequency',observed, 'expectedFrequency',expectedFrequency);
                 const diff = observed - expectedFrequency;
@@ -556,7 +556,7 @@ export async function POST(request) {
               }
               // Critical value for chi-squared test with 9 degrees of freedom (numBins - 1)
               // at 95% confidence level (alpha = 0.05) is approximately 16.919
-              const CHI_SQUARED_CRITICAL_VALUE = 100;
+              const CHI_SQUARED_CRITICAL_VALUE = 16;
               console.log('Chi-squared statistic:', chiSquared, 'max chi: 100');
               if (chiSquared > CHI_SQUARED_CRITICAL_VALUE) {
                 console.log('Suspicious obstacle y position distribution', {
@@ -624,8 +624,8 @@ export async function POST(request) {
               let expectedMaxObstacles = 0;
               for (let t = 0; t < gameTimeSec; t++) {
                 const difficultyFactor = Math.min(t / FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME, 1);
-                const spawnInterval = 2.5 * (1 - difficultyFactor) + 0.3; // in seconds
-                const clusterChance = difficultyFactor * 0.3;
+                const spawnInterval = 2.5 * (1 - difficultyFactor) + FLY_PARAMETERS.MIN_SPAWN_INTERVAL/1000; // in seconds
+                const clusterChance = difficultyFactor * FLY_PARAMETERS.CLUSTER_CHANCE;
                 const spawnsPerSecond = 1 / spawnInterval;
                 const obstacleSpeed = Math.abs(FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor)); // pixels per frame
                 const timeToCross = stats.canvasWidth / obstacleSpeed * (1 / 60); // seconds to cross screen

@@ -1004,8 +1004,6 @@ export async function POST(request) {
                         Math.abs(obs.x - activeObs.x) < Math.abs(activeObs.dx) * perFrameDeltaTime * 2 &&// Allow small x discrepancy
                         Math.abs(obs.dx - activeObs.dx) < 0.001
                       );
-                      console.log('Math.abs(activeObs.dx) * perFrameDeltaTime * 2',Math.abs(activeObs.dx) * perFrameDeltaTime * 2);
-                      console.log('Math.abs(obs.x - activeObs.x)',Math.abs(obs.x - activeObs.x));
                       if (!matchingObs) {
                         console.log('Suspicious obstacle disappearance', { frameId: event.frameId, missingObs: activeObs });
                         return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle disappearance' }), { status: 400 });

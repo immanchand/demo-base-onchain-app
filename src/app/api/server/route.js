@@ -513,11 +513,11 @@ export async function POST(request) {
               // Assign y positions to bins
               let isInvalidYPosition = false;
               uniqueYPositions.forEach(y => {
-                if (y >= 0 && y <= stats.canvasHeight) {
+                if (y >= 0 && y <= stats.canvasHeight - FLY_PARAMETERS.OBSTACLE_SIZE) {
                   const binIndex = Math.min(Math.floor(y / binSize), numBins - 1);
                   observedFrequencies[binIndex]++;
                 }
-                if (y < 0 || y > stats.canvasHeight - FLY_PARAMETERS.OBSTACLE_SIZE) {
+                else {// (y < 0 || y > stats.canvasHeight - FLY_PARAMETERS.OBSTACLE_SIZE) {
                   console.log('Invalid y-position detected:', y);
                   isInvalidYPosition = true;
                 }

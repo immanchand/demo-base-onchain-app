@@ -924,26 +924,52 @@ export async function POST(request) {
             
         } //end if score >= telemetry threshold and > contractHighScore
         //now submit the validated high score to the contract
-        tx = await contract.endGame(BigInt(gameId), address, BigInt(score));
-            receipt = await tx.wait();
-            let isHighScore = false;
-            try {
-              isHighScore = receipt.logs[1].args[3]? true : false;
-              // code after new contract deployment is:
-              // isHighScore = receipt.logs[0].args[3];
-            } catch (error) {
-              isHighScore = false;
-            }
-                    
-            return new Response(
-              JSON.stringify({
-                status: 'success',
-                txHash: receipt.hash,
-                isHighScore,
-                highScore: isHighScore ? score : contractHighScore,
-              }),
-              { status: 200 }
-            );
+                      // tx = await contract.endGame(BigInt(gameId), address, BigInt(score));
+                      //     receipt = await tx.wait();
+                      //     //let isHighScore = false;
+                      //     try {
+                      //       isHighScore = receipt.logs[1].args[3]? true : false;
+                      //       // code after new contract deployment is:
+                      //       // isHighScore = receipt.logs[0].args[3];
+                      //     } catch (error) {
+                      //       isHighScore = false;
+                      //     }
+                                  
+                          // return new Response(
+                          //   JSON.stringify({
+                          //     status: 'success',
+                          //     txHash: receipt.hash,
+                          //     isHighScore,
+                          //     highScore: isHighScore ? score : contractHighScore,
+                          //   }),
+                          //   { status: 200 }
+                          // );
+
+        result = await sendTransaction(async (txOptions) => {
+          return await contract.endGame(BigInt(gameId), address, BigInt(score), txOptions);
+        });
+
+        let isHighScore = false;
+        try {
+          isHighScore = result.receipt.logs[1].args[3]? true : false;
+          // code after new contract deployment is:
+          // isHighScore = result.receipt.logs[0].args[3];
+        } catch (error) {
+          isHighScore = false;
+        }
+
+        console.log('End game successful: isHighScore',isHighScore, 'tx.hash', result.tx.hash);
+        return new Response(
+          JSON.stringify({
+            status: 'success',
+            txHash: result.tx.hash,
+            isHighScore,
+            highScore: isHighScore ? score : contractHighScore,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
+        );
+
+
       } catch (error) {
         console.error('End game error:', error);
         return new Response(JSON.stringify({ status: 'error', message: error.message || 'Failed to end game' }), {

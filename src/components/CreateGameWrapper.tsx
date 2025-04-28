@@ -37,9 +37,8 @@ const CreateGameWrapper = forwardRef<{ createGame: () => Promise<void> }, Create
           credentials: 'include',
           body: JSON.stringify({ action: 'create-game', address }),
         });
-        console.log('going to do const data = await response.json();');
+        
         const data = await response.json();
-        console.log('data = await response.json() = ',data);
         if (data.status === 'success') {
           console.log('Game created successfully, hash:', data.txHash);
           onStatusChange('success', `Transaction hash: ${data.txHash}`);

@@ -481,7 +481,7 @@ export async function POST(request) {
                   maxObstaclesInPool,
                   maxObstaclesStats: stats.maxObstacles,
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: 'Invalid maxObstaclesInPool vs stats.maxObstacles' }), { status: 400 });
               }
               console.log('maxObstaclesInPool',maxObstaclesInPool);
               // Extract y positions from all obstacles in obsData
@@ -493,8 +493,7 @@ export async function POST(request) {
                   });
                 }
               }
-              // check for yPositionPairs, i.e. clusters
-              const yPositionPairs = new Set();
+              //get unique y positions which should be all unique spawns
               const uniqueYPositions = new Set(yPositions);
               console.log('uniqueYPositions.size',uniqueYPositions.size);
               console.log('spawnEvents.length',spawnEvents.length);
@@ -505,6 +504,9 @@ export async function POST(request) {
                   spawns: spawnEvents.length,
                 })
               }
+
+              // check for yPositionPairs, i.e. clusters
+              const yPositionPairs = new Set();
               uniqueYPositions.forEach((y, i) => {
                 for (let j = i + 1; j < uniqueYPositions.length; j++) {
                   const diff = Math.abs(y - uniqueYPositions[j]);
@@ -550,6 +552,7 @@ export async function POST(request) {
               let maxObserved = Math.max(...observedFrequencies);
               for (let i = 0; i < numBins; i++) {
                 const observed = observedFrequencies[i];
+                console.log('observedFrequency',observed, 'expectedFrequency',expectedFrequency);
                 const diff = observed - expectedFrequency;
                 chiSquared += (diff * diff) / expectedFrequency;
               }

@@ -83,7 +83,7 @@ export async function POST(request) {
         }
         console.log('trying to create a game 2');
         //tx = await contract.createGame();
-        tx = await contract.getGame(310);
+        tx = await contract.getGame(308);
         console.log('tx', tx);
         receipt = await tx.wait();
         console.log('trying to create a game 3');

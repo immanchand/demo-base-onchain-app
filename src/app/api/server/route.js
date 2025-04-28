@@ -81,8 +81,10 @@ export async function POST(request) {
             { status: 429, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
           );
         }
+        console.log('trying to create a game 2');
         tx = await contract.createGame();
         receipt = await tx.wait();
+        console.log('trying to create a game 3');
         rateLimitStore.set(sessionId, nowCreate);
         console.log('create game successful',tx.hash);
         return new Response(

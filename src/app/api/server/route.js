@@ -439,13 +439,13 @@ export async function POST(request) {
             console.log('maxCanvW',maxCanvW);
             console.log('avgCanvW',avgCanvW);
             // Allow 40–72 FPS for mobile compatibility. No upper bound as game is harder when faster.
-            if (minFps < 57) {
-              console.log('minFps < 57',minFps, '<', '57');
+            if (minFps < 55) {
+              console.log('minFps < 55',minFps, '<', '57');
               return new Response(JSON.stringify({ status: 'error', message: 'FPS out of acceptable range' }), { status: 400 });
             }
             // Check for suspicious FPS variance (e.g., >10 FPS change)
-            if (maxFps - minFps > 5) {
-              console.log('maxFps - minFps > 15',maxFps,' -', minFps, '>',' 15');
+            if (maxFps - minFps > 7) {
+              console.log('maxFps - minFps > 7',maxFps,' -', minFps, '>',' 7');
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious FPS variance during game' }), { status: 400 });
             }
             if (maxCanvH - minCanvH > 1 || avgCanvH - stats.canvasHeight > 1 ) {
@@ -779,7 +779,6 @@ export async function POST(request) {
               
 
               // FLY GAME FLAP VALIDATIONS
-              const flapFrameEvents = telemetry.filter(e => e.event === 'frame' || e.event === 'flap');
               const flapEvents = telemetry.filter(e => e.event === 'flap');
 
               console.log('last frame obsData', frameEvents[frameEvents.length-1].obsData);
@@ -917,7 +916,7 @@ export async function POST(request) {
 
               for (const event of telemetry) {
                 // Skip the initial frame used for initialization
-                if (event === lastFrame) continue;
+                if (event === lastFrame || event.frameId === 10) continue;
                 if (event.event === 'frame' || event.event === 'flap') {
                   const framesElapsed = event.frameId - lastFrameId;
                   const expectedTime = framesElapsed * perFrameDeltaTime * 1000; // Convert to ms
@@ -1002,7 +1001,8 @@ export async function POST(request) {
                       // Find a matching obstacle in reported obsData (based on y and proximity of x)
                       const matchingObs = reportedObstacles.find(obs => 
                         Math.abs(obs.y - activeObs.y) < 0.001 && 
-                        Math.abs(obs.x - activeObs.x) < Math.abs(activeObs.dx) * perFrameDeltaTime * 2 // Allow small x discrepancy
+                        Math.abs(obs.x - activeObs.x) < Math.abs(activeObs.dx) * perFrameDeltaTime * 2 &&// Allow small x discrepancy
+                        Math.abs(obs.dx - activeObs.dx) < 0.001
                       );
                       console.log('Math.abs(activeObs.dx) * perFrameDeltaTime * 2',Math.abs(activeObs.dx) * perFrameDeltaTime * 2);
                       console.log('Math.abs(obs.x - activeObs.x)',Math.abs(obs.x - activeObs.x));

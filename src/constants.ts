@@ -26,7 +26,7 @@ export const FLY_PARAMETERS = {
   SCORE_MULTIPLIER: 100,
   RECAPTCHA_END_THRESHOLD: 0.3,//make 0.5 // Higher is more human check; Lower (e.g., 0.2) is less human check.
   DIFFICULTY_FACTOR_TIME: 90, //seonds till max difficulty
-  CLUSTER_CHANCE: 10,
+  CLUSTER_CHANCE: 0.9,
 };
 export const JUMP_PARAMETERS = {
   SHIP_WIDTH: 40 * (3/4),

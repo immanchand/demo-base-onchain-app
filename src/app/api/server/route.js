@@ -72,6 +72,7 @@ export async function POST(request) {
         const nowCreate = Date.now();
         const fifteenMinutes = 15 * 60 * 1000; // 15 minutes in milliseconds
         const lastCallCreate = rateLimitStore.get(sessionId);
+        console.log('trying to create a game');
         if (lastCallCreate && nowCreate - lastCallCreate < fifteenMinutes) {
           const timeLeft = Math.ceil((fifteenMinutes - (nowCreate - lastCallCreate)) / (60 * 1000));
           console.log('lastCallCreate && nowCreate - lastCallCreate < fifteenMinutes', lastCallCreate,' &&', nowCreate,' -', lastCallCreate,' <', fifteenMinutes);
@@ -557,7 +558,7 @@ export async function POST(request) {
               // Critical value for chi-squared test with 9 degrees of freedom (numBins - 1)
               // at 95% confidence level (alpha = 0.05) is approximately 16.919
               const CHI_SQUARED_CRITICAL_VALUE = 16;
-              console.log('Chi-squared statistic:', chiSquared, 'max chi: 100');
+              console.log('Chi-squared statistic:', chiSquared, 'max chi: 16');
               if (chiSquared > CHI_SQUARED_CRITICAL_VALUE) {
                 console.log('Suspicious obstacle y position distribution', {
                   address,
@@ -624,11 +625,11 @@ export async function POST(request) {
               let expectedMaxObstacles = 0;
               for (let t = 0; t < gameTimeSec; t++) {
                 const difficultyFactor = Math.min(t / FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME, 1);
-                const spawnInterval = 2.5 * (1 - difficultyFactor) + FLY_PARAMETERS.MIN_SPAWN_INTERVAL/1000; // in seconds
+                const spawnInterval = (FLY_PARAMETERS.MAX_SPAWN_INTERVAL/1000) * (1 - difficultyFactor) + FLY_PARAMETERS.MIN_SPAWN_INTERVAL/1000; // in seconds
                 const clusterChance = difficultyFactor * FLY_PARAMETERS.CLUSTER_CHANCE;
                 const spawnsPerSecond = 1 / spawnInterval;
                 const obstacleSpeed = Math.abs(FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor)); // pixels per frame
-                const timeToCross = stats.canvasWidth / obstacleSpeed * (1 / 60); // seconds to cross screen
+                const timeToCross = stats.canvasWidth / obstacleSpeed * (1 / avgFps); // seconds to cross screen
                 const maxObstaclesAtTime = timeToCross * spawnsPerSecond * (1 + clusterChance);
                 expectedMaxObstacles = Math.max(expectedMaxObstacles, maxObstaclesAtTime);
                 expectedSpawns += spawnsPerSecond * (1 + clusterChance);
@@ -932,6 +933,7 @@ export async function POST(request) {
         );
     }
   } catch (error) {
+    console.log('in main catch error', error);
     console.error(`${action} error:`, error);
     return new Response(
       JSON.stringify({ status: 'error', message: error.reason || error.message }),

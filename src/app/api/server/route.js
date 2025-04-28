@@ -559,7 +559,7 @@ export async function POST(request) {
               for (const event of frameEvents) {
                 maxObstaclesInPool = Math.max(maxObstaclesInPool, event.obsData.obstacles.length);
               }
-              if (Math.abs(maxObstaclesInPool - stats.maxObstacles) > 1) {
+              if (Math.abs(maxObstaclesInPool - stats.maxObstacles) > 2) {
                 console.log('Invalid maxObstaclesInPool vs stats.maxObstacles', {
                   address,
                   gameId,
@@ -905,7 +905,7 @@ export async function POST(request) {
               let currentX = lastFrame.data.x; // Initialize ship x
               let currentY = lastFrame.data.y;
               let currentVy = lastFrame.data.vy;
-              let lastTime = lastFrame.time;
+              let lastTime = telemetry[0].time; // Start with first event's time
               let lastFrameId = lastFrame.frameId;
               const perFrameDeltaTime = 1 / avgFps;
 
@@ -1005,7 +1005,12 @@ export async function POST(request) {
                         Math.abs(obs.dx - activeObs.dx) < 0.001
                       );
                       if (!matchingObs) {
-                        console.log('Suspicious obstacle disappearance', { frameId: event.frameId, missingObs: activeObs });
+                        console.log('Suspicious obstacle disappearance', {
+                          frameId: event.frameId,
+                          missingObs: activeObs,
+                          reportedObstacles,
+                          activeObstacles,
+                        });
                         return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle disappearance' }), { status: 400 });
                       }
                     }
@@ -1024,6 +1029,9 @@ export async function POST(request) {
                     height: FLY_PARAMETERS.OBSTACLE_SIZE,
                     dodged: false
                   });
+                } else if (event.event === 'fps' || event.event === 'collision') {
+                  // Only update time for fps and collision events
+                  lastTime = event.time;
                 }
                 if (event.event === 'frame' || event.event === 'flap') {
                   // Update state

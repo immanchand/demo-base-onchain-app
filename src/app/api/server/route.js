@@ -849,17 +849,7 @@ export async function POST(request) {
               for (const event of telemetry) {
                 // Skip the initial frame used for initialization
                 if (event === lastFrame || event.frameId < 10 || event.event === 'fps' || event.event === 'collision') continue;
-                if (event.event === 'spawn') {
-                  // Add new obstacle from spawn event
-                  activeObstacles.push({
-                    x: stats.canvasWidth, // spawn at right edge
-                    y: event.data.y,
-                    dx: event.data.speed,
-                    width: FLY_PARAMETERS.OBSTACLE_SIZE,
-                    height: FLY_PARAMETERS.OBSTACLE_SIZE,
-                    dodged: false
-                  });
-                }
+                
                 const framesElapsed = event.frameId - lastFrameId;
                 const expectedTime = framesElapsed * perFrameDeltaTime * 1000; // Convert to ms
                 const actualTime = event.time - lastTime;
@@ -908,9 +898,18 @@ export async function POST(request) {
                     }
                   }
                 }
-
                 // Handle event-specific logic
-                if (event.event === 'flap') {
+                if (event.event === 'spawn') {
+                  // Add new obstacle from spawn event
+                  activeObstacles.push({
+                    x: stats.canvasWidth, // spawn at right edge
+                    y: event.data.y,
+                    dx: event.data.speed,
+                    width: FLY_PARAMETERS.OBSTACLE_SIZE,
+                    height: FLY_PARAMETERS.OBSTACLE_SIZE,
+                    dodged: false
+                  });
+                } else if (event.event === 'flap') {
                   if (event.data.x !== shipStartX) {
                     console.log('Ship out of start x position', { event, shipStartX });
                       return new Response(JSON.stringify({ status: 'error', message: 'Ship out of start x position' }), { status: 400 });

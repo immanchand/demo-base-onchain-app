@@ -837,7 +837,7 @@ export async function POST(request) {
               let currentY = lastFrame.data.y;
               let currentVy = lastFrame.data.vy;
               let lastTime = telemetry[0].time; // Start with first event's time
-              let lastFrameId = lastFrame.frameId;
+              let lastFrameId = telemetry[0].frameId;
               const perFrameDeltaTime = 1 / avgFps;
 
               // Initialize obstacles from the first frame's obsData or spawn events
@@ -847,7 +847,7 @@ export async function POST(request) {
 
               for (const event of telemetry) {
                 // Skip the initial frame used for initialization
-                if (event === lastFrame || event.event === 'fps' || event.event === 'collision') continue;
+                if ( event.event === 'fps' || event.event === 'collision') continue;
                 if (event.event === 'spawn') {
                   // Add new obstacle from spawn event
                   activeObstacles.push({
@@ -954,8 +954,8 @@ export async function POST(request) {
                       }
                     }
                   }
-                  currentX = event.data.x; // Update ship x
-                  currentY = event.data.y;
+                currentX = event.data.x; // Update ship x
+                currentY = event.data.y;
                 currentVy = event.data.vy;
                 }
                 // Update active obstacles with reported ones

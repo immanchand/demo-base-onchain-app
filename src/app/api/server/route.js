@@ -866,7 +866,7 @@ export async function POST(request) {
                 const framesElapsed = event.frameId - lastFrameId;
                 const expectedTime = framesElapsed * perFrameDeltaTime * 1000; // Convert to ms
                 const actualTime = event.time - lastTime;
-                if (Math.abs(actualTime - expectedTime) > 10 && lastlastFrameId !== 0) { // 50ms tolerance
+                if (Math.abs(actualTime - expectedTime) > 10 && lastFrameId !== 0) { // 10ms tolerance
                   console.log('Time inconsistency', { event, lastFrameId, actualTime, expectedTime });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious event timing' }), { status: 400 });
                 }

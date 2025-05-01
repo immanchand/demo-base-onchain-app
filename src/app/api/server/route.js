@@ -667,8 +667,8 @@ export async function POST(request) {
               }
               // Critical value for chi-squared test with 9 degrees of freedom (numBins - 1)
               // at 95% confidence level (alpha = 0.05) is approximately 16.919
-              const CHI_SQUARED_CRITICAL_VALUE = 16;
-              console.log('Chi-squared statistic:', chiSquared, 'max chi: 16');
+              const CHI_SQUARED_CRITICAL_VALUE = 22;
+              console.log('Chi-squared statistic:', chiSquared, 'max chi: 22');
               if (chiSquared > CHI_SQUARED_CRITICAL_VALUE) {
                 console.log('Suspicious obstacle y position distribution', {
                   address,
@@ -723,11 +723,11 @@ export async function POST(request) {
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle speed' }), { status: 400 });
                 }
                 // Double spawn check
-                if (i > 0 && event.time - spawnEvents[i-1].time < 100) {
+                if (event.frameId === spawnEvents[i-1].frameId) {
                     doubleSpawnCount++;
                 }
+                console.log('doubleSpawnCount',doubleSpawnCount);
               }
-
               // Dynamic spawn count, double spawn count, and max obstacle count caluculations 
               let expectedSpawns = 0;
               let expectedDoubleSpawns = 0;

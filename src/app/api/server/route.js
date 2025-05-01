@@ -723,7 +723,7 @@ export async function POST(request) {
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle speed' }), { status: 400 });
                 }
                 // Double spawn check
-                if (event.frameId === spawnEvents[i-1].frameId) {
+                if (i > 0 && event.frameId === spawnEvents[i-1].frameId) {
                     doubleSpawnCount++;
                 }
                 console.log('doubleSpawnCount',doubleSpawnCount);

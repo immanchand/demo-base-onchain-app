@@ -965,7 +965,7 @@ export async function POST(request) {
                 //activeObstacles = reportedObstacles.map(obs => ({ ...obs }));
                 //currentX = event.data.x; // Update ship x
                 // Update state
-                lastFrame = event;
+                //lastFrame = event;
                 lastFrameId = event.frameId;
                 lastTime = event.time;
                 //currentY = event.data.y;

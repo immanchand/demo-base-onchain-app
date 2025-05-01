@@ -721,7 +721,7 @@ export async function POST(request) {
                 expectedDoubleSpawns += spawnsPerSecond * clusterChance;
               }
               // expected total spawn calculation and validations
-              console.log('FLY_PARAMETERS.CLUSTER_CHANCE', FLY_PARAMETERS.CLUSTER_CHANCE);
+              console.log('expectedSpawns', expectedSpawns);
               const spawnStdDev = Math.sqrt(Math.abs(expectedSpawns * (1 + FLY_PARAMETERS.CLUSTER_CHANCE) * (1 - (1 + FLY_PARAMETERS.CLUSTER_CHANCE)))); // Approximate variance for obstacles
               console.log('spawnStdDev',spawnStdDev);
               const spawnTolerance = 1.3 * spawnStdDev;
@@ -781,10 +781,10 @@ export async function POST(request) {
               // FLY GAME FLAP VALIDATIONS
               const flapEvents = telemetry.filter(e => e.event === 'flap');
 
-              console.log('first frame obsData', frameEvents[0].obsData);
-              console.log('second frame obsData', frameEvents[1].obsData);
-              console.log('third frame obsData', frameEvents[2].obsData);
-              console.log('fourth frame obsData', frameEvents[3].obsData);
+              // console.log('first frame obsData', frameEvents[0].obsData);
+              // console.log('second frame obsData', frameEvents[1].obsData);
+              // console.log('third frame obsData', frameEvents[2].obsData);
+              // console.log('fourth frame obsData', frameEvents[3].obsData);
 
               // 2. Flap Interval Variance
               const flapIntervals = [];

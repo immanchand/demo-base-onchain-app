@@ -482,7 +482,7 @@ export async function POST(request) {
             const avgFrameDeltaTime = totalFrameDeltaTime / frameDeltaTimes.length;
             const frameDeltaTimieVariance = frameDeltaTimes.reduce((a, b) => a + Math.pow(b - avgFrameDeltaTime, 2), 0) / frameDeltaTimes.length;
             console.log('frameDeltaTimieVariance',frameDeltaTimieVariance);
-            if (frameDeltaTimieVariance < 1e-7 || frameDeltaTimieVariance > 0.0012) { // 0.0000001 to 0.0001 s²
+            if (frameDeltaTimieVariance < 1e-7 || frameDeltaTimieVariance > 0.00012) { // 0.0000001 to 0.0001 s²
               console.log('Delta time variance check failed for',{ 
                 address,
                 gameId,
@@ -552,6 +552,31 @@ export async function POST(request) {
 			      // Stats validation and telemetry validation specific to each Game
             // FLY GAME
             if (stats.game === 'fly') {
+              // GAME PARAMETERS VALIDATION
+              //interate through fps events and verify game parameters
+              for (const event of fpsEvents) {
+                if (
+                  event.parameters.SHIP_WIDTH != FLY_PARAMETERS.SHIP_WIDTH ||
+                  event.parameters.SHIP_HEIGHT != FLY_PARAMETERS.SHIP_HEIGHT ||
+                  event.parameters.OBSTACLE_SIZE != FLY_PARAMETERS.OBSTACLE_SIZE ||
+                  event.parameters.BASE_OBSTACLE_SPEED != FLY_PARAMETERS.BASE_OBSTACLE_SPEED ||
+                  event.parameters.MIN_SPAWN_INTERVAL != FLY_PARAMETERS.MIN_SPAWN_INTERVAL ||
+                  event.parameters.GRAVITY != FLY_PARAMETERS.GRAVITY ||
+                  event.parameters.FLAP_VELOCITY != FLY_PARAMETERS.FLAP_VELOCITY ||
+                  event.parameters.SCORE_MULTIPLIER != FLY_PARAMETERS.SCORE_MULTIPLIER ||
+                  event.parameters.DIFFICULTY_FACTOR_TIME != FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME ||
+                  event.parameters.CLUSTER_CHANCE != FLY_PARAMETERS.CLUSTER_CHANCE
+                ) {
+                  console.log('Game parameters mismatch', {
+                    address,
+                    gameId,
+                    gameName: stats.game,
+                    eventParameters: event.parameters,
+                    FLY_PARAMETERS,
+                  });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship size' }), { status: 400 });
+                }  
+              }
 
               // SPAWN RELATED VALIDATION
               // obsData validation for maxObstaclesInPool vs stats.maxObstacles
@@ -652,11 +677,10 @@ export async function POST(request) {
                   chiSquared,
                   observedFrequencies,
                 });
-                // enable after more testing *******************
-                //return new Response(JSON.stringify({
-                //  status: 'error',
-                //  message: 'Obstacle y positions show suspicious distribution',
-                //}), { status: 400 });
+                return new Response(JSON.stringify({
+                  status: 'error',
+                  message: 'Obstacle y positions show suspicious distribution',
+                }), { status: 400 });
               }
 
               // Validate spawn events vs. obstacles cleared and maxObstacles
@@ -710,29 +734,19 @@ export async function POST(request) {
               let expectedMaxObstacles = 0;
               for (let t = 0; t < gameTimeSec; t++) {
                 const difficultyFactor = Math.min(t / FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME, 1);
-                console.log('difficultyFactor',difficultyFactor);
                 const spawnInterval = (FLY_PARAMETERS.MAX_SPAWN_INTERVAL/1000) * (1 - difficultyFactor) + FLY_PARAMETERS.MIN_SPAWN_INTERVAL/1000; // in seconds
-                console.log('spawnInterval',spawnInterval);
                 const clusterChance = difficultyFactor * FLY_PARAMETERS.CLUSTER_CHANCE;
-                console.log('clusterChance',clusterChance);
                 const spawnsPerSecond = 1 / spawnInterval;
-                console.log('spawnsPerSecond',spawnsPerSecond);
                 const obstacleSpeed = Math.abs(FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor)); // pixels per frame
-                console.log('obstacleSpeed',obstacleSpeed);
                 const timeToCross = stats.canvasWidth / obstacleSpeed * (1 / avgFps); // seconds to cross screen
-                console.log('timeToCross',timeToCross);
                 const maxObstaclesAtTime = timeToCross * spawnsPerSecond * (1 + clusterChance);
-                console.log('maxObstaclesAtTime',maxObstaclesAtTime);
                 expectedMaxObstacles = Math.max(expectedMaxObstacles, maxObstaclesAtTime);
                 expectedSpawns += spawnsPerSecond * (1 + clusterChance);
                 expectedDoubleSpawns += spawnsPerSecond * clusterChance;
               }
               // expected total spawn calculation and validations
-              console.log('expectedSpawns', expectedSpawns);
               const spawnStdDev = Math.sqrt(Math.abs(expectedSpawns * (1 + FLY_PARAMETERS.CLUSTER_CHANCE) * (1 - (1 + FLY_PARAMETERS.CLUSTER_CHANCE)))); // Approximate variance for obstacles
-              console.log('spawnStdDev',spawnStdDev);
-              const spawnTolerance = 1.3 * spawnStdDev;
-              console.log('spawnTolerance',spawnTolerance);
+              const spawnTolerance = 1.2 * spawnStdDev;
               const minExpectedSpawns = Math.floor(expectedSpawns - spawnTolerance);
               const maxExpectedSpawns = Math.ceil(expectedSpawns + spawnTolerance*1.5);
               console.log('minExpectedSpawns',minExpectedSpawns);

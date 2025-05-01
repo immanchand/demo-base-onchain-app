@@ -887,7 +887,7 @@ export async function POST(request) {
 
                   // Update obstacle positions
                   activeObstacles.forEach(obs => {
-                    obs.x += obs.dx * perFrameDeltaTime *1000; // Interpolate x using dx
+                    obs.x += obs.dx; // Interpolate x using dx
                   });
 
                   // Remove obstacles that have moved off-screen (x < 0)

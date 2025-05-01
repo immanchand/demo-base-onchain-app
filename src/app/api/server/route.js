@@ -945,7 +945,7 @@ export async function POST(request) {
                       // Find a matching obstacle in reported obsData (based on y and proximity of x)
                       const matchingObs = reportedObstacles.find(obs => 
                         Math.abs(obs.y - activeObs.y) < 0.001 && 
-                        Math.abs(obs.x - activeObs.x) < Math.abs(activeObs.dx) * perFrameDeltaTime * 2 &&// Allow small x discrepancy
+                        Math.abs(obs.x - activeObs.x) < Math.abs(activeObs.dx)*2 &&// Allow small x discrepancy
                         Math.abs(obs.dx - activeObs.dx) < 0.001
                       );
                       if (!matchingObs) {

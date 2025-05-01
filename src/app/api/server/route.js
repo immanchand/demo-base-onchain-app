@@ -781,9 +781,10 @@ export async function POST(request) {
               // FLY GAME FLAP VALIDATIONS
               const flapEvents = telemetry.filter(e => e.event === 'flap');
 
-              console.log('last frame obsData', frameEvents[frameEvents.length-1].obsData);
-              console.log('second last frame obsData', frameEvents[frameEvents.length-2].obsData);
-              console.log('third last frame obsData', frameEvents[frameEvents.length-3].obsData);
+              console.log('first frame obsData', frameEvents[0].obsData);
+              console.log('second frame obsData', frameEvents[1].obsData);
+              console.log('third frame obsData', frameEvents[2].obsData);
+              console.log('fourth frame obsData', frameEvents[3].obsData);
 
               // 2. Flap Interval Variance
               const flapIntervals = [];

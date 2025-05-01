@@ -710,12 +710,19 @@ export async function POST(request) {
               let expectedMaxObstacles = 0;
               for (let t = 0; t < gameTimeSec; t++) {
                 const difficultyFactor = Math.min(t / FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME, 1);
+                console.log('difficultyFactor',difficultyFactor);
                 const spawnInterval = (FLY_PARAMETERS.MAX_SPAWN_INTERVAL/1000) * (1 - difficultyFactor) + FLY_PARAMETERS.MIN_SPAWN_INTERVAL/1000; // in seconds
+                console.log('spawnInterval',spawnInterval);
                 const clusterChance = difficultyFactor * FLY_PARAMETERS.CLUSTER_CHANCE;
+                console.log('clusterChance',clusterChance);
                 const spawnsPerSecond = 1 / spawnInterval;
+                console.log('spawnsPerSecond',spawnsPerSecond);
                 const obstacleSpeed = Math.abs(FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor)); // pixels per frame
+                console.log('obstacleSpeed',obstacleSpeed);
                 const timeToCross = stats.canvasWidth / obstacleSpeed * (1 / avgFps); // seconds to cross screen
+                console.log('timeToCross',timeToCross);
                 const maxObstaclesAtTime = timeToCross * spawnsPerSecond * (1 + clusterChance);
+                console.log('maxObstaclesAtTime',maxObstaclesAtTime);
                 expectedMaxObstacles = Math.max(expectedMaxObstacles, maxObstaclesAtTime);
                 expectedSpawns += spawnsPerSecond * (1 + clusterChance);
                 expectedDoubleSpawns += spawnsPerSecond * clusterChance;

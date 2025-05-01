@@ -832,13 +832,17 @@ export async function POST(request) {
 
               //6. FULL GAME PHYSICS SIMULATION
               let activeObstacles = []; // Track active obstacles
-              let lastFrame = telemetry.find(e => e.event === 'frame');
-              let currentX = lastFrame.data.x; // Initialize ship x
-              let currentY = lastFrame.data.y;
-              let currentVy = lastFrame.data.vy;
+              //let lastFrame = telemetry.find(e => e.event === 'frame');
+              // let currentX = lastFrame.data.x; // Initialize ship x
+              // let currentY = lastFrame.data.y;
+              // let currentVy = lastFrame.data.vy;
+              let currentX = null; // Defer initialization
+              let currentY = null;
+              let currentVy = null;
               let lastTime = telemetry[0].time; // Start with first event's time
               let lastFrameId = telemetry[0].frameId;
               const perFrameDeltaTime = 1 / avgFps;
+              let initialized = false; // Track if ship state is initialized
 
               // Initialize obstacles from the first frame's obsData or spawn events
               // if (lastFrame.obsData && lastFrame.obsData.obstacles) {
@@ -868,51 +872,47 @@ export async function POST(request) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious event timing' }), { status: 400 });
                 }
 
-                // Simulate frame by frame physics and obstacle movement
-                for (let i = 0; i < Math.floor(framesElapsed); i++) {
-                  // Update ship physics
-                  currentVy += FLY_PARAMETERS.GRAVITY;
-                  currentY += currentVy;
-                  if (currentY < 0) {
-                    currentY = 0; // Clamp y-position to 0
-                    currentVy = 0; // Clamp vy to 0
-                  }
-                  if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT) {
-                    console.log('Suspicious ship no collision with ground');
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship no collision with ground' }), { status: 400 });
-                  }
-                  if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT * 1.5) {
-                    console.log('SUPER CLOSE TO DEATH!! frame id:', event.frameId + i);
-                  }
+                // Simulate physics only if ship state is initialized
+                if (initialized) {
+                  for (let i = 0; i < Math.floor(framesElapsed); i++) {
+                    currentVy += FLY_PARAMETERS.GRAVITY;
+                    currentY += currentVy;
+                    if (currentY < 0) {
+                      currentY = 0;
+                      currentVy = 0;
+                    }
+                    if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT) {
+                      console.log('Suspicious ship no collision with ground');
+                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship no collision with ground' }), { status: 400 });
+                    }
+                    activeObstacles.forEach(obs => {
+                      obs.x += obs.dx * perFrameDeltaTime;
+                    });
+                    activeObstacles = activeObstacles.filter(obs => obs.x >= 0);
 
-                  // Update obstacle positions
-                  activeObstacles.forEach(obs => {
-                    obs.x += obs.dx * perFrameDeltaTime; // Interpolate x using dx
-                  });
-
-                  // Remove obstacles that have moved off-screen (x < 0)
-                  activeObstacles = activeObstacles.filter(obs => obs.x >= 0);
-
-                  // Check for collisions with obstacles
-                  const shipCenterX = currentX + FLY_PARAMETERS.SHIP_WIDTH / 2;
-                  const shipCenterY = currentY + FLY_PARAMETERS.SHIP_HEIGHT / 2;
-                  for (const obs of activeObstacles) {
-                    const obsCenterX = obs.x + FLY_PARAMETERS.OBSTACLE_SIZE / 2;
-                    const obsCenterY = obs.y + FLY_PARAMETERS.OBSTACLE_SIZE / 2;
-                    const distance = Math.sqrt(
-                      Math.pow(shipCenterX - obsCenterX, 2) + Math.pow(shipCenterY - obsCenterY, 2)
-                    );
-                    if (distance < (FLY_PARAMETERS.SHIP_WIDTH + FLY_PARAMETERS.OBSTACLE_SIZE) / 2) {
-                      console.log('Suspicious unreported obstacle collision', { frameId: event.frameId + i, shipX: currentX, shipY: currentY, obs });
-                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious unreported obstacle collision' }), { status: 400 });
+                    const shipCenterX = currentX + FLY_PARAMETERS.SHIP_WIDTH / 2;
+                    const shipCenterY = currentY + FLY_PARAMETERS.SHIP_HEIGHT / 2;
+                    for (const obs of activeObstacles) {
+                      const obsCenterX = obs.x + FLY_PARAMETERS.OBSTACLE_SIZE / 2;
+                      const obsCenterY = obs.y + FLY_PARAMETERS.OBSTACLE_SIZE / 2;
+                      const distance = Math.sqrt(
+                        Math.pow(shipCenterX - obsCenterX, 2) + Math.pow(shipCenterY - obsCenterY, 2)
+                      );
+                      if (distance < (FLY_PARAMETERS.SHIP_WIDTH + FLY_PARAMETERS.OBSTACLE_SIZE) / 2) {
+                        console.log('Suspicious unreported obstacle collision', { frameId: event.frameId + i, shipX: currentX, shipY: currentY, obs });
+                        return new Response(JSON.stringify({ status: 'error', message: 'Suspicious unreported obstacle collision' }), { status: 400 });
+                      }
                     }
                   }
                 }
+
                 // Handle event-specific logic
                 if (event.event === 'flap') {
-                  // Apply flap velocity
+                  if (!initialized) {
+                    console.log('Flap event before frame initialization', { event });
+                    return new Response(JSON.stringify({ status: 'error', message: 'Flap event before frame initialization' }), { status: 400 });
+                  }
                   currentVy = FLY_PARAMETERS.FLAP_VELOCITY;
-                  // Validate flap position and velocity
                   if (Math.abs(event.data.y - currentY) > 0.001) {
                     console.log('Flap position check failed', { event, expectedY: currentY, actualY: event.data.y });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap position' }), { status: 400 });
@@ -921,54 +921,55 @@ export async function POST(request) {
                     console.log('Flap velocity check failed', { event, expectedVy: FLY_PARAMETERS.FLAP_VELOCITY, actualVy: event.data.vy });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap velocity' }), { status: 400 });
                   }
-                  currentX = event.data.x; // Update ship x
+                  currentX = event.data.x;
                 } else if (event.event === 'frame') {
-                  // Validate frame position and velocity
-                  if (Math.abs(event.data.y - currentY) > 0.001) {
-                    console.log('Frame position check failed', { event, expectedY: currentY, actualY: event.data.y });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
-                  }
-                  if (Math.abs(event.data.vy - currentVy) > 0.001) {
-                    console.log('Frame velocity check failed', { event, expectedVy: currentVy, actualVy: event.data.vy });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame velocity' }), { status: 400 });
-                  }
-                  // Validate that obstacles haven't disappeared prematurely
-                  const reportedObstacles = event.obsData.obstacles;
-                  // Check each active obstacle that should still be on-screen
-                  for (const activeObs of activeObstacles) {
-                    if (activeObs.x + FLY_PARAMETERS.OBSTACLE_SIZE >= 0) { // Should be on-screen
-                      // Find a matching obstacle in reported obsData (based on y and proximity of x)
-                      const matchingObs = reportedObstacles.find(obs => 
-                        Math.abs(obs.y - activeObs.y) < 0.001 && 
-                        Math.abs(obs.x - activeObs.x) < Math.abs(activeObs.dx) * perFrameDeltaTime * 2 &&// Allow small x discrepancy
-                        Math.abs(obs.dx - activeObs.dx) < 0.001
-                      );
-                      if (!matchingObs) {
-                        console.log('Suspicious obstacle disappearance', {
-                          frameId: event.frameId,
-                          missingObs: activeObs,
-                          reportedObstacles,
-                          activeObstacles,
-                        });
-                        return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle disappearance' }), { status: 400 });
+                  // Initialize ship state on first frame event
+                  if (!initialized) {
+                    currentX = event.data.x;
+                    currentY = event.data.y;
+                    currentVy = event.data.vy;
+                    initialized = true;
+                  } else {
+                    // Validate position and velocity
+                    if (Math.abs(event.data.y - currentY) > 0.001) {
+                      console.log('Frame position check failed', { event, expectedY: currentY, actualY: event.data.y });
+                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
+                    }
+                    if (Math.abs(event.data.vy - currentVy) > 0.001) {
+                      console.log('Frame velocity check failed', { event, expectedVy: currentVy, actualVy: event.data.vy });
+                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame velocity' }), { status: 400 });
+                    }
+                    // Validate obstacles
+                    const reportedObstacles = event.obsData.obstacles;
+                    for (const activeObs of activeObstacles) {
+                      if (activeObs.x + FLY_PARAMETERS.OBSTACLE_SIZE >= 0) {
+                        const matchingObs = reportedObstacles.find(obs =>
+                          Math.abs(obs.y - activeObs.y) < 0.001 &&
+                          Math.abs(obs.x - activeObs.x) < Math.abs(activeObs.dx) * perFrameDeltaTime * 2 &&
+                          Math.abs(obs.dx - activeObs.dx) < 0.001
+                        );
+                        if (!matchingObs) {
+                          console.log('Suspicious obstacle disappearance', {
+                            frameId: event.frameId,
+                            missingObs: activeObs,
+                            reportedObstacles,
+                            activeObstacles,
+                          });
+                          return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle disappearance' }), { status: 400 });
+                        }
                       }
                     }
+                    // Update ship state
+                    currentX = event.data.x;
+                    currentY = event.data.y;
+                    currentVy = event.data.vy;
                   }
-                currentX = event.data.x; // Update ship x
-                currentY = event.data.y;
-                currentVy = event.data.vy;
                 }
-                // Update active obstacles with reported ones
-                //activeObstacles = reportedObstacles.map(obs => ({ ...obs }));
-                //currentX = event.data.x; // Update ship x
+
                 // Update state
-                lastFrame = event;
                 lastFrameId = event.frameId;
                 lastTime = event.time;
-                //currentY = event.data.y;
-                //currentVy = event.data.vy;
               }
-            
               // END FLY GAME FULL SIMULATION
               // END FLY GAME VALIDATIONS
               

@@ -3,7 +3,7 @@ import Navbar from 'src/components/Navbar';
 import React, { useState, useCallback } from 'react';
 import type { Address } from 'viem';
 import { formatEther } from 'viem';
-import { publicClient, contractABI, CONTRACT_ADDRESS, GAME_COUNT, ethPrice } from 'src/constants';
+import { publicClient, contractABI, CONTRACT_ADDRESS, GAME_COUNT } from 'src/constants';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import WinnerWithdrawWrapper from 'src/components/WinnerWithdrawWrapper';
@@ -19,6 +19,7 @@ interface GameData {
   error?: boolean;
 }
 
+const ethPrice = Number(process.env.ETH_PRICE) || 2000;
 const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddress?: Address }) => {
   const [isCopied, setIsCopied] = useState(false);
   const isUserLeader = userAddress && game.leader.toLowerCase() === userAddress.toLowerCase();

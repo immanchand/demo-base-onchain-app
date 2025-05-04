@@ -379,9 +379,9 @@ export async function POST(request) {
               lastTime = event.time;
 
               // Verify frameId is strictly increasing for frame events
-              if (event.event === 'frame') {
-                const currentFrameId = event.data.frameId/10; //divide 10 because front end captures every 10 frames
-                if (lastFrameId == 0 || currentFrameId > lastFrameId) {
+              if (event.event === 'frame' || event.event === 'spawn' || event.event === 'flap') {
+                const currentFrameId = event.data.frameId;
+                if (currentFrameId == 0 || currentFrameId > lastFrameId) {
                   //positve case do nothing
                 } else {
                   console.log('Telemetry frameId order violation', {
@@ -483,16 +483,22 @@ export async function POST(request) {
             console.log('maxCanvW',maxCanvW);
             console.log('avgCanvW',avgCanvW);
             // Allow 40–72 FPS for mobile compatibility. No upper bound as game is harder when faster.
-            if (minFps < 55) {
-              console.log('minFps < 55',minFps, '<', '57');
+            if (minFps > 55) {
+              //positive case do nothing
+            } else {
+              console.log('minFps',minFps, 'is invalid');
               return new Response(JSON.stringify({ status: 'error', message: 'FPS out of acceptable range' }), { status: 400 });
             }
             // Check for suspicious FPS variance (e.g., >10 FPS change)
-            if (maxFps - minFps > 7) {
+            if (maxFps - minFps <= 7) {
+              //positive case do nothing
+            } else {
               console.log('maxFps - minFps > 7',maxFps,' -', minFps, '>',' 7');
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious FPS variance during game' }), { status: 400 });
             }
-            if (maxCanvH - minCanvH > 1 || avgCanvH - stats.canvasHeight > 1 ) {
+            if (maxCanvH - minCanvH < 1 && avgCanvH - stats.canvasHeight < 1 ) {
+              //positive case do nothing
+            } else {
               console.log('maxCanvH - minCanvH > 1 || avgCanvH - stats.canvasHeight > 1 ',maxCanvH - minCanvH,' > 1 || ',avgCanvH - stats.canvasHeight,' > 1 ');
               return new Response(JSON.stringify({ status: 'error', message: 'Canvas size changed during game' }), { status: 400 });                
             }

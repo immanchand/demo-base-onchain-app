@@ -17,7 +17,6 @@ import {
   contractABI,
   CONTRACT_ADDRESS,
   GAME_PRICE_WEI,
-  ethPrice,
 } from '../constants';
 import { QuantitySelector } from '../../node_modules/@coinbase/onchainkit/esm/internal/components/QuantitySelector';
 import { useState } from 'react';
@@ -25,6 +24,8 @@ import { useState } from 'react';
 interface BuyTicketsWrapperProps {
   updateTickets: () => void;
 }
+
+const ethPrice = Number(process.env.ETH_PRICE) || 2000;
 
 export default function BuyTicketsWrapper({ updateTickets }: BuyTicketsWrapperProps) {
   const [quantity, setQuantity] = useState(1);

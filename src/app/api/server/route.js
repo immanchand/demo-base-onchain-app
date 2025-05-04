@@ -197,6 +197,10 @@ export async function POST(request) {
         }
         rateLimitStore.set(`${sessionId}:end`, nowEnd);
 
+        //get and delete gameDuration Store as a check to ensure only one end game per start game
+        const gameDurationStoreValue = gameDurationStore.get(address);
+        gameDurationStore.delete(address);
+
         //main logic to check telemetry and stats and score and try to send contract transaction
         try {
           // Fetch current highScore from contract
@@ -377,17 +381,16 @@ export async function POST(request) {
             }
             // All gamess Check if server game duration is less than client game duration. With network latency, it can never be less.
             // if less, indicates cheating on client side
-            const serverDuration = nowEnd - gameDurationStore.get(address);
+            const serverDuration = nowEnd - gameDurationStoreValue;
             if (serverDuration < stats.time) {
                 console.log('GameDurationStore Stats Time Check failed for', {
                     address,
                     gameId,
                     gameName: stats.game,
-                    gameDurationStore: gameDurationStore.get(address),
+                    gameDurationStore: gameDurationStoreValue,
                     nowEnd,
                     serverDuration,
                     statsTime: stats.time});
-                gameDurationStore.delete(address);
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: game duration is more than expected' }), {
                     status: 400,
                 });
@@ -401,14 +404,12 @@ export async function POST(request) {
                 address,
                 gameId,
                 gameName: stats.game,
-                gameDurationStore: gameDurationStore.get(address),
+                gameDurationStore: gameDurationStoreValue,
                 nowEnd,
                 serverDuration,
                 telemetryDuration});  
-              gameDurationStore.delete(address);
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious telemetry duration vs server duration' }), { status: 400 });
             }
-            gameDurationStore.delete(address);
 
             // all games common telemetry check for average fps (frames per second)
             // fps should be minumum 40 and can not change more than 15 over a game period
@@ -574,7 +575,7 @@ export async function POST(request) {
                     eventParameters: event.parameters,
                     FLY_PARAMETERS,
                   });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship size' }), { status: 400 });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious game parameters' }), { status: 400 });
                 }  
               }
 

@@ -948,6 +948,16 @@ export async function POST(request) {
               let lastFrameId = lastFrame.frameId;
               const perFrameDeltaTime = 1 / avgFps;
 
+              //check that stop frame is within range of stats.framesCount
+              if (stopFrame.frameId >= stats.framesCount - 10) {
+                //positive case do nothing
+              } else {
+                console.log('last frame  is out of range of stats.framesCount', {
+                  lastFrameId: stopFrame.frameId,
+                  statsFramesCount: stats.framesCount,
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious last frame  is out of range of stats.framesCount' }), { status: 400 });
+              }
               // Initialize obstacles from the first frame's obsData or spawn events
               if (lastFrame.obsData && lastFrame.obsData.obstacles) {
                 activeObstacles = lastFrame.obsData.obstacles.map(obs => ({ ...obs }));

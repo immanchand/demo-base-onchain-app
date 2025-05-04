@@ -240,7 +240,7 @@ export async function POST(request) {
             console.error('Error fetching game data from contract:', error);
             //continue with game validation and submission because not players fault this call failed
             }
-          // Validate only if score >= 20000 and > contractHighScore
+          // Validate only if score >= TELEMETRY_SCORE_THRESHOLD and > contractHighScore
           // all telemetry and stats checks go inside this if block
           if (Number(score) >= TELEMETRY_SCORE_THRESHOLD) {
             
@@ -543,7 +543,9 @@ export async function POST(request) {
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious deltaTime variance' }), { status: 400 });
             }
             //all games check total telemetry frame delta time against stats.time/1000=gameTimeSec
-            if (totalFrameDeltaTime > gameTimeSec  * 1.01 || totalFrameDeltaTime < gameTimeSec * 0.99) { //1% variance allowed
+            if (totalFrameDeltaTime < gameTimeSec  * 1.01 && totalFrameDeltaTime > gameTimeSec * 0.99) { //1% variance allowed
+              //positive case do nothing
+            } else {
               console.log('Frame delta time and stats total time mismatch', {
                 address,
                 gameId,
@@ -558,12 +560,13 @@ export async function POST(request) {
                                     
             //All games events filtered required
             const spawnEvents = telemetry.filter(e => e.event === 'spawn');
-            //const frameSwpawnEvents = telemetry.filter(e => e.event === 'frame' || e.event === 'spawn');
             // common duration and score checks for TIME based games
             if (stats.game === 'fly' || stats.game === 'jump') {
               
               // TIME based games Check if score is less than client side game duration with 1 seconds tolerance for start game
-              if (score > (stats.time + TIME_VARIANCE_MS)/SCORE_DIVISOR_TIME) {
+              if (score < (stats.time + 1000)/SCORE_DIVISOR_TIME) { // one second variance 
+                //positive case do nothing
+              } else {
                 console.log('Duration and score check failed for', {
                   address,
                   gameId,
@@ -578,14 +581,18 @@ export async function POST(request) {
               // TIME based games telemetry computed score validation
               let computedScore = totalFrameDeltaTime * gameParams.SCORE_MULTIPLIER;
               console.log('computedScore max', computedScore * 1.01); // 1 percent variance
-              if (Number(score) > computedScore * 1.1) {
+              if (Number(score) < computedScore * 1.1) {
+                //positive case do nothing
+              } else {
                 console.log('Number(score) > computedScore * 1.1', Number(score), '>', computedScore, '* 1.1');
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score: computed events and reported score don’t match' }), { status: 400 });
               }
 
               //Time based games check ship x position
               for (const event of frameEvents) {
-                if(event.data.x != stats.shipX) {
+                if(event.data.x === stats.shipX) {
+                  //positive case do nothing
+                } else {
                   console.log('Ship x position mismatch:', {
                     address,
                     gameId,
@@ -609,7 +616,9 @@ export async function POST(request) {
               for (const event of frameEvents) {
                 maxObstaclesInPool = Math.max(maxObstaclesInPool, event.obsData.obstacles.length);
               }
-              if (Math.abs(maxObstaclesInPool - stats.maxObstacles) > 2) {
+              if (Math.abs(maxObstaclesInPool - stats.maxObstacles) < 2) {
+                //positive case do nothing
+              } else {
                 console.log('Invalid maxObstaclesInPool vs stats.maxObstacles', {
                   address,
                   gameId,
@@ -631,9 +640,10 @@ export async function POST(request) {
               }
               //get unique y positions which should be all unique spawns
               const uniqueYPositions = new Set(yPositions);
-              console.log('uniqueYPositions.size',uniqueYPositions.size);
-              console.log('spawnEvents.length',spawnEvents.length);
-              if(uniqueYPositions.size < spawnEvents.length * 0.99 || uniqueYPositions.size > spawnEvents.length){
+              console.log('uniqueYPositions.size',uniqueYPositions.size, 'spawnEvents.length',spawnEvents.length);
+              if(uniqueYPositions.size > spawnEvents.length * 0.99 && uniqueYPositions.size <= spawnEvents.length){
+                //positive case do nothing
+              } else {
                 console.log('uniqueYPositions and spawns mismatch', {
                   address,
                   uniqueYPositions: uniqueYPositions.size,
@@ -666,7 +676,9 @@ export async function POST(request) {
               //calculate variance between min and max
               let minObserved = Math.min(...observedFrequencies);
               let maxObserved = Math.max(...observedFrequencies);
-              if(minObserved < (maxObserved/2) * 0.5) {
+              if(minObserved >= (maxObserved/2) * 0.5) {
+                //positive case do nothing
+              } else {
                 console.log('Insufficient obstacle y position spawns in min bin', {
                   address,
                   gameId,
@@ -683,10 +695,7 @@ export async function POST(request) {
               // Expected frequency for uniform distribution
               const expectedFrequency = (uniqueYPositions.size) / (numBins);
               for (let i = 0; i < numBins; i++) {
-               // if(observedFrequencies[i] === maxObserved)
-                //  continue
                 const observed = observedFrequencies[i];
-                console.log('observedFrequency',observed, 'expectedFrequency',expectedFrequency);
                 const diff = observed - expectedFrequency;
                 chiSquared += (diff * diff) / expectedFrequency;
               }
@@ -694,7 +703,9 @@ export async function POST(request) {
               // at 95% confidence level (alpha = 0.05) is approximately 16.919
               const CHI_SQUARED_CRITICAL_VALUE = 17;
               console.log('Chi-squared statistic:', chiSquared, 'max chi: 17');
-              if (chiSquared > CHI_SQUARED_CRITICAL_VALUE) {
+              if (chiSquared <= CHI_SQUARED_CRITICAL_VALUE) {
+                //positive case do nothing
+              } else {
                 console.log('Suspicious obstacle y position distribution', {
                   address,
                   gameId,
@@ -709,8 +720,10 @@ export async function POST(request) {
               }
 
               // Validate spawn events vs. obstacles cleared and maxObstacles
-              if (stats.obstaclesCleared < spawnEvents.length - stats.maxObstacles
-                || stats.obstaclesCleared > spawnEvents.length) {
+              if (stats.obstaclesCleared >= spawnEvents.length - stats.maxObstacles &&
+                  stats.obstaclesCleared <= spawnEvents.length) {
+                    //positive case do nothing
+              } else {
                 console.log('Spawn events count mismatch', {
                     address,
                     gameId,

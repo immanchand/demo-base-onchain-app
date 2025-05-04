@@ -647,13 +647,34 @@ export async function POST(request) {
               const uniqueYPositions = new Set(yPositionsFrames);
               const uniqueYPositionsSpawn = new Set(yPositionsSpawns);
               console.log('uniqueYPositions',uniqueYPositions,'uniqueYPositionsSpawn',uniqueYPositionsSpawn);
-              if (uniqueYPositions === uniqueYPositionsSpawn) {
+              //check that all uniqe spawn positions and unique obsdata positions are the same
+              if (uniqueYPositions.size === uniqueYPositionsSpawn.size) {
                 //positive case do nothing
               } else {
-                console.log('uniqueYPositions',uniqueYPositions,'uniqueYPositionsSpawn',uniqueYPositionsSpawn,'are not equal');
+                console.log('uniqueYPositions',uniqueYPositions,'uniqueYPositionsSpawn',uniqueYPositionsSpawn,'size not equal');
               }
+              uniqueYPositions.forEach(y => {
+                if (uniqueYPositionsSpawn.has(y)) {
+                  //positive case do nothing
+                } else {
+                  console.log(`Mismatch: y position ${y} from uniqueYPositions not found in uniqueYPositionsSpawn`);
+                  return new Response(JSON.stringify({ status: 'error', message: 'Invalid y positions spawns and obstacles' }), { status: 400 });
+                }
+              });
+              // Additional check to ensure all elements in uniqueYPositionsSpawn are in uniqueYPositions
+              uniqueYPositionsSpawn.forEach(y => {
+                if (uniqueYPositions.has(y)) {
+                  //positive case do nothing
+                } else {
+                  console.log(`Mismatch: y position ${y} from uniqueYPositionsSpawn not found in uniqueYPositions`);
+                  return new Response(JSON.stringify({ status: 'error', message: 'Invalid y positions obstacles and spawns' }), { status: 400 });
+                }
+              });
+
+              //check that the nuber of spawn events is equal to unique obsdata positions with 1% variance
               console.log('uniqueYPositions.size',uniqueYPositions.size, 'spawnEvents.length',spawnEvents.length);
               if(uniqueYPositions.size > spawnEvents.length * 0.99 && uniqueYPositions.size <= spawnEvents.length){
+
                 //positive case do nothing
               } else {
                 console.log('uniqueYPositions and spawns mismatch', {

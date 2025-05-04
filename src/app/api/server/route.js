@@ -651,11 +651,12 @@ export async function POST(request) {
               //get unique y positions which should be all unique spawns
               const uniqueYPositions = new Set(yPositionsFrames);
               const uniqueYPositionsSpawn = new Set(yPositionsSpawns);
-              //check that all uniqe spawn positions and unique obsdata positions are the same
-              if (uniqueYPositions.size === uniqueYPositionsSpawn.size) {
+              //check that all uniqe spawn positions and unique obsdata positions are the same tolerance 1 cluster frame event
+              if (uniqueYPositions.size <= uniqueYPositionsSpawn.size && uniqueYPositions.size >= uniqueYPositionsSpawn.size -2) {
                 //positive case do nothing
               } else {
                 console.log('uniqueYPositions',uniqueYPositions,'uniqueYPositionsSpawn',uniqueYPositionsSpawn,'size not equal');
+                return new Response(JSON.stringify({ status: 'error', message: 'Invalid y position count spawns and obstacles' }), { status: 400 });
               }
               uniqueYPositions.forEach(y => {
                 if (uniqueYPositionsSpawn.has(y)) {
@@ -666,14 +667,17 @@ export async function POST(request) {
                 }
               });
               // Additional check to ensure all elements in uniqueYPositionsSpawn are in uniqueYPositions
+              let spawnMissing = 0;
               uniqueYPositionsSpawn.forEach(y => {
-                if (uniqueYPositions.has(y)) {
-                  //positive case do nothing
-                } else {
-                  console.log(`Mismatch: y position ${y} from uniqueYPositionsSpawn not found in uniqueYPositions`);
-                  return new Response(JSON.stringify({ status: 'error', message: 'Invalid y positions obstacles and spawns' }), { status: 400 });
-                }
+                if (!uniqueYPositions.has(y))
+                  spawnMissing++;
               });
+              if (spawnMissing <= 2){
+                //positive case do nothing
+              } else {
+                console.log('Too many Missing y positions from uniqueYPositionsSpawn not found in uniqueYPositions');
+                return new Response(JSON.stringify({ status: 'error', message: 'Invalid y positions obstacles and spawns' }), { status: 400 });
+              }
 
               //check that the nuber of spawn events is equal to unique obsdata positions with 1% variance
               console.log('uniqueYPositions.size',uniqueYPositions.size, 'spawnEvents.length',spawnEvents.length);

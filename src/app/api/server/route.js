@@ -542,8 +542,7 @@ export async function POST(request) {
                 address,
                 gameId,
                 gameName: stats.game,
-                deltaTimes,
-                deltaVariance,
+                frameDeltaTimieVariance,
               });
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious deltaTime variance' }), { status: 400 });
             }
@@ -679,10 +678,9 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Invalid y positions obstacles and spawns' }), { status: 400 });
               }
 
-              //check that the nuber of spawn events is equal to unique obsdata positions with 1% variance
+              //check that the nuber of spawn events is equal to unique obsdata positions with 1 cluster frame event variance
               console.log('uniqueYPositions.size',uniqueYPositions.size, 'spawnEvents.length',spawnEvents.length);
-              if(uniqueYPositions.size > spawnEvents.length * 0.99 && uniqueYPositions.size <= spawnEvents.length){
-
+              if(uniqueYPositions.size > spawnEvents.length-2 && uniqueYPositions.size <= spawnEvents.length){
                 //positive case do nothing
               } else {
                 console.log('uniqueYPositions and spawns mismatch', {
@@ -699,7 +697,7 @@ export async function POST(request) {
               const observedFrequencies = Array(numBins).fill(0);
               // Assign y positions to bins
               let isInvalidYPosition = false;
-              uniqueYPositions.forEach(y => {
+              uniqueYPositionsSpawn.forEach(y => {
                 if (y >= 0 && y <= stats.canvasHeight - gameParams.OBSTACLE_SIZE) {
                   const binIndex = Math.min(Math.floor(y / binSize), numBins - 1);
                   observedFrequencies[binIndex]++;
@@ -734,7 +732,7 @@ export async function POST(request) {
               // Calculate chi-squared statistic
               let chiSquared = 0;
               // Expected frequency for uniform distribution
-              const expectedFrequency = (uniqueYPositions.size) / (numBins);
+              const expectedFrequency = (uniqueYPositionsSpawn.size) / (numBins);
               for (let i = 0; i < numBins; i++) {
                 const observed = observedFrequencies[i];
                 const diff = observed - expectedFrequency;
@@ -893,8 +891,8 @@ export async function POST(request) {
               }
               const avgInterval = flapIntervals.reduce((a, b) => a + b, 0) / flapIntervals.length;
               const variance = flapIntervals.reduce((a, b) => a + Math.pow(b - avgInterval, 2), 0) / flapIntervals.length;
-              console.log('Flap Interval Variance (min 2, max 8, variance:', variance);
-              if (variance > 2 && variance < 8) {
+              console.log('Flap Interval Variance (min 1, max 6, variance:', variance);
+              if (variance > 1 && variance < 6) {
                 //positive case do nothing
               } else {
                 console.log('Suspicious flap interval variance not between 2< >8', variance);

@@ -312,7 +312,6 @@ export async function POST(request) {
                   });
                   return new Response(JSON.stringify({ status: 'error', message: `Invalid parameter: ${key}` }), { status: 400 });
                 }
-                console.log('key', key, 'value', event.parameters[key], 'expectedValue', expectedValue);
               }
             }
 
@@ -398,7 +397,8 @@ export async function POST(request) {
             }
             // All gamess Check if server game duration is less than client game duration. With network latency, it can never be less.
             // if less, indicates cheating on client side
-            const serverDuration = nowEnd - gameDurationStoreValue;
+            let gameDurationStoreValue1;
+            const serverDuration = nowEnd - gameDurationStoreValue1;
             if (serverDuration < stats.time) {
                 console.log('GameDurationStore Stats Time Check failed for', {
                     address,

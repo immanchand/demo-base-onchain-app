@@ -949,7 +949,7 @@ export async function POST(request) {
               const perFrameDeltaTime = 1 / avgFps;
 
               //check that stop frame is within range of stats.framesCount
-              if (stopFrame.frameId >= stats.framesCount - 10) {
+              if (stopFrame.frameId >= stats.framesCount - 10 && stopFrame.frameId <= stats.framesCount) {
                 //positive case do nothing
               } else {
                 console.log('last frame  is out of range of stats.framesCount', {
@@ -980,7 +980,7 @@ export async function POST(request) {
 
                 // Simulate frame by frame physics and obstacle movement
                 for (let i = lastFrameId; i < event.frameId; i++) {
-                  if (event.frameId + i >= stats.framesCount) console.log('event.frameId + i', event.frameId + i);
+                  //if (event.frameId + i >= stats.framesCount) console.log('event.frameId + i', event.frameId + i);
                   // Update ship physics
                   currentVy += gameParams.GRAVITY;
                   currentY += currentVy;

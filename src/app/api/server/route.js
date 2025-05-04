@@ -399,6 +399,7 @@ export async function POST(request) {
             // if less, indicates cheating on client side
             let gameDurationStoreValue1;
             const serverDuration = nowEnd - gameDurationStoreValue1;
+            console.log('serverDuration',serverDuration);
             if (serverDuration < stats.time) {
                 console.log('GameDurationStore Stats Time Check failed for', {
                     address,

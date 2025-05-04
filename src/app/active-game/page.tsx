@@ -5,7 +5,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { Address } from 'viem';
 import { formatEther } from 'viem';
 import { useAccount } from 'wagmi';
-import { publicClient, contractABI, CONTRACT_ADDRESS, gameMasterAddress, ethPrice } from 'src/constants';
+import { publicClient, contractABI, CONTRACT_ADDRESS, gameMasterAddress } from 'src/constants';
 import WalletWrapper from 'src/components/WalletWrapper';
 import WinnerWithdrawWrapper from 'src/components/WinnerWithdrawWrapper';
 import Shoot from 'src/components/Shoot';
@@ -24,6 +24,7 @@ interface GameData {
     error?: boolean;
 }
 
+const ethPrice = Number(process.env.ETH_PRICE) || 2000;
 const useCountdown = (endTime: bigint) => {
     const [countdown, setCountdown] = useState<string>('00:00:00');
     const [isGameOver, setIsGameOver] = useState<boolean>(false);

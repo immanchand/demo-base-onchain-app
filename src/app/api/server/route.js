@@ -740,15 +740,19 @@ export async function POST(request) {
               for (let i = 0; i < spawnEvents.length; i++) {
                 const event = spawnEvents[i];
                 // Size check
-                if (event.data.width !== gameParams.OBSTACLE_SIZE || event.data.height !== gameParams.OBSTACLE_SIZE) {
-                    console.log('Invalid obstacle size', { actualWidth: event.data.width, actualHeight: event.data.height });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
+                if (event.data.width === gameParams.OBSTACLE_SIZE && event.data.height === gameParams.OBSTACLE_SIZE) {
+                  //positive case do nothing
+                } else {
+                  console.log('Invalid obstacle size', { actualWidth: event.data.width, actualHeight: event.data.height });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
                 }
                 // Speed check
                 const elapsedTimeSec = ((event.time - gameStartTime) / 1000);
                 const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
                 const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-                if (Math.abs(event.data.speed - expectedSpeed) > 0.1) {
+                if (Math.abs(event.data.speed - expectedSpeed) <= 0.1) {
+                  //positive case do nothing
+                } else {
                     console.log('Obstacle speed check failed', { 
                         address,
                         gameId,
@@ -789,7 +793,9 @@ export async function POST(request) {
               console.log('minExpectedSpawns',minExpectedSpawns);
               console.log('maxExpectedSpawns',maxExpectedSpawns);
               console.log('actual spawns',spawnEvents.length);
-              if (spawnEvents.length < minExpectedSpawns || spawnEvents.length > maxExpectedSpawns) {
+              if (spawnEvents.length >= minExpectedSpawns && spawnEvents.length <= maxExpectedSpawns) {
+                //positive case do nothing
+              } else {
                 console.log('Suspicious spawn count', {
                     spawnEventsLength: spawnEvents.length,
                     minExpectedSpawns,
@@ -804,10 +810,10 @@ export async function POST(request) {
               const doubleSpawnTolerance = 2 * doubleSpawnStdDev;
               const minExpectedDoubleSpawns = Math.floor(expectedDoubleSpawns - doubleSpawnTolerance);
               const maxExpectedDoubleSpawns = Math.ceil(expectedDoubleSpawns + doubleSpawnTolerance*1.5);
-              console.log('minExpectedDoubleSpawns',minExpectedDoubleSpawns);
-              console.log('maxExpectedDoubleSpawns',maxExpectedDoubleSpawns);
-              console.log('actual double spawn',doubleSpawnCount);
-              if (doubleSpawnCount < minExpectedDoubleSpawns || doubleSpawnCount > maxExpectedDoubleSpawns) {
+              console.log('min',minExpectedDoubleSpawns,'max',maxExpectedDoubleSpawns,'and actual double spawns',doubleSpawnCount);
+              if (doubleSpawnCount >= minExpectedDoubleSpawns && doubleSpawnCount <= maxExpectedDoubleSpawns) {
+                //positive case do nothing
+              } else {
                 console.log('Suspicious double spawn count', {
                     doubleSpawnCount,
                     expectedDoubleSpawns,
@@ -822,10 +828,10 @@ export async function POST(request) {
               const maxObstaclesTolerance = 1.5 * maxObstaclesStdDev;
               const minExpectedMaxObstacles = Math.floor(expectedMaxObstacles - maxObstaclesTolerance);
               const maxExpectedMaxObstacles = Math.ceil(expectedMaxObstacles + maxObstaclesTolerance*2);
-              console.log('minExpectedMaxObstacles',minExpectedMaxObstacles);
-              console.log('maxExpectedMaxObstacles',maxExpectedMaxObstacles);
-              console.log('stats.maxObstacles',stats.maxObstacles);
-              if (stats.maxObstacles < minExpectedMaxObstacles || stats.maxObstacles > maxExpectedMaxObstacles) {
+              console.log('min',minExpectedMaxObstacles,'max',maxExpectedMaxObstacles,'and actual maxObstacles',stats.maxObstacles);
+              if (stats.maxObstacles >= minExpectedMaxObstacles && stats.maxObstacles <= maxExpectedMaxObstacles) {
+                //positive case do nothing
+              } else {
                   console.log('Suspicious maxObstacles', {
                       maxObstacles: stats.maxObstacles,
                       minExpectedMaxObstacles,
@@ -838,13 +844,7 @@ export async function POST(request) {
 
               // FLY GAME FLAP VALIDATIONS
               const flapEvents = telemetry.filter(e => e.event === 'flap');
-
-              // console.log('first frame obsData', frameEvents[0].obsData);
-              // console.log('second frame obsData', frameEvents[1].obsData);
-              // console.log('third frame obsData', frameEvents[2].obsData);
-              // console.log('fourth frame obsData', frameEvents[3].obsData);
-
-              // 2. Flap Interval Variance
+              // 1. Flap Interval Variance
               const flapIntervals = [];
               for (let i = 1; i < flapEvents.length; i++) {
                 const frameInterval = (flapEvents[i].frameId - flapEvents[i - 1].frameId) / 10;
@@ -853,15 +853,19 @@ export async function POST(request) {
               const avgInterval = flapIntervals.reduce((a, b) => a + b, 0) / flapIntervals.length;
               const variance = flapIntervals.reduce((a, b) => a + Math.pow(b - avgInterval, 2), 0) / flapIntervals.length;
               console.log('Flap Interval Variance (min 2, max 8, variance:', variance);
-              if (variance < 2 || variance > 8) {
+              if (variance > 2 && variance < 8) {
+                //positive case do nothing
+              } else {
                 console.log('Suspicious flap interval variance not between 2< >8', variance);
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap interval variance' }), { status: 400 });
               }
 
-              // 3. Validate Flap Frequency
+              // 2. Validate Flap Frequency
               const flapCount = flapEvents.length;
               const expectedFlapsPerSec = flapCount / gameTimeSec;
-              if (Math.abs(stats.flapsPerSec - expectedFlapsPerSec) > 0.005) {
+              if (Math.abs(stats.flapsPerSec - expectedFlapsPerSec) < 0.005) {
+                //positive case do nothing
+              } else {
                 console.log('Suspicious flapsPerSec vs flap events', {
                   statsFlapsPerSec: stats.flapsPerSec,
                   expectedFlapsPerSec,
@@ -869,8 +873,10 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flapsPerSec vs flap events patterns' }), { status: 400 });
               }
 
-              // 4. Existing flapsPerSec vs inputsPerSec check
-              if (Math.abs(stats.flapsPerSec - stats.inputsPerSec) > 0.01) {
+              // 3. Existing flapsPerSec vs inputsPerSec check
+              if (Math.abs(stats.flapsPerSec - stats.inputsPerSec) < 0.01) {
+                //positive case do nothing
+              } else {
                 console.log('Suspicious flapsPerSec vs inputsPerSec', {
                   statsFlapsPerSec: stats.flapsPerSec,
                   statsInputsPerSec: stats.inputsPerSec,
@@ -878,8 +884,10 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious stats flapsPerSec vs inputsPerSec' }), { status: 400 });
               }
 
-              // 5. Existing min/max flaps per second checks
-              if (stats.flapsPerSec < 1 || stats.flapsPerSec > 4) {
+              // 4. Existing min/max flaps per second checks
+              if (stats.flapsPerSec > 1 && stats.flapsPerSec < 4) {
+                //positive case do nothing
+              } else {
                 console.log('stats.flapsPerSec is out of range', {
                   flapsPerSec,
                   minFlapsPerSec: 1,
@@ -889,7 +897,7 @@ export async function POST(request) {
               }
 
 
-              //6. FULL GAME PHYSICS SIMULATION
+              //5. FULL GAME PHYSICS SIMULATION
               let activeObstacles = []; // Track active obstacles
               let lastFrame = telemetry.find(e => e.event === 'frame');
               const shipStartX = stats.canvasWidth * 0.15; // Initialize ship x
@@ -912,7 +920,9 @@ export async function POST(request) {
                 const framesElapsed = event.frameId - lastFrameId;
                 const expectedTime = framesElapsed * perFrameDeltaTime * 1000; // Convert to ms
                 const actualTime = event.time - lastTime;
-                if (Math.abs(actualTime - expectedTime) > 50) { // 50ms tolerance
+                if (Math.abs(actualTime - expectedTime) < 100) { // 100ms tolerance
+                  //positive case do nothing
+                } else {
                   console.log('Time inconsistency', { event, lastFrameId, actualTime, expectedTime });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious event timing' }), { status: 400 });
                 }
@@ -926,12 +936,11 @@ export async function POST(request) {
                     currentY = 0; // Clamp y-position to 0
                     currentVy = 0; // Clamp vy to 0
                   }
-                  if (currentY > stats.canvasHeight - gameParams.SHIP_HEIGHT) {
+                  if (currentY <= stats.canvasHeight - gameParams.SHIP_HEIGHT) {
+                    //positive case do nothing
+                  } else {
                     console.log('Suspicious ship no collision with ground');
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship no collision with ground' }), { status: 400 });
-                  }
-                  if (currentY > stats.canvasHeight - gameParams.SHIP_HEIGHT * 1.5) {
-                    console.log('SUPER CLOSE TO DEATH!! frame id:', event.frameId + i);
                   }
 
                   // Update obstacle positions
@@ -951,7 +960,9 @@ export async function POST(request) {
                     const distance = Math.sqrt(
                       Math.pow(shipCenterX - obsCenterX, 2) + Math.pow(shipCenterY - obsCenterY, 2)
                     );
-                    if (distance < (gameParams.SHIP_WIDTH + gameParams.OBSTACLE_SIZE) / 2) {
+                    if (distance >= (gameParams.SHIP_WIDTH + gameParams.OBSTACLE_SIZE) / 2) {
+                      //positive case do nothing
+                    } else {
                       console.log('Suspicious unreported obstacle collision', { frameId: event.frameId + i, shipX: shipStartX, shipY: currentY, obs });
                       return new Response(JSON.stringify({ status: 'error', message: 'Suspicious unreported obstacle collision' }), { status: 400 });
                     }
@@ -969,29 +980,39 @@ export async function POST(request) {
                     dodged: false
                   });
                 } else if (event.event === 'flap') {
-                  if (event.data.x !== shipStartX) {
+                  if (event.data.x === shipStartX) {
+                    //positive case do nothing
+                  } else {
                     console.log('Ship out of start x position', { event, shipStartX });
                       return new Response(JSON.stringify({ status: 'error', message: 'Ship out of start x position' }), { status: 400 });
                   }
                   // Apply flap velocity
                   currentVy = gameParams.FLAP_VELOCITY;
                   // Validate flap position and velocity
-                  if (Math.abs(event.data.y - currentY) > 0.001) {
+                  if (Math.abs(event.data.y - currentY) < 0.001) {
+                    //positive case do nothing
+                  } else {
                     console.log('Flap position check failed', { event, expectedY: currentY, actualY: event.data.y });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap position' }), { status: 400 });
                   }
-                  if (Math.abs(event.data.vy - gameParams.FLAP_VELOCITY) > 0.001) {
+                  if (Math.abs(event.data.vy - gameParams.FLAP_VELOCITY) < 0.001) {
+                    //positive case do nothing
+                  } else {
                     console.log('Flap velocity check failed', { event, expectedVy: gameParams.FLAP_VELOCITY, actualVy: event.data.vy });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap velocity' }), { status: 400 });
                   }
 
                 } else if (event.event === 'frame') {
                   // Validate frame position and velocity
-                  if (Math.abs(event.data.y - currentY) > 0.001) {
+                  if (Math.abs(event.data.y - currentY) < 0.001) {
+                    //positive case do nothing
+                  } else {
                     console.log('Frame position check failed', { event, expectedY: currentY, actualY: event.data.y });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
                   }
-                  if (Math.abs(event.data.vy - currentVy) > 0.001) {
+                  if (Math.abs(event.data.vy - currentVy) < 0.001) {
+                    //positive case do nothing
+                  } else {
                     console.log('Frame velocity check failed', { event, expectedVy: currentVy, actualVy: event.data.vy });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame velocity' }), { status: 400 });
                   }
@@ -1007,7 +1028,9 @@ export async function POST(request) {
                         Math.abs(obs.x - activeObs.x) < Math.abs(activeObs.dx)*2 &&// Allow small x discrepancy
                         Math.abs(obs.dx - activeObs.dx) < 0.001
                       );
-                      if (!matchingObs) {
+                      if (matchingObs) {
+                        //positive case do nothing
+                      } else {
                         console.log('Suspicious obstacle disappearance', {
                           frameId: event.frameId,
                           missingObs: activeObs,
@@ -1033,23 +1056,14 @@ export async function POST(request) {
 
 
 
-
-
-
-
               // SHOOT GAME
             } else if (stats.game === 'shoot') {
               
-              const hitRate = stats.kills / (stats.shots || 1);
-              if (hitRate > 0.8 || stats.kills > gameTimeSec || Number(score) > stats.kills * 31) {
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {
-                  status: 400,
-                });
-              }
-              computedScore = stats.kills * 31; // Override telemetry for Shoot
-
-
-
+              console.log('Shoot game ended with score', Number(score));
+                  return new Response(
+                    JSON.stringify({ status: 'success', isHighScore: false }),
+                    { status: 200 }
+                  );
 
               
             // JUMP GAME

@@ -380,8 +380,8 @@ export async function POST(request) {
 
               // Verify frameId is strictly increasing for frame events
               if (event.event === 'frame' || event.event === 'spawn' || event.event === 'flap') {
-                const currentFrameId = event.data.frameId;
-                if (currentFrameId == 0 || currentFrameId > lastFrameId) {
+                const currentFrameId = event.frameId;
+                if (currentFrameId > lastFrameId) {
                   //positve case do nothing
                 } else {
                   console.log('Telemetry frameId order violation', {
@@ -509,7 +509,9 @@ export async function POST(request) {
             for (const event of frameEvents) {
               const elapsedTimeSec = ((event.time - gameStartTime) / 1000); //divide by 1000 to convert to seconds
               const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
-              if (event.data.difficulty < difficultyFactor - 0.001) {
+              if (event.data.difficulty >= difficultyFactor - 0.001) {
+                //positive case do nothing
+              } else {
                   console.log('Difficulty factor progression check failed', { 
                     address,
                     gameId,
@@ -528,7 +530,9 @@ export async function POST(request) {
             const avgFrameDeltaTime = totalFrameDeltaTime / frameDeltaTimes.length;
             const frameDeltaTimieVariance = frameDeltaTimes.reduce((a, b) => a + Math.pow(b - avgFrameDeltaTime, 2), 0) / frameDeltaTimes.length;
             console.log('frameDeltaTimieVariance',frameDeltaTimieVariance);
-            if (frameDeltaTimieVariance < 1e-7 || frameDeltaTimieVariance > 0.00012) { // 0.0000001 to 0.0001 s²
+            if (frameDeltaTimieVariance > 0.0000001 && frameDeltaTimieVariance < 0.0001) { // 0.0000001 to 0.0001 s²
+              //positive case do nothing
+            } else {
               console.log('Delta time variance check failed for',{ 
                 address,
                 gameId,

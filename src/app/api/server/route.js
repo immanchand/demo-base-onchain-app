@@ -333,19 +333,23 @@ export async function POST(request) {
             const frameEvents = telemetry.filter(e => e.event === 'frame');
 
             for (const event of frameEvents) {
-              if(event.data.height != gameParams.SHIP_HEIGHT || event.data.width != gameParams.SHIP_WIDTH) {
+              if(event.data.height === gameParams.SHIP_HEIGHT && event.data.width === gameParams.SHIP_WIDTH) {
+                //positve case do nothing
+              } else {
                 console.log('Ship dimensions mismatch:', {
                   address,
                   gameId,
                   gameName: stats.game,
-                  shipHeight,
-                  shipWidth,
+                  shipHeight: gameParams.SHIP_HEIGHT,
+                  shipWidth: gameParams.SHIP_WIDTH,
                   eventShipHeight: event.data.height,
                   eventShipWidth: event.data.width,
                 });
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship size' }), { status: 400 });
               }
-              if(event.data.score != 0) {
+              if(event.data.score === 0) {
+                //positve case do nothing
+              } else {
                 console.log('Frame event score should be 0', {
                   address,
                   gameId,
@@ -362,7 +366,9 @@ export async function POST(request) {
             for (let i = 0; i < telemetryLength; i++) {
               const event = telemetry[i];
               // Verify time is non-decreasing
-              if (event.time < lastTime) {
+              if (event.time >= lastTime) {
+                //positve case do nothing
+              } else {
                 console.log('Telemetry time order violation', {
                   index: i,
                   eventTime: event.time,
@@ -375,7 +381,9 @@ export async function POST(request) {
               // Verify frameId is strictly increasing for frame events
               if (event.event === 'frame') {
                 const currentFrameId = event.data.frameId/10; //divide 10 because front end captures every 10 frames
-                if (currentFrameId <= lastFrameId) {
+                if (currentFrameId > lastFrameId) {
+                  //positve case do nothing
+                } else {
                   console.log('Telemetry frameId order violation', {
                     index: i,
                     currentFrameId,
@@ -388,7 +396,9 @@ export async function POST(request) {
             }
             // All game check telemetry only one event collision
             const collisionEvents = telemetry.filter(e => e.event === 'collision');
-            if (collisionEvents.length !== 1 && (collisionEvents.length == 2 && collisionEvents[0].time !== collisionEvents[1].time)) {
+            if (collisionEvents.length === 1 || (collisionEvents.length == 2 && collisionEvents[0].time === collisionEvents[1].time)) {
+              //positve case do nothing
+            } else {
               console.log('Incorrect number of collision events found for', {
                 address,
                 gameId,
@@ -870,7 +880,8 @@ export async function POST(request) {
 
               for (const event of telemetry) {
                 // Skip the initial frame used for initialization
-                if (event === lastFrame || event.frameId < 10 || event.event === 'fps' || event.event === 'collision') continue;
+                if (event === lastFrame || event.frameId < 10 || event.event === 'fps') continue;
+                if (event.event === 'collision') break;
                 
                 const framesElapsed = event.frameId - lastFrameId;
                 const expectedTime = framesElapsed * perFrameDeltaTime * 1000; // Convert to ms

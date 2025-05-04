@@ -245,15 +245,18 @@ export async function POST(request) {
           if (Number(score) >= TELEMETRY_SCORE_THRESHOLD) {
             
             //make sure stats and telemetry are present
-            if(stats && telemetry && telemetry.length !== 0) {//positive case do nothing
-              } else {
-              console.log('!stats || !telemetry',!stats, '||', !telemetry);
+            if(stats && telemetry && telemetry.length !== 0) {
+              //positive case do nothing
+            } else {
+              console.log('stats', stats, 'telemetry', telemetry, 'or telemetry.length', telemetry.length, 'is invalid');
               return new Response(JSON.stringify({ status: 'error', message: 'Missing telemetry or stats for high score validation' }), {
                 status: 400,
               });
             }
-            if (telemetry.length >= TELEMETRY_LIMIT-1) {
-              console.log('telemetry.length >= TELEMETRY_LIMIT-1',telemetry.length, '>=', TELEMETRY_LIMIT,'-1');
+            if (telemetry.length < TELEMETRY_LIMIT) {
+              //positive case do nothing
+            } else {
+              console.log('telemetry.length',telemetry.length, 'is more than limit', TELEMETRY_LIMIT);
               return new Response(JSON.stringify({ status: 'error', message: 'Telemetry data is invalid. Suspected cheating.' }), {
                 status: 400,
               });
@@ -264,8 +267,10 @@ export async function POST(request) {
             console.log('stats: ', stats);
             const telemetryLength = telemetry.length;
             console.log('telemetryLength', telemetryLength);
-
-            if (stats.game !== 'fly' && stats.game !== 'jump' && stats.game !== 'shoot') {
+            
+            if (stats.game === 'fly' || stats.game === 'jump' || stats.game === 'shoot') {
+               //positive case do nothing
+            } else {
               console.log('Invalid game name', stats.game);
               return new Response(JSON.stringify({ status: 'error', message: 'Invalid game name' }), { status: 400 });
             }
@@ -278,9 +283,10 @@ export async function POST(request) {
               );
               const recaptchaData = await recaptchaResponse.json();
               console.log('reCAPTCHA END data:', recaptchaData);
-              if (!recaptchaData.success || recaptchaData.score < gameParams.RECAPTCHA_END_THRESHOLD) {
-                console.log('!recaptchaData.success || recaptchaData.score < RECAPTCHA_END_THRESHOLD',
-                  !recaptchaData.success, '||', recaptchaData.score, '<', gameParams.RECAPTCHA_END_THRESHOLD);
+              if (recaptchaData.success && recaptchaData.score >= gameParams.RECAPTCHA_END_THRESHOLD) {
+                //positive case do nothing
+              } else {
+                console.log('recaptchaData.success', recaptchaData.success, 'or recaptchaData.score',recaptchaData.score, 'is invalid');
                 return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA failed. You behaved like a bot' }), {
                   status: 403,
                 });
@@ -292,7 +298,9 @@ export async function POST(request) {
             }
 
             //first easy check thats score is 0 in stats
-            if (stats.score != 0 ) {
+            if (stats.score === 0) {
+              //positve case do nothing
+            } else {
               console.log('Stats score should be 0', {
                 address,
                 gameId,
@@ -304,7 +312,9 @@ export async function POST(request) {
             const fpsEvents = telemetry.filter(e => e.event === 'fps');
             for (const event of fpsEvents) {
               for (const [key, expectedValue] of Object.entries(gameParams)) {
-                if (!(key in event.parameters) || event.parameters[key] !== expectedValue) {
+                if ((key in event.parameters) && event.parameters[key] === expectedValue) {
+                  //positve case do nothing
+                } else {
                   console.log('Game parameter mismatch', {
                     address,
                     gameId,
@@ -400,9 +410,7 @@ export async function POST(request) {
             }
             // All gamess Check if server game duration is less than client game duration. With network latency, it can never be less.
             // if less, indicates cheating on client side
-            let gameDurationStoreValue1;
-            const serverDuration = nowEnd - gameDurationStoreValue1;
-            console.log('serverDuration',serverDuration);
+            const serverDuration = nowEnd - gameDurationStoreValue;
             if (stats.time <= serverDuration) {
               //positive case do nothing
             } else {

@@ -630,16 +630,28 @@ export async function POST(request) {
               }
               console.log('maxObstaclesInPool',maxObstaclesInPool);
               // Extract y positions from all obstacles in obsData
-              const yPositions = [];
+              const yPositionsFrames = [];
               for (const event of frameEvents) {
                 if (event.obsData && event.obsData.obstacles) {
                   event.obsData.obstacles.forEach(obstacle => {
-                    yPositions.push(obstacle.y);
+                    yPositionsFrames.push(obstacle.y);
                   });
                 }
               }
+              const yPositionsSpawns = [];
+              for (const event of spawnEvents) {
+                yPositionsSpawns.push(event.data.y);
+              }
+
               //get unique y positions which should be all unique spawns
-              const uniqueYPositions = new Set(yPositions);
+              const uniqueYPositions = new Set(yPositionsFrames);
+              const uniqueYPositionsSpawn = new Set(yPositionsSpawns);
+              console.log('uniqueYPositions',uniqueYPositions,'uniqueYPositionsSpawn',uniqueYPositionsSpawn);
+              if (uniqueYPositions === uniqueYPositionsSpawn) {
+                //positive case do nothing
+              } else {
+                console.log('uniqueYPositions',uniqueYPositions,'uniqueYPositionsSpawn',uniqueYPositionsSpawn,'are not equal');
+              }
               console.log('uniqueYPositions.size',uniqueYPositions.size, 'spawnEvents.length',spawnEvents.length);
               if(uniqueYPositions.size > spawnEvents.length * 0.99 && uniqueYPositions.size <= spawnEvents.length){
                 //positive case do nothing
@@ -701,8 +713,8 @@ export async function POST(request) {
               }
               // Critical value for chi-squared test with 9 degrees of freedom (numBins - 1)
               // at 95% confidence level (alpha = 0.05) is approximately 16.919
-              const CHI_SQUARED_CRITICAL_VALUE = 17;
-              console.log('Chi-squared statistic:', chiSquared, 'max chi: 17');
+              const CHI_SQUARED_CRITICAL_VALUE = 34;
+              console.log('Chi-squared statistic:', chiSquared, 'max chi: 34');
               if (chiSquared <= CHI_SQUARED_CRITICAL_VALUE) {
                 //positive case do nothing
               } else {

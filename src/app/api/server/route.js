@@ -3,7 +3,6 @@ import { ethers } from 'ethers';
 import { getCsrfTokens } from 'src/lib/csrfStore';
 import {  contractABI,
           CONTRACT_ADDRESS,
-          RECAPTCHA_START_THRESHOLD,
           TELEMETRY_SCORE_THRESHOLD,
           TELEMETRY_LIMIT,
           SCORE_DIVISOR_TIME,
@@ -15,7 +14,7 @@ const rateLimitStore = new Map();
 const gameDurationStore = new Map();
 const GAME_MASTER_PRIVATE_KEY = process.env.GAME_MASTER_PRIVATE_KEY;
 const PROVIDER_URL = process.env.API_URL;
-const TIME_VARIANCE_MS = 1000; // 1 second time variance
+const RECAPTCHA_START_THRESHOLD = process.env.RECAPTCHA_START_THRESHOLD;
 // Map game names to their parameter sets
 const GAME_PARAMETERS = {
   fly: FLY_PARAMETERS,
@@ -282,7 +281,6 @@ export async function POST(request) {
             //get the game parameters for this specific game
             const gameParams = GAME_PARAMETERS[stats.game];
             const RECAPTCHA_END_THRESHOLD = GAME_RECAPTCHA_END_THRESHOLD[stats.game];
-            console.log('RECAPTCHA_END_THRESHOLD', RECAPTCHA_END_THRESHOLD);
 
             try {
               const recaptchaResponse = await fetch(
@@ -641,8 +639,7 @@ export async function POST(request) {
               for (const event of frameEvents) {
                 if (event.obsData && event.obsData.obstacles) {
                   event.obsData.obstacles.forEach(obstacle => {
-                    if (obstacle.x < stats.canvasWidth * 0.4  && obstacle.x > stats.canvasWidth * 0.1)
-                      yPositionsFrames.push(obstacle.y);
+                    yPositionsFrames.push(obstacle.y);
                   });
                 }
               }

@@ -969,7 +969,7 @@ export async function POST(request) {
 
                 // Simulate frame by frame physics and obstacle movement
                 for (let i = lastFrameId; i < event.frameId; i++) {
-                  //if (event.frameId + i >= stats.framesCount) break;
+                  if (event.frameId + i >= stats.framesCount) console.log('event.frameId + i', event.frameId + i);
                   // Update ship physics
                   currentVy += gameParams.GRAVITY;
                   currentY += currentVy;

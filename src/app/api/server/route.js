@@ -266,22 +266,18 @@ export async function POST(request) {
               console.log('Invalid game name', stats.game);
               return new Response(JSON.stringify({ status: 'error', message: 'Invalid game name' }), { status: 400 });
             }
-            const expectedParams = GAME_PARAMETERS[stats.game];
-            console.log('expectedParams',expectedParams);
-            // validate recaptcha token for bot detection
-            // const RECAPTCHA_END_THRESHOLD = 
-            //         stats.game === 'fly'? FLY_PARAMETERS.RECAPTCHA_END_THRESHOLD:
-            //         stats.game === 'jump'? JUMP_PARAMETERS.RECAPTCHA_END_THRESHOLD:
-            //         stats.game === 'shoot'? SHOOT_PARAMETERS.RECAPTCHA_END_THRESHOLD: 0.7;
+            //get the game parameters for this specific game
+            const gameParams = GAME_PARAMETERS[stats.game];
+
             try {
               const recaptchaResponse = await fetch(
                 `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaTokenEnd}`
               );
               const recaptchaData = await recaptchaResponse.json();
               console.log('reCAPTCHA END data:', recaptchaData);
-              if (!recaptchaData.success || recaptchaData.score < expectedParams.RECAPTCHA_END_THRESHOLD) {
+              if (!recaptchaData.success || recaptchaData.score < gameParams.RECAPTCHA_END_THRESHOLD) {
                 console.log('!recaptchaData.success || recaptchaData.score < RECAPTCHA_END_THRESHOLD',
-                  !recaptchaData.success, '||', recaptchaData.score, '<', expectedParams.RECAPTCHA_END_THRESHOLD);
+                  !recaptchaData.success, '||', recaptchaData.score, '<', gameParams.RECAPTCHA_END_THRESHOLD);
                 return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA failed. You behaved like a bot' }), {
                   status: 403,
                 });
@@ -304,7 +300,7 @@ export async function POST(request) {
             //ALL games check GAME_PARAMETERS
             const fpsEvents = telemetry.filter(e => e.event === 'fps');
             for (const event of fpsEvents) {
-              for (const [key, expectedValue] of Object.entries(expectedParams)) {
+              for (const [key, expectedValue] of Object.entries(gameParams)) {
                 if (!(key in event.parameters) || event.parameters[key] !== expectedValue) {
                   console.log('Game parameter mismatch', {
                     address,
@@ -323,16 +319,9 @@ export async function POST(request) {
             //ALL games check ship size in frame events and telemetry score is 0, and
             //common frame events filter for subsequent checks
             const frameEvents = telemetry.filter(e => e.event === 'frame');
-            // const shipHeight = 
-            //         stats.game === 'fly'? FLY_PARAMETERS.SHIP_HEIGHT:
-            //         stats.game === 'jump'? JUMP_PARAMETERS.SHIP_HEIGHT:
-            //         stats.game === 'shoot'? SHOOT_PARAMETERS.SHIP_HEIGHT: 0;
-            // const shipWidth = 
-            //         stats.game === 'fly'? FLY_PARAMETERS.SHIP_WIDTH:
-            //         stats.game === 'jump'? JUMP_PARAMETERS.SHIP_WIDTH:
-            //         stats.game === 'shoot'? SHOOT_PARAMETERS.SHIP_WIDTH: 0;
+
             for (const event of frameEvents) {
-              if(event.data.height != expectedParams.SHIP_HEIGHT || event.data.width != expectedParams.SHIP_WIDTH) {
+              if(event.data.height != gameParams.SHIP_HEIGHT || event.data.width != gameParams.SHIP_WIDTH) {
                 console.log('Ship dimensions mismatch:', {
                   address,
                   gameId,
@@ -482,15 +471,11 @@ export async function POST(request) {
             }
             
             // All games check that difficultyFactor progresses correctly.
-            const difficultyFactorTime =
-                    stats.game === 'fly'? FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME:
-                    stats.game === 'jump'? JUMP_PARAMETERS.DIFFICULTY_FACTOR_TIME:
-                    stats.game === 'shoot'? SHOOT_PARAMETERS.DIFFICULTY_FACTOR_TIME: 0;
             const gameStartTime = telemetry[0].time;
             // loop over frame events and check difficulty factor progress
             for (const event of frameEvents) {
               const elapsedTimeSec = ((event.time - gameStartTime) / 1000); //divide by 1000 to convert to seconds
-              const difficultyFactor = Math.min(elapsedTimeSec / difficultyFactorTime, 1);
+              const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
               if (event.data.difficulty < difficultyFactor - 0.001) {
                   console.log('Difficulty factor progression check failed', { 
                     address,
@@ -554,7 +539,7 @@ export async function POST(request) {
               }
 
               // TIME based games telemetry computed score validation
-              let computedScore = totalFrameDeltaTime * FLY_PARAMETERS.SCORE_MULTIPLIER;
+              let computedScore = totalFrameDeltaTime * gameParams.SCORE_MULTIPLIER;
               console.log('computedScore max', computedScore * 1.01); // 1 percent variance
               if (Number(score) > computedScore * 1.1) {
                 console.log('Number(score) > computedScore * 1.1', Number(score), '>', computedScore, '* 1.1');
@@ -580,32 +565,7 @@ export async function POST(request) {
 			      // Stats validation and telemetry validation specific to each Game
             // FLY GAME
             if (stats.game === 'fly') {
-              // GAME PARAMETERS VALIDATION
-              //interate through fps events and verify game parameters
-              for (const event of fpsEvents) {
-                if (
-                  event.parameters.SHIP_WIDTH != FLY_PARAMETERS.SHIP_WIDTH ||
-                  event.parameters.SHIP_HEIGHT != FLY_PARAMETERS.SHIP_HEIGHT ||
-                  event.parameters.OBSTACLE_SIZE != FLY_PARAMETERS.OBSTACLE_SIZE ||
-                  event.parameters.BASE_OBSTACLE_SPEED != FLY_PARAMETERS.BASE_OBSTACLE_SPEED ||
-                  event.parameters.MIN_SPAWN_INTERVAL != FLY_PARAMETERS.MIN_SPAWN_INTERVAL ||
-                  event.parameters.GRAVITY != FLY_PARAMETERS.GRAVITY ||
-                  event.parameters.FLAP_VELOCITY != FLY_PARAMETERS.FLAP_VELOCITY ||
-                  event.parameters.SCORE_MULTIPLIER != FLY_PARAMETERS.SCORE_MULTIPLIER ||
-                  event.parameters.DIFFICULTY_FACTOR_TIME != FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME ||
-                  event.parameters.CLUSTER_CHANCE != FLY_PARAMETERS.CLUSTER_CHANCE
-                ) {
-                  console.log('Game parameters mismatch', {
-                    address,
-                    gameId,
-                    gameName: stats.game,
-                    eventParameters: event.parameters,
-                    FLY_PARAMETERS,
-                  });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious game parameters' }), { status: 400 });
-                }  
-              }
-
+              
               // SPAWN RELATED VALIDATION
               // obsData validation for maxObstaclesInPool vs stats.maxObstacles
               let maxObstaclesInPool = 0;
@@ -644,19 +604,19 @@ export async function POST(request) {
                 })
               }
               // Perform chi-squared test for uniform distribution
-              const playableHeight = stats.canvasHeight - FLY_PARAMETERS.OBSTACLE_SIZE;
-              const numBins =  Math.floor(playableHeight/FLY_PARAMETERS.OBSTACLE_SIZE); // Divide playable height into OBSTACLE_SIZE bins
+              const playableHeight = stats.canvasHeight - gameParams.OBSTACLE_SIZE;
+              const numBins =  Math.floor(playableHeight/gameParams.OBSTACLE_SIZE); // Divide playable height into OBSTACLE_SIZE bins
               console.log('numBins', numBins);
               const binSize = playableHeight / numBins;
               const observedFrequencies = Array(numBins).fill(0);
               // Assign y positions to bins
               let isInvalidYPosition = false;
               uniqueYPositions.forEach(y => {
-                if (y >= 0 && y <= stats.canvasHeight - FLY_PARAMETERS.OBSTACLE_SIZE) {
+                if (y >= 0 && y <= stats.canvasHeight - gameParams.OBSTACLE_SIZE) {
                   const binIndex = Math.min(Math.floor(y / binSize), numBins - 1);
                   observedFrequencies[binIndex]++;
                 }
-                else {// (y < 0 || y > stats.canvasHeight - FLY_PARAMETERS.OBSTACLE_SIZE) {
+                else {
                   console.log('Invalid y-position detected:', y);
                   isInvalidYPosition = true;
                 }
@@ -730,14 +690,14 @@ export async function POST(request) {
               for (let i = 0; i < spawnEvents.length; i++) {
                 const event = spawnEvents[i];
                 // Size check
-                if (event.data.width !== FLY_PARAMETERS.OBSTACLE_SIZE || event.data.height !== FLY_PARAMETERS.OBSTACLE_SIZE) {
+                if (event.data.width !== gameParams.OBSTACLE_SIZE || event.data.height !== gameParams.OBSTACLE_SIZE) {
                     console.log('Invalid obstacle size', { actualWidth: event.data.width, actualHeight: event.data.height });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
                 }
                 // Speed check
                 const elapsedTimeSec = ((event.time - gameStartTime) / 1000);
-                const difficultyFactor = Math.min(elapsedTimeSec / FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME, 1);
-                const expectedSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
+                const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
+                const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
                 if (Math.abs(event.data.speed - expectedSpeed) > 0.1) {
                     console.log('Obstacle speed check failed', { 
                         address,
@@ -760,11 +720,11 @@ export async function POST(request) {
               let expectedDoubleSpawns = 0;
               let expectedMaxObstacles = 0;
               for (let t = 0; t < gameTimeSec; t++) {
-                const difficultyFactor = Math.min(t / FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME, 1);
-                const spawnInterval = (FLY_PARAMETERS.MAX_SPAWN_INTERVAL/1000) * (1 - difficultyFactor) + FLY_PARAMETERS.MIN_SPAWN_INTERVAL/1000; // in seconds
-                const clusterChance = difficultyFactor * FLY_PARAMETERS.CLUSTER_CHANCE;
+                const difficultyFactor = Math.min(t / gameParams.DIFFICULTY_FACTOR_TIME, 1);
+                const spawnInterval = (gameParams.MAX_SPAWN_INTERVAL/1000) * (1 - difficultyFactor) + gameParams.MIN_SPAWN_INTERVAL/1000; // in seconds
+                const clusterChance = difficultyFactor * gameParams.CLUSTER_CHANCE;
                 const spawnsPerSecond = 1 / spawnInterval;
-                const obstacleSpeed = Math.abs(FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor)); // pixels per frame
+                const obstacleSpeed = Math.abs(gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor)); // pixels per frame
                 const timeToCross = stats.canvasWidth / obstacleSpeed * (1 / avgFps); // seconds to cross screen
                 const maxObstaclesAtTime = timeToCross * spawnsPerSecond * (1 + clusterChance);
                 expectedMaxObstacles = Math.max(expectedMaxObstacles, maxObstaclesAtTime);
@@ -772,7 +732,7 @@ export async function POST(request) {
                 expectedDoubleSpawns += spawnsPerSecond * clusterChance;
               }
               // expected total spawn calculation and validations
-              const spawnStdDev = Math.sqrt(Math.abs(expectedSpawns * (1 + FLY_PARAMETERS.CLUSTER_CHANCE) * (1 - (1 + FLY_PARAMETERS.CLUSTER_CHANCE)))); // Approximate variance for obstacles
+              const spawnStdDev = Math.sqrt(Math.abs(expectedSpawns * (1 + gameParams.CLUSTER_CHANCE) * (1 - (1 + gameParams.CLUSTER_CHANCE)))); // Approximate variance for obstacles
               const spawnTolerance = 1.2 * spawnStdDev;
               const minExpectedSpawns = Math.floor(expectedSpawns - spawnTolerance);
               const maxExpectedSpawns = Math.ceil(expectedSpawns + spawnTolerance*1.5);
@@ -790,7 +750,7 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn count' }), { status: 400 });
               }
               // Expected Double spawn calculations and validations
-              const doubleSpawnStdDev = Math.sqrt(expectedDoubleSpawns * FLY_PARAMETERS.CLUSTER_CHANCE * (1 - FLY_PARAMETERS.CLUSTER_CHANCE)); // Variance for double spawns
+              const doubleSpawnStdDev = Math.sqrt(expectedDoubleSpawns * gameParams.CLUSTER_CHANCE * (1 - gameParams.CLUSTER_CHANCE)); // Variance for double spawns
               const doubleSpawnTolerance = 2 * doubleSpawnStdDev;
               const minExpectedDoubleSpawns = Math.floor(expectedDoubleSpawns - doubleSpawnTolerance);
               const maxExpectedDoubleSpawns = Math.ceil(expectedDoubleSpawns + doubleSpawnTolerance*1.5);
@@ -808,7 +768,7 @@ export async function POST(request) {
                 return new Response(JSON.stringify({status: 'error', message: 'Suspicious double spawn count' }), { status: 400 });
               }
               // expected maxObstacles range calcuations and validations
-              const maxObstaclesStdDev = Math.sqrt(Math.abs(expectedMaxObstacles * (1 + FLY_PARAMETERS.CLUSTER_CHANCE) * (1 - (1 + FLY_PARAMETERS.CLUSTER_CHANCE))));
+              const maxObstaclesStdDev = Math.sqrt(Math.abs(expectedMaxObstacles * (1 + gameParams.CLUSTER_CHANCE) * (1 - (1 + gameParams.CLUSTER_CHANCE))));
               const maxObstaclesTolerance = 1.5 * maxObstaclesStdDev;
               const minExpectedMaxObstacles = Math.floor(expectedMaxObstacles - maxObstaclesTolerance);
               const maxExpectedMaxObstacles = Math.ceil(expectedMaxObstacles + maxObstaclesTolerance*2);
@@ -909,17 +869,17 @@ export async function POST(request) {
                 // Simulate frame by frame physics and obstacle movement
                 for (let i = 0; i < Math.floor(framesElapsed); i++) {
                   // Update ship physics
-                  currentVy += FLY_PARAMETERS.GRAVITY;
+                  currentVy += gameParams.GRAVITY;
                   currentY += currentVy;
                   if (currentY < 0) {
                     currentY = 0; // Clamp y-position to 0
                     currentVy = 0; // Clamp vy to 0
                   }
-                  if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT) {
+                  if (currentY > stats.canvasHeight - gameParams.SHIP_HEIGHT) {
                     console.log('Suspicious ship no collision with ground');
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship no collision with ground' }), { status: 400 });
                   }
-                  if (currentY > stats.canvasHeight - FLY_PARAMETERS.SHIP_HEIGHT * 1.5) {
+                  if (currentY > stats.canvasHeight - gameParams.SHIP_HEIGHT * 1.5) {
                     console.log('SUPER CLOSE TO DEATH!! frame id:', event.frameId + i);
                   }
 
@@ -932,15 +892,15 @@ export async function POST(request) {
                   activeObstacles = activeObstacles.filter(obs => obs.x >= 0);
 
                   // Check for collisions with obstacles
-                  const shipCenterX = shipStartX + FLY_PARAMETERS.SHIP_WIDTH / 2;
-                  const shipCenterY = currentY + FLY_PARAMETERS.SHIP_HEIGHT / 2;
+                  const shipCenterX = shipStartX + gameParams.SHIP_WIDTH / 2;
+                  const shipCenterY = currentY + gameParams.SHIP_HEIGHT / 2;
                   for (const obs of activeObstacles) {
-                    const obsCenterX = obs.x + FLY_PARAMETERS.OBSTACLE_SIZE / 2;
-                    const obsCenterY = obs.y + FLY_PARAMETERS.OBSTACLE_SIZE / 2;
+                    const obsCenterX = obs.x + gameParams.OBSTACLE_SIZE / 2;
+                    const obsCenterY = obs.y + gameParams.OBSTACLE_SIZE / 2;
                     const distance = Math.sqrt(
                       Math.pow(shipCenterX - obsCenterX, 2) + Math.pow(shipCenterY - obsCenterY, 2)
                     );
-                    if (distance < (FLY_PARAMETERS.SHIP_WIDTH + FLY_PARAMETERS.OBSTACLE_SIZE) / 2) {
+                    if (distance < (gameParams.SHIP_WIDTH + gameParams.OBSTACLE_SIZE) / 2) {
                       console.log('Suspicious unreported obstacle collision', { frameId: event.frameId + i, shipX: shipStartX, shipY: currentY, obs });
                       return new Response(JSON.stringify({ status: 'error', message: 'Suspicious unreported obstacle collision' }), { status: 400 });
                     }
@@ -953,8 +913,8 @@ export async function POST(request) {
                     x: stats.canvasWidth, // spawn at right edge
                     y: event.data.y,
                     dx: event.data.speed,
-                    width: FLY_PARAMETERS.OBSTACLE_SIZE,
-                    height: FLY_PARAMETERS.OBSTACLE_SIZE,
+                    width: gameParams.OBSTACLE_SIZE,
+                    height: gameParams.OBSTACLE_SIZE,
                     dodged: false
                   });
                 } else if (event.event === 'flap') {
@@ -963,14 +923,14 @@ export async function POST(request) {
                       return new Response(JSON.stringify({ status: 'error', message: 'Ship out of start x position' }), { status: 400 });
                   }
                   // Apply flap velocity
-                  currentVy = FLY_PARAMETERS.FLAP_VELOCITY;
+                  currentVy = gameParams.FLAP_VELOCITY;
                   // Validate flap position and velocity
                   if (Math.abs(event.data.y - currentY) > 0.001) {
                     console.log('Flap position check failed', { event, expectedY: currentY, actualY: event.data.y });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap position' }), { status: 400 });
                   }
-                  if (Math.abs(event.data.vy - FLY_PARAMETERS.FLAP_VELOCITY) > 0.001) {
-                    console.log('Flap velocity check failed', { event, expectedVy: FLY_PARAMETERS.FLAP_VELOCITY, actualVy: event.data.vy });
+                  if (Math.abs(event.data.vy - gameParams.FLAP_VELOCITY) > 0.001) {
+                    console.log('Flap velocity check failed', { event, expectedVy: gameParams.FLAP_VELOCITY, actualVy: event.data.vy });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap velocity' }), { status: 400 });
                   }
 
@@ -989,7 +949,7 @@ export async function POST(request) {
                   const reportedObstacles = event.obsData.obstacles;
                   // Check each active obstacle that should still be on-screen
                   for (const activeObs of activeObstacles) {
-                    if (activeObs.x + FLY_PARAMETERS.OBSTACLE_SIZE >= 0) { // Should be on-screen
+                    if (activeObs.x + gameParams.OBSTACLE_SIZE >= 0) { // Should be on-screen
                       // Find a matching obstacle in reported obsData (based on y and proximity of x)
                       const matchingObs = reportedObstacles.find(obs => 
                         Math.abs(obs.y - activeObs.y) < 0.001 && 

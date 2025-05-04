@@ -16,6 +16,12 @@ const gameDurationStore = new Map();
 const GAME_MASTER_PRIVATE_KEY = process.env.GAME_MASTER_PRIVATE_KEY;
 const PROVIDER_URL = process.env.API_URL;
 const TIME_VARIANCE_MS = 1000; // 1 second time variance
+// Map game names to their parameter sets
+const GAME_PARAMETERS = {
+  fly: FLY_PARAMETERS,
+  shoot: SHOOT_PARAMETERS,
+  jump: JUMP_PARAMETERS,
+};
 
 if (!GAME_MASTER_PRIVATE_KEY || !PROVIDER_URL) {
   throw new Error('Missing GAME_MASTER_PRIVATE_KEY or PROVIDER_URL in environment');
@@ -197,13 +203,13 @@ export async function POST(request) {
         }
         rateLimitStore.set(`${sessionId}:end`, nowEnd);
 
-        //get and delete gameDuration Store as a check to ensure only one end game per start game
+        //get and delete gameDurationStore EARLY as a check to ensure only one end game per start game
         const gameDurationStoreValue = gameDurationStore.get(address);
         gameDurationStore.delete(address);
 
         //main logic to check telemetry and stats and score and try to send contract transaction
         try {
-          // Fetch current highScore from contract
+          // Fetch current highScore from contract to ensure only highscores are validated and submitted
             let gameData;
             try {
               gameData = await contract.getGame(gameId);
@@ -230,9 +236,7 @@ export async function POST(request) {
               }
             } catch (error) {
             console.error('Error fetching game data from contract:', error);
-            return new Response(JSON.stringify({ status: 'error', message: 'Failed to fetch game data' }), {
-              status: 500,
-            });
+            //continue with game validation and submission because not players fault this call failed
             }
           // Validate only if score >= 20000 and > contractHighScore
           // all telemetry and stats checks go inside this if block
@@ -258,21 +262,25 @@ export async function POST(request) {
             const telemetryLength = telemetry.length;
             console.log('telemetryLength', telemetryLength);
 
-
+            if (stats.game !== 'fly' || stats.game !== 'jump' || stats.game !== 'shoot') {
+              return new Response(JSON.stringify({ status: 'error', message: 'Invalid game name' }), { status: 400 });
+            }
+            const expectedParams = GAME_PARAMETERS[stats.game];
+            console.log('expectedParams',expectedParams);
             // validate recaptcha token for bot detection
-            const RECAPTCHA_END_THRESHOLD = 
-                    stats.game === 'fly'? FLY_PARAMETERS.RECAPTCHA_END_THRESHOLD:
-                    stats.game === 'jump'? JUMP_PARAMETERS.RECAPTCHA_END_THRESHOLD:
-                    stats.game === 'shoot'? SHOOT_PARAMETERS.RECAPTCHA_END_THRESHOLD: 0.7;
+            // const RECAPTCHA_END_THRESHOLD = 
+            //         stats.game === 'fly'? FLY_PARAMETERS.RECAPTCHA_END_THRESHOLD:
+            //         stats.game === 'jump'? JUMP_PARAMETERS.RECAPTCHA_END_THRESHOLD:
+            //         stats.game === 'shoot'? SHOOT_PARAMETERS.RECAPTCHA_END_THRESHOLD: 0.7;
             try {
               const recaptchaResponse = await fetch(
                 `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaTokenEnd}`
               );
               const recaptchaData = await recaptchaResponse.json();
               console.log('reCAPTCHA END data:', recaptchaData);
-              if (!recaptchaData.success || recaptchaData.score < RECAPTCHA_END_THRESHOLD) {
+              if (!recaptchaData.success || recaptchaData.score < expectedParams.RECAPTCHA_END_THRESHOLD) {
                 console.log('!recaptchaData.success || recaptchaData.score < RECAPTCHA_END_THRESHOLD',
-                  !recaptchaData.success, '||', recaptchaData.score, '<', RECAPTCHA_END_THRESHOLD);
+                  !recaptchaData.success, '||', recaptchaData.score, '<', expectedParams.RECAPTCHA_END_THRESHOLD);
                 return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA failed. You behaved like a bot' }), {
                   status: 403,
                 });
@@ -292,19 +300,38 @@ export async function POST(request) {
             });
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score in stats' }), { status: 400 });
             }
+            //ALL games check GAME_PARAMETERS
+            const fpsEvents = telemetry.filter(e => e.event === 'fps');
+            for (const event of fpsEvents) {
+              for (const [key, expectedValue] of Object.entries(expectedParams)) {
+                if (!(key in event.parameters) || event.parameters[key] !== expectedValue) {
+                  console.log('Game parameter mismatch', {
+                    address,
+                    gameId,
+                    gameName,
+                    parameter: key,
+                    received: event.parameters[key],
+                    expected: expectedValue,
+                  });
+                  return new Response(JSON.stringify({ status: 'error', message: `Invalid parameter: ${key}` }), { status: 400 });
+                }
+                console.log('key', key, 'value', event.parameters[key], 'expectedValue', expectedValue);
+              }
+            }
+
             //ALL games check ship size in frame events and telemetry score is 0, and
             //common frame events filter for subsequent checks
             const frameEvents = telemetry.filter(e => e.event === 'frame');
-            const shipHeight = 
-                    stats.game === 'fly'? FLY_PARAMETERS.SHIP_HEIGHT:
-                    stats.game === 'jump'? JUMP_PARAMETERS.SHIP_HEIGHT:
-                    stats.game === 'shoot'? SHOOT_PARAMETERS.SHIP_HEIGHT: 0;
-            const shipWidth = 
-                    stats.game === 'fly'? FLY_PARAMETERS.SHIP_WIDTH:
-                    stats.game === 'jump'? JUMP_PARAMETERS.SHIP_WIDTH:
-                    stats.game === 'shoot'? SHOOT_PARAMETERS.SHIP_WIDTH: 0;
+            // const shipHeight = 
+            //         stats.game === 'fly'? FLY_PARAMETERS.SHIP_HEIGHT:
+            //         stats.game === 'jump'? JUMP_PARAMETERS.SHIP_HEIGHT:
+            //         stats.game === 'shoot'? SHOOT_PARAMETERS.SHIP_HEIGHT: 0;
+            // const shipWidth = 
+            //         stats.game === 'fly'? FLY_PARAMETERS.SHIP_WIDTH:
+            //         stats.game === 'jump'? JUMP_PARAMETERS.SHIP_WIDTH:
+            //         stats.game === 'shoot'? SHOOT_PARAMETERS.SHIP_WIDTH: 0;
             for (const event of frameEvents) {
-              if(event.data.height != shipHeight || event.data.width != shipWidth) {
+              if(event.data.height != expectedParams.SHIP_HEIGHT || event.data.width != expectedParams.SHIP_WIDTH) {
                 console.log('Ship dimensions mismatch:', {
                   address,
                   gameId,
@@ -413,7 +440,6 @@ export async function POST(request) {
 
             // all games common telemetry check for average fps (frames per second)
             // fps should be minumum 40 and can not change more than 15 over a game period
-            const fpsEvents = telemetry.filter(e => e.event === 'fps');
             if (fpsEvents.length < (frameEvents.length/10 - 11)) {
               console.log('fpsEvents.length < (frameEvents.length/10 - 11)',fpsEvents.length, '<', frameEvents.length,'/10 - 11');
               return new Response(JSON.stringify({ status: 'error', message: 'Missing FPS events in telemetry' }), { status: 400 });
@@ -455,7 +481,7 @@ export async function POST(request) {
             }
             
             // All games check that difficultyFactor progresses correctly.
-            const difficultyFactorTime = 
+            const difficultyFactorTime =
                     stats.game === 'fly'? FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME:
                     stats.game === 'jump'? JUMP_PARAMETERS.DIFFICULTY_FACTOR_TIME:
                     stats.game === 'shoot'? SHOOT_PARAMETERS.DIFFICULTY_FACTOR_TIME: 0;
@@ -1029,6 +1055,13 @@ export async function POST(request) {
                 });
               }
             }
+
+
+
+
+            console.log('gameDurationStore', gameDurationStore.get(address));
+
+
             
         } //end if score >= telemetry threshold and > contractHighScore
         //now submit the validated high score to the contract

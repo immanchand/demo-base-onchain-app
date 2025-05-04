@@ -940,6 +940,7 @@ export async function POST(request) {
               //5. FULL GAME PHYSICS SIMULATION
               let activeObstacles = []; // Track active obstacles
               let lastFrame = telemetry.find(e => e.event === 'frame');
+              let stopFrame = telemetry.reverse().find(e => e.event === 'frame');
               const shipStartX = stats.canvasWidth * 0.15; // Initialize ship x
               let currentY = lastFrame.data.y;
               let currentVy = lastFrame.data.vy;
@@ -955,7 +956,7 @@ export async function POST(request) {
               for (const event of telemetry) {
                 // Skip the initial frame used for initialization
                 if (event === lastFrame || event.frameId < 10 || event.event === 'fps') continue;
-                if (event.event === 'collision') break;
+                if (event.event === 'collision' || event === stopFrame) break;
                 
                 const framesElapsed = event.frameId - lastFrameId;
                 const expectedTime = framesElapsed * perFrameDeltaTime * 1000; // Convert to ms

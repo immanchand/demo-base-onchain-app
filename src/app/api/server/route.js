@@ -634,7 +634,8 @@ export async function POST(request) {
               for (const event of frameEvents) {
                 if (event.obsData && event.obsData.obstacles) {
                   event.obsData.obstacles.forEach(obstacle => {
-                    yPositionsFrames.push(obstacle.y);
+                    if (obstacle.x < stats.canvasWidth * 0.2  && obstacle.x > stats.canvasWidth * 0.1)
+                      yPositionsFrames.push(obstacle.y);
                   });
                 }
               }
@@ -646,7 +647,6 @@ export async function POST(request) {
               //get unique y positions which should be all unique spawns
               const uniqueYPositions = new Set(yPositionsFrames);
               const uniqueYPositionsSpawn = new Set(yPositionsSpawns);
-              console.log('uniqueYPositions',uniqueYPositions,'uniqueYPositionsSpawn',uniqueYPositionsSpawn);
               //check that all uniqe spawn positions and unique obsdata positions are the same
               if (uniqueYPositions.size === uniqueYPositionsSpawn.size) {
                 //positive case do nothing

@@ -262,7 +262,8 @@ export async function POST(request) {
             const telemetryLength = telemetry.length;
             console.log('telemetryLength', telemetryLength);
 
-            if (stats.game !== 'fly' || stats.game !== 'jump' || stats.game !== 'shoot') {
+            if (stats.game !== 'fly' && stats.game !== 'jump' && stats.game !== 'shoot') {
+              console.log('Invalid game name', stats.game);
               return new Response(JSON.stringify({ status: 'error', message: 'Invalid game name' }), { status: 400 });
             }
             const expectedParams = GAME_PARAMETERS[stats.game];

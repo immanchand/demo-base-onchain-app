@@ -740,8 +740,8 @@ export async function POST(request) {
               }
               // Critical value for chi-squared test with 9 degrees of freedom (numBins - 1)
               // at 95% confidence level (alpha = 0.05) is approximately 16.919
-              const CHI_SQUARED_CRITICAL_VALUE = 34;
-              console.log('Chi-squared statistic:', chiSquared, 'max chi: 34');
+              const CHI_SQUARED_CRITICAL_VALUE = 17;
+              console.log('Chi-squared statistic:', chiSquared, 'max chi: 17');
               if (chiSquared <= CHI_SQUARED_CRITICAL_VALUE) {
                 //positive case do nothing
               } else {
@@ -968,6 +968,7 @@ export async function POST(request) {
 
                 // Simulate frame by frame physics and obstacle movement
                 for (let i = 0; i < Math.floor(framesElapsed); i++) {
+                  if (event.frameId + i >= stats.framesCount) break;
                   // Update ship physics
                   currentVy += gameParams.GRAVITY;
                   currentY += currentVy;

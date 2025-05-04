@@ -245,7 +245,8 @@ export async function POST(request) {
           if (Number(score) >= TELEMETRY_SCORE_THRESHOLD) {
             
             //make sure stats and telemetry are present
-            if(!stats || !telemetry || telemetry.length === 0) {
+            if(stats && telemetry && telemetry.length !== 0) {//positive case do nothing
+              } else {
               console.log('!stats || !telemetry',!stats, '||', !telemetry);
               return new Response(JSON.stringify({ status: 'error', message: 'Missing telemetry or stats for high score validation' }), {
                 status: 400,
@@ -399,7 +400,9 @@ export async function POST(request) {
             }
             // All gamess Check if server game duration is less than client game duration. With network latency, it can never be less.
             // if less, indicates cheating on client side
-            const serverDuration = nowEnd - gameDurationStoreValue;
+            let gameDurationStoreValue1;
+            const serverDuration = nowEnd - gameDurationStoreValue1;
+            console.log('serverDuration',serverDuration);
             if (stats.time <= serverDuration) {
               //positive case do nothing
             } else {

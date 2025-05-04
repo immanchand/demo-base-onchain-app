@@ -620,7 +620,7 @@ export async function POST(request) {
               for (const event of frameEvents) {
                 maxObstaclesInPool = Math.max(maxObstaclesInPool, event.obsData.obstacles.length);
               }
-              if (Math.abs(maxObstaclesInPool - stats.maxObstacles) < 2) {
+              if (Math.abs(maxObstaclesInPool - stats.maxObstacles) <= 2) {
                 //positive case do nothing
               } else {
                 console.log('Invalid maxObstaclesInPool vs stats.maxObstacles', {
@@ -1003,8 +1003,6 @@ export async function POST(request) {
                     );
                     if (distance >= (gameParams.SHIP_WIDTH + gameParams.OBSTACLE_SIZE) / 2) {
                       //positive case do nothing
-                      if (distance < 100)
-                      console.log('distance to obstacle',distance);
                     } else {
                       console.log('Suspicious unreported obstacle collision', { frameId: event.frameId + i, shipX: shipStartX, shipY: currentY, obs });
                       return new Response(JSON.stringify({ status: 'error', message: 'Suspicious unreported obstacle collision' }), { status: 400 });
@@ -1034,16 +1032,12 @@ export async function POST(request) {
                   // Validate flap position and velocity
                   if (Math.abs(event.data.y - currentY) < 0.001) {
                     //positive case do nothing
-                    if (Math.abs(event.data.y - currentY) !== 0)
-                    console.log('Math.abs(event.data.y - currentY)',Math.abs(event.data.y - currentY));
                   } else {
                     console.log('Flap position check failed', { event, expectedY: currentY, actualY: event.data.y });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap position' }), { status: 400 });
                   }
                   if (Math.abs(event.data.vy - gameParams.FLAP_VELOCITY) < 0.001) {
                     //positive case do nothing
-                    if (Math.abs(event.data.vy - gameParams.FLAP_VELOCITY) !== 0)
-                    console.log('Math.abs(event.data.vy - gameParams.FLAP_VELOCITY)',Math.abs(event.data.vy - gameParams.FLAP_VELOCITY));
                   } else {
                     console.log('Flap velocity check failed', { event, expectedVy: gameParams.FLAP_VELOCITY, actualVy: event.data.vy });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap velocity' }), { status: 400 });
@@ -1053,16 +1047,12 @@ export async function POST(request) {
                   // Validate frame position and velocity
                   if (Math.abs(event.data.y - currentY) < 0.001) {
                     //positive case do nothing
-                    if (Math.abs(event.data.y - currentY) !== 0)
-                    console.log('Math.abs(event.data.y - currentY)',Math.abs(event.data.y - currentY));
                   } else {
                     console.log('Frame position check failed', { event, expectedY: currentY, actualY: event.data.y });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
                   }
                   if (Math.abs(event.data.vy - currentVy) < 0.001) {
                     //positive case do nothing
-                    if (Math.abs(event.data.vy - currentVy) !== 0)
-                    console.log('Math.abs(event.data.vy - currentVy)',Math.abs(event.data.vy - currentVy));
                   } else {
                     console.log('Frame velocity check failed', { event, expectedVy: currentVy, actualVy: event.data.vy });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame velocity' }), { status: 400 });

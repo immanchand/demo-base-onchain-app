@@ -183,7 +183,9 @@ export async function POST(request) {
       
       case 'end-game':
         //verify that required input fields are present
-        if (!gameId || !address || !score) {
+        if (gameId && address && score) {
+          //positive case, do nothing
+        } else {
           console.log('!gameId || !address || !score', !gameId,' ||', !address,' ||', !score);
           return new Response(
             JSON.stringify({ status: 'error', message: 'Missing gameId or address or score' }),
@@ -397,10 +399,10 @@ export async function POST(request) {
             }
             // All gamess Check if server game duration is less than client game duration. With network latency, it can never be less.
             // if less, indicates cheating on client side
-            let gameDurationStoreValue1;
-            const serverDuration = nowEnd - gameDurationStoreValue1;
-            console.log('serverDuration',serverDuration);
-            if (serverDuration < stats.time) {
+            const serverDuration = nowEnd - gameDurationStoreValue;
+            if (stats.time <= serverDuration) {
+              //positive case do nothing
+            } else {
                 console.log('GameDurationStore Stats Time Check failed for', {
                     address,
                     gameId,
@@ -1019,9 +1021,6 @@ export async function POST(request) {
             }
 
 
-
-
-            console.log('gameDurationStore', gameDurationStore.get(address));
 
 
             

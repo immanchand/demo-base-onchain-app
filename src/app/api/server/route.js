@@ -22,6 +22,11 @@ const GAME_PARAMETERS = {
   shoot: SHOOT_PARAMETERS,
   jump: JUMP_PARAMETERS,
 };
+const GAME_RECAPTCHA_END_THRESHOLD = {
+  fly: process.env.FLY_RECAPTCHA_END_THRESHOLD,
+  shoot: process.env.SHOOT_RECAPTCHA_END_THRESHOLD,
+  jump: process.env.JUMP_RECAPTCHA_END_THRESHOLD,
+};
 
 if (!GAME_MASTER_PRIVATE_KEY || !PROVIDER_URL) {
   throw new Error('Missing GAME_MASTER_PRIVATE_KEY or PROVIDER_URL in environment');
@@ -276,6 +281,8 @@ export async function POST(request) {
             }
             //get the game parameters for this specific game
             const gameParams = GAME_PARAMETERS[stats.game];
+            const RECAPTCHA_END_THRESHOLD = GAME_RECAPTCHA_END_THRESHOLD[stats.game];
+            console.log('RECAPTCHA_END_THRESHOLD', RECAPTCHA_END_THRESHOLD);
 
             try {
               const recaptchaResponse = await fetch(
@@ -283,7 +290,7 @@ export async function POST(request) {
               );
               const recaptchaData = await recaptchaResponse.json();
               console.log('reCAPTCHA END data:', recaptchaData);
-              if (recaptchaData.success && recaptchaData.score >= gameParams.RECAPTCHA_END_THRESHOLD) {
+              if (recaptchaData.success && recaptchaData.score >= RECAPTCHA_END_THRESHOLD) {
                 //positive case do nothing
               } else {
                 console.log('recaptchaData.success', recaptchaData.success, 'or recaptchaData.score',recaptchaData.score, 'is invalid');
@@ -634,7 +641,7 @@ export async function POST(request) {
               for (const event of frameEvents) {
                 if (event.obsData && event.obsData.obstacles) {
                   event.obsData.obstacles.forEach(obstacle => {
-                    if (obstacle.x < stats.canvasWidth * 0.3  && obstacle.x > stats.canvasWidth * 0.1)
+                    if (obstacle.x < stats.canvasWidth * 0.4  && obstacle.x > stats.canvasWidth * 0.1)
                       yPositionsFrames.push(obstacle.y);
                   });
                 }

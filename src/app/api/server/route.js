@@ -634,7 +634,7 @@ export async function POST(request) {
               for (const event of frameEvents) {
                 if (event.obsData && event.obsData.obstacles) {
                   event.obsData.obstacles.forEach(obstacle => {
-                    if (obstacle.x < stats.canvasWidth * 0.2  && obstacle.x > stats.canvasWidth * 0.1)
+                    if (obstacle.x < stats.canvasWidth * 0.3  && obstacle.x > stats.canvasWidth * 0.1)
                       yPositionsFrames.push(obstacle.y);
                   });
                 }

@@ -381,7 +381,7 @@ export async function POST(request) {
               // Verify frameId is strictly increasing for frame events
               if (event.event === 'frame') {
                 const currentFrameId = event.data.frameId/10; //divide 10 because front end captures every 10 frames
-                if (currentFrameId > lastFrameId) {
+                if (lastFrameId == 0 || currentFrameId > lastFrameId) {
                   //positve case do nothing
                 } else {
                   console.log('Telemetry frameId order violation', {
@@ -412,10 +412,10 @@ export async function POST(request) {
             // All game check that last event is a collision
             const lastEvent = telemetry[telemetryLength - 1];
             const secondLastEvent = telemetry[telemetryLength - 2];
-            if (lastEvent.event !== 'collision' && secondLastEvent.event !== 'collision') {
-              console.log('lastEvent.event !== collision && secondLastEvent.event !== collision',
-                lastEvent.event, '!== collision', '&&', secondLastEvent.event, '!== collision'
-              );
+            if (lastEvent.event === 'collision' || secondLastEvent.event === 'collision') {
+              //positve case do nothing
+            } else {
+              console.log('lastEvent.event', lastEvent.event, 'or secondLastEvent.event', secondLastEvent.event, '!== collision');
               return new Response(JSON.stringify({ status: 'error', message: 'Last event must be collision' }), { status: 400 });
             }
             // All gamess Check if server game duration is less than client game duration. With network latency, it can never be less.
@@ -440,7 +440,9 @@ export async function POST(request) {
             // Detect Game Clock Manipulation
             // check telemetry time agains server time only if telemetry length is less than limit
             const telemetryDuration = frameEvents[frameEvents.length-1].time - frameEvents[0].time;
-            if (telemetryDuration > serverDuration) {
+            if (telemetryDuration <= serverDuration) {
+              //positive case do nothing
+            } else {
               console.log('GameDurationStore Duration Check failed for', {
                 address,
                 gameId,
@@ -453,8 +455,9 @@ export async function POST(request) {
             }
 
             // all games common telemetry check for average fps (frames per second)
-            // fps should be minumum 40 and can not change more than 15 over a game period
-            if (fpsEvents.length < (frameEvents.length/10 - 11)) {
+            if (fpsEvents.length >= Math.floor(frameEvents.length/10)) {
+              //positive case do nothing
+            } else {
               console.log('fpsEvents.length < (frameEvents.length/10 - 11)',fpsEvents.length, '<', frameEvents.length,'/10 - 11');
               return new Response(JSON.stringify({ status: 'error', message: 'Missing FPS events in telemetry' }), { status: 400 });
             }

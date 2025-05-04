@@ -381,7 +381,7 @@ export async function POST(request) {
               // Verify frameId is strictly increasing for frame events
               if (event.event === 'frame' || event.event === 'spawn' || event.event === 'flap') {
                 const currentFrameId = event.frameId;
-                if (currentFrameId > lastFrameId) {
+                if (currentFrameId >= lastFrameId) {
                   //positve case do nothing
                 } else {
                   console.log('Telemetry frameId order violation', {

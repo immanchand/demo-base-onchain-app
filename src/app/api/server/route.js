@@ -680,14 +680,15 @@ export async function POST(request) {
 
               //check that the nuber of spawn events is equal to unique obsdata positions with 1 cluster frame event variance
               console.log('uniqueYPositions.size',uniqueYPositions.size, 'spawnEvents.length',spawnEvents.length);
-              if(uniqueYPositions.size > spawnEvents.length-2 && uniqueYPositions.size <= spawnEvents.length){
+              if(uniqueYPositions.size >= spawnEvents.length-2 && uniqueYPositions.size <= spawnEvents.length){
                 //positive case do nothing
               } else {
                 console.log('uniqueYPositions and spawns mismatch', {
                   address,
                   uniqueYPositions: uniqueYPositions.size,
                   spawns: spawnEvents.length,
-                })
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'uniqueYPositions and spawns mismatch' }), { status: 400 });
               }
               // Perform chi-squared test for uniform distribution
               const playableHeight = stats.canvasHeight - gameParams.OBSTACLE_SIZE;
@@ -895,7 +896,7 @@ export async function POST(request) {
               if (variance > 1 && variance < 6) {
                 //positive case do nothing
               } else {
-                console.log('Suspicious flap interval variance not between 2< >8', variance);
+                console.log('Suspicious flap interval variance not between 1< >6', variance);
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap interval variance' }), { status: 400 });
               }
 
@@ -1002,6 +1003,7 @@ export async function POST(request) {
                     );
                     if (distance >= (gameParams.SHIP_WIDTH + gameParams.OBSTACLE_SIZE) / 2) {
                       //positive case do nothing
+                      console.log('distance to obstacle',distance);
                     } else {
                       console.log('Suspicious unreported obstacle collision', { frameId: event.frameId + i, shipX: shipStartX, shipY: currentY, obs });
                       return new Response(JSON.stringify({ status: 'error', message: 'Suspicious unreported obstacle collision' }), { status: 400 });
@@ -1031,12 +1033,14 @@ export async function POST(request) {
                   // Validate flap position and velocity
                   if (Math.abs(event.data.y - currentY) < 0.001) {
                     //positive case do nothing
+                    console.log('Math.abs(event.data.y - currentY)',Math.abs(event.data.y - currentY));
                   } else {
                     console.log('Flap position check failed', { event, expectedY: currentY, actualY: event.data.y });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap position' }), { status: 400 });
                   }
                   if (Math.abs(event.data.vy - gameParams.FLAP_VELOCITY) < 0.001) {
                     //positive case do nothing
+                    console.log('Math.abs(event.data.vy - gameParams.FLAP_VELOCITY)',Math.abs(event.data.vy - gameParams.FLAP_VELOCITY));
                   } else {
                     console.log('Flap velocity check failed', { event, expectedVy: gameParams.FLAP_VELOCITY, actualVy: event.data.vy });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap velocity' }), { status: 400 });
@@ -1046,12 +1050,14 @@ export async function POST(request) {
                   // Validate frame position and velocity
                   if (Math.abs(event.data.y - currentY) < 0.001) {
                     //positive case do nothing
+                    console.log('Math.abs(event.data.y - currentY)',Math.abs(event.data.y - currentY));
                   } else {
                     console.log('Frame position check failed', { event, expectedY: currentY, actualY: event.data.y });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
                   }
                   if (Math.abs(event.data.vy - currentVy) < 0.001) {
                     //positive case do nothing
+                    console.log('Math.abs(event.data.vy - currentVy)',Math.abs(event.data.vy - currentVy));
                   } else {
                     console.log('Frame velocity check failed', { event, expectedVy: currentVy, actualVy: event.data.vy });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame velocity' }), { status: 400 });

@@ -4,9 +4,19 @@ import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
-import { GameStats, Entity, JUMP_PARAMETERS } from 'src/constants';
+import { GameStats, Entity, JUMP_PARAMETERS, TELEMETRY_LIMIT, TELEMETRY_SCORE_THRESHOLD } from 'src/constants';
 import { useAccount } from 'wagmi';
 import LoginButton from './LoginButton';
+
+// Extend the Window interface to include grecaptcha
+declare global {
+    interface Window {
+        grecaptcha: {
+            ready: (callback: () => void) => void;
+            execute: (siteKey: string, options: { action: string }) => Promise<string>;
+        };
+    }
+}
 
 interface JumpProps {
     gameId: number;
@@ -16,28 +26,41 @@ interface JumpProps {
 
 interface Obstacle extends Entity {
     dx: number;
+    dodged: boolean;
 }
 
 interface TelemetryEvent {
-    event: 'jump' | 'spawn' | 'collision' | 'frame';
+    event: 'jump' | 'spawn' | 'collision' | 'frame' | 'fps';
     time: number;
-    data?: { deltaTime?: number; speed?: number; x?: number; y?: number; heightCount?: number; widthCount?: number };
+    frameId?: number;
+    data?: { 
+        deltaTime?: number;
+        difficulty?: number;
+        x?: number;
+        y?: number;
+        vy?: number;
+        speed?: number;
+        score?: number;
+        fps?: number;
+        width?: number;
+        height?: number;
+    };
+    obsData?: {
+        obstacles?: {
+            x: number;
+            y: number;
+            dx: number;
+            dodged: boolean;
+            width: number;
+            height: number;
+        }[];
+    };
+    parameters?: {
+    }
 }
 
 type EnemyType = 'obstacle' | 'barrel' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
 type ShipType = 'runner' | 'lady' | 'eth' | 'base';
-
-// Constants
-const SHIP_HEIGHT = 50;
-const SHIP_WIDTH = SHIP_HEIGHT * (3/4);
-const OBSTACLE_SIZE = 50;
-const MIN_GAP = 300; // Lower (e.g., 200) = tighter gaps, harder; Higher (e.g., 400) = easier
-const GRAVITY = 0.4; // Higher (e.g., 0.5) = faster fall, harder; Lower (e.g., 0.3) = easier
-const JUMP_VELOCITY = -12;
-const BASE_OBSTACLE_SPEED = -3; // Higher (e.g., -5) = faster obstacles, harder; Lower (e.g., -2) = easier
-const GROUND_HEIGHT = 150;
-const DOUBLE_PRESS_THRESHOLD = 300;
-const SKY_SPEED = 0.3;
 
 const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -48,6 +71,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const [enemyType, setEnemyType] = useState<EnemyType>('obstacle');
     const [shipType, setShipType] = useState<ShipType>('runner');
     const [imagesLoaded, setImagesLoaded] = useState<boolean>(false);
+    const [isRecaptchaReady, setIsRecaptchaReady] = useState<boolean>(false);
     const [enemyImages, setEnemyImages] = useState<Record<EnemyType, HTMLImageElement>>({} as Record<EnemyType, HTMLImageElement>);
     const [shipImages, setShipImages] = useState<Record<ShipType, HTMLImageElement>>({} as Record<ShipType, HTMLImageElement>);
     const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
@@ -67,6 +91,8 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const [endGameMessage, setEndGameMessage] = useState<string>('');
     const { address } = useAccount();
     const [telemetry, setTelemetry] = useState<TelemetryEvent[]>([]);
+    const telemetryRef = useRef<TelemetryEvent[]>([]);
+    const [isTelemetrySyncing, setIsTelemetrySyncing] = useState<boolean>(false);
     const [stats, setStats] = useState<GameStats>({
         game: 'jump',
         score: 0,
@@ -86,6 +112,18 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         framesCount: 0,
         shipX: 0,
     });
+
+    // Check reCAPTCHA readiness
+    useEffect(() => {
+        if (window.grecaptcha) {
+            window.grecaptcha.ready(() => {
+                console.log('reCAPTCHA initialized');
+                setIsRecaptchaReady(true);
+            });
+        } else {
+            console.warn('reCAPTCHA script not loaded yet');
+        }
+    }, []);
 
     // Preload images
     useEffect(() => {
@@ -148,10 +186,10 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     }, []);
 
     // Game logic
-    const spawnObstacles = useCallback((canvas: HTMLCanvasElement, speed: number, elapsedTime: number): Obstacle[] => {
+    const spawnObstacles = useCallback((canvas: HTMLCanvasElement, speed: number, elapsedTime: number, ): Obstacle[] => {
         const obstacles: Obstacle[] = [];
         const baseX = canvas.width;
-        const baseY = canvas.height - GROUND_HEIGHT - OBSTACLE_SIZE;
+        const baseY = canvas.height * JUMP_PARAMETERS.GROUND_HEIGHT_RATIO - JUMP_PARAMETERS.SHIP_HEIGHT;
 
         let widthCount = 1;
         let heightCount = 1;
@@ -169,11 +207,12 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         for (let w = 0; w < widthCount; w++) {
             for (let h = 0; h < heightCount; h++) {
                 obstacles.push({
-                    x: baseX + w * OBSTACLE_SIZE,
-                    y: baseY - h * OBSTACLE_SIZE,
-                    width: OBSTACLE_SIZE,
-                    height: OBSTACLE_SIZE,
+                    x: baseX + w * JUMP_PARAMETERS.OBSTACLE_SIZE,
+                    y: baseY - h * JUMP_PARAMETERS.OBSTACLE_SIZE,
+                    width: JUMP_PARAMETERS.OBSTACLE_SIZE,
+                    height: JUMP_PARAMETERS.OBSTACLE_SIZE,
                     dx: speed,
+                    dodged: false
                 });
             }
         }
@@ -187,7 +226,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const drawBackground = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, offset: number) => {
         if (!backgroundImage) return;
         const bgWidth = backgroundImage.width;
-        const bgHeight = canvas.height - GROUND_HEIGHT;
+        const bgHeight = canvas.height -  canvas.height * JUMP_PARAMETERS.GROUND_HEIGHT_RATIO;
         let x = -offset % bgWidth;
         ctx.drawImage(backgroundImage, x, 0, bgWidth, bgHeight);
         ctx.drawImage(backgroundImage, x + bgWidth, 0, bgWidth, bgHeight);
@@ -196,7 +235,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const drawGround = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, offset: number) => {
         if (!groundImage) return;
         const groundWidth = groundImage.width;
-        const groundHeight = GROUND_HEIGHT;
+        const groundHeight = canvas.height * JUMP_PARAMETERS.GROUND_HEIGHT_RATIO;
         let x = -offset % groundWidth;
         ctx.drawImage(groundImage, x, canvas.height - groundHeight, groundWidth, groundHeight);
         ctx.drawImage(groundImage, x + groundWidth, canvas.height - groundHeight, groundWidth, groundHeight);
@@ -204,13 +243,13 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
     const drawShip = (ctx: CanvasRenderingContext2D, ship: { x: number; y: number }) => {
         const image = shipImages[shipType] || shipImages.runner;
-        ctx.drawImage(image, ship.x, ship.y, SHIP_WIDTH, SHIP_HEIGHT);
+        ctx.drawImage(image, ship.x, ship.y, JUMP_PARAMETERS.SHIP_WIDTH, JUMP_PARAMETERS.SHIP_HEIGHT);
     };
 
     const drawObstacles = (ctx: CanvasRenderingContext2D, obstaclePool: Obstacle[]) => {
         obstaclePool.forEach((obstacle) => {
             const image = enemyImages[enemyType] || enemyImages.obstacle;
-            ctx.drawImage(image, obstacle.x, obstacle.y, OBSTACLE_SIZE, OBSTACLE_SIZE);
+            ctx.drawImage(image, obstacle.x, obstacle.y, JUMP_PARAMETERS.OBSTACLE_SIZE, JUMP_PARAMETERS.OBSTACLE_SIZE);
         });
     };
 
@@ -232,9 +271,9 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
         let ship = {
             x: 200,
-            y: canvas.height - GROUND_HEIGHT - SHIP_HEIGHT,
-            width: SHIP_WIDTH,
-            height: SHIP_HEIGHT,
+            y: canvas.height * JUMP_PARAMETERS.GROUND_HEIGHT_RATIO - JUMP_PARAMETERS.SHIP_HEIGHT,
+            width: JUMP_PARAMETERS.SHIP_WIDTH,
+            height: JUMP_PARAMETERS.SHIP_HEIGHT,
             vy: 0,
         };
         let obstaclePool: Obstacle[] = [];
@@ -259,16 +298,16 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             const timeLevel = Math.floor(elapsedTime / 8);
             const speedMultiplier = 1 + timeLevel * 0.05;
             const obstacleSpeed = JUMP_PARAMETERS.BASE_OBSTACLE_SPEED * speedMultiplier;
-            const minGap = OBSTACLE_SIZE * (50 - Math.min(timeLevel, 10) * 4);
+            const minGap = JUMP_PARAMETERS.OBSTACLE_SIZE * (50 - Math.min(timeLevel, 10) * 4);
 
-            cloudOffset += SKY_SPEED * deltaTime * 60;
+            cloudOffset += 0.3 * deltaTime * 60; //sky speed 0.3
             backgroundOffset += Math.abs(obstacleSpeed) * deltaTime * 60;
 
             if (!gameOver) {
-                ship.vy += GRAVITY;
+                ship.vy += JUMP_PARAMETERS.GRAVITY;
                 ship.y += ship.vy;
-                if (ship.y > canvas.height - GROUND_HEIGHT - SHIP_HEIGHT) {
-                    ship.y = canvas.height - GROUND_HEIGHT - SHIP_HEIGHT;
+                if (ship.y > canvas.height * JUMP_PARAMETERS.GROUND_HEIGHT_RATIO - JUMP_PARAMETERS.SHIP_HEIGHT) {
+                    ship.y = canvas.height * JUMP_PARAMETERS.GROUND_HEIGHT_RATIO - JUMP_PARAMETERS.SHIP_HEIGHT;
                     ship.vy = 0;
                     jumpCountRef.current = 0;
                 }
@@ -288,7 +327,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 obstacle.dx = obstacleSpeed;
                 obstacle.x += obstacle.dx;
             });
-            obstaclePool = obstaclePool.filter((obstacle) => obstacle.x + OBSTACLE_SIZE > 0);
+            obstaclePool = obstaclePool.filter((obstacle) => obstacle.x + JUMP_PARAMETERS.OBSTACLE_SIZE > 0);
 
             const rightmostObstacle = obstaclePool.reduce((max, obs) => Math.max(max, obs.x), -minGap);
             if (canvas.width - rightmostObstacle >= minGap && !gameOver) {
@@ -298,16 +337,16 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
             if (!gameOver) {
                 obstaclePool.forEach((obstacle) => {
-                    const dx = ship.x + SHIP_WIDTH / 2 - (obstacle.x + OBSTACLE_SIZE / 2);
-                    const dy = ship.y + SHIP_HEIGHT / 2 - (obstacle.y + OBSTACLE_SIZE / 2);
+                    const dx = ship.x + JUMP_PARAMETERS.SHIP_WIDTH / 2 - (obstacle.x + JUMP_PARAMETERS.OBSTACLE_SIZE / 2);
+                    const dy = ship.y + JUMP_PARAMETERS.SHIP_HEIGHT / 2 - (obstacle.y + JUMP_PARAMETERS.OBSTACLE_SIZE / 2);
                     const distance = Math.sqrt(dx * dx + dy * dy);
-                    if (distance < (SHIP_WIDTH + OBSTACLE_SIZE) / 2) {
+                    if (distance < (JUMP_PARAMETERS.SHIP_WIDTH + JUMP_PARAMETERS.OBSTACLE_SIZE) / 2) {
                         setGameOver(true);
                         setTelemetry((prev) => {
                             if (prev.length >= 1000) return [...prev.slice(1), { event: 'collision', time: performance.now() }];
                             return [...prev, { event: 'collision', time: performance.now() }];
                         });
-                    } else if (obstacle.x + OBSTACLE_SIZE < ship.x) {
+                    } else if (obstacle.x + JUMP_PARAMETERS.OBSTACLE_SIZE < ship.x) {
                         setStats((prev) => ({ ...prev, obstaclesCleared: prev.obstaclesCleared + 1 }));
                         //obstacle.scored = true;
                     }
@@ -327,8 +366,8 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             if (!gameOver && jumpCountRef.current < 2) {
                 const now = Date.now();
                 const timeSinceLastPress = now - lastKeyPressRef.current;
-                if (timeSinceLastPress < DOUBLE_PRESS_THRESHOLD && lastKeyPressRef.current !== 0 && jumpCountRef.current === 1) {
-                    ship.vy = JUMP_VELOCITY;
+                if (timeSinceLastPress < JUMP_PARAMETERS.DOUBLE_PRESS_THRESHOLD && lastKeyPressRef.current !== 0 && jumpCountRef.current === 1) {
+                    ship.vy = JUMP_PARAMETERS.JUMP_VELOCITY;
                     jumpCountRef.current += 1;
                     setTelemetry((prev) => {
                         if (prev.length >= 1000) return [...prev.slice(1), { event: 'jump', time: performance.now() }];
@@ -336,7 +375,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     });
                     setStats((prev) => ({ ...prev, jumps: prev.jumps + 1 }));
                 } else if (jumpCountRef.current === 0) {
-                    ship.vy = JUMP_VELOCITY;
+                    ship.vy = JUMP_PARAMETERS.JUMP_VELOCITY;
                     jumpCountRef.current += 1;
                     setTelemetry((prev) => {
                         if (prev.length >= 1000) return [...prev.slice(1), { event: 'jump', time: performance.now() }];
@@ -359,10 +398,10 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         };
 
         if (gameStarted && !gameOver) {
-            ship.y = canvas.height - GROUND_HEIGHT - SHIP_HEIGHT;
+            ship.y = canvas.height * JUMP_PARAMETERS.GROUND_HEIGHT_RATIO - JUMP_PARAMETERS.SHIP_HEIGHT;
             ship.vy = 0;
             jumpCountRef.current = 0;
-            obstaclePool = spawnObstacles(canvas, BASE_OBSTACLE_SPEED, 0);
+            obstaclePool = spawnObstacles(canvas, JUMP_PARAMETERS.BASE_OBSTACLE_SPEED, 0);
             lastObstacleSpawnX = canvas.width;
             startTimeRef.current = performance.now();
             backgroundOffset = 0;

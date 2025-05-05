@@ -311,7 +311,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
             const minGapACTUAL = JUMP_PARAMETERS.MAX_SPAWN_INTERVAL * (1 - difficultyFactor) + JUMP_PARAMETERS.MIN_SPAWN_INTERVAL;
             //to figure out constants
-            const minGap = 1000 * (1 - difficultyFactor) + JUMP_PARAMETERS.MIN_SPAWN_INTERVAL;
+            const minGap = 1000 * (1 - difficultyFactor) + 200;
             //const minGap = JUMP_PARAMETERS.OBSTACLE_SIZE * 5 * Math.min((10 - (difficultyFactor*10)),1);
             
             const obstacleSize = JUMP_PARAMETERS.OBSTACLE_SIZE;

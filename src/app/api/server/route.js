@@ -840,11 +840,11 @@ export async function POST(request) {
                 expectedDoubleSpawns += spawnsPerSecond * difficultyFactor;
               }
               // expected total spawn calculation and validations
-              console.log('minExpectedSpawns',expectedSpawns * 0.98);
-              console.log('maxExpectedSpawns',expectedSpawns * 1.02);
+              console.log('minExpectedSpawns',expectedSpawns * 0.95);
+              console.log('maxExpectedSpawns',expectedSpawns * 1.1);
               console.log('actual spawns',spawnEvents.length);
               // check with 5% variance
-              if (spawnEvents.length <= expectedSpawns * 1.05 && spawnEvents.length >= expectedSpawns * 0.95) {
+              if (spawnEvents.length <= expectedSpawns * 1.1 && spawnEvents.length >= expectedSpawns * 0.95) {
                 //positive case do nothing
               } else {
                 console.log('Suspicious spawn count', {
@@ -854,8 +854,8 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn count' }), { status: 400 });
               }
               // Expected Double spawn calculations and validations
-              console.log('min',expectedDoubleSpawns * 0.95,'max',expectedDoubleSpawns * 1.05,'and actual double spawns',doubleSpawnCount);
-              if (doubleSpawnCount <= expectedDoubleSpawns * 1.05 && doubleSpawnCount >= expectedDoubleSpawns * 0.95) {
+              console.log('min',expectedDoubleSpawns * 0.95,'max',expectedDoubleSpawns * 1.1,'and actual double spawns',doubleSpawnCount);
+              if (doubleSpawnCount <= expectedDoubleSpawns * 1.1 && doubleSpawnCount >= expectedDoubleSpawns * 0.95) {
                 //positive case do nothing
               } else {
                 console.log('Suspicious double spawn count', {
@@ -865,8 +865,8 @@ export async function POST(request) {
                 return new Response(JSON.stringify({status: 'error', message: 'Suspicious double spawn count' }), { status: 400 });
               }
               // expected maxObstacles range calcuations and validations
-              console.log('min',expectedMaxObstacles * 0.95,'max',expectedMaxObstacles * 1.05,'and actual maxObstacles',stats.maxObstacles);
-              if (stats.maxObstacles <= expectedMaxObstacles * 1.05 && stats.maxObstacles >= expectedMaxObstacles * 0.95) {
+              console.log('min',expectedMaxObstacles * 0.95,'max',expectedMaxObstacles * 1.1,'and actual maxObstacles',stats.maxObstacles);
+              if (stats.maxObstacles <= expectedMaxObstacles * 1.1 && stats.maxObstacles >= expectedMaxObstacles * 0.95) {
                 //positive case do nothing
               } else {
                   console.log('Suspicious maxObstacles', {

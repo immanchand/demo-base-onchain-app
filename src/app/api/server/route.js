@@ -956,6 +956,7 @@ export async function POST(request) {
               let activeObstacles = []; // Track active obstacles
               let lastFrame = telemetry.find(e => e.event === 'frame');
               let stopFrame = telemetry.reverse().find(e => e.event === 'frame');
+              telemetry.reverse(); // Restore original order
               const shipStartX = stats.canvasWidth * 0.15; // Initialize ship x
               let currentY = lastFrame.data.y;
               let currentVy = lastFrame.data.vy;

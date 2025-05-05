@@ -832,7 +832,7 @@ export async function POST(request) {
                 const difficultyFactor = Math.min(t / gameParams.DIFFICULTY_FACTOR_TIME, 1);
                 const spawnInterval = (gameParams.MAX_SPAWN_INTERVAL/1000) * (1 - difficultyFactor) + gameParams.MIN_SPAWN_INTERVAL/1000; // in seconds
                 const spawnsPerSecond = 1 / spawnInterval;
-                const obstacleSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor); // pixels per frame
+                const obstacleSpeed = Math.abs(gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor)); // pixels per frame
                 const timeToCross = stats.canvasWidth / obstacleSpeed * (1 / avgFps); // seconds to cross screen
                 const maxObstaclesAtTime = timeToCross * spawnsPerSecond * (1 + difficultyFactor) + 2; //2 for double spawn
                 expectedMaxObstacles = Math.max(expectedMaxObstacles, maxObstaclesAtTime);

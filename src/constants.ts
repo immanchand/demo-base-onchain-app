@@ -24,12 +24,16 @@ export const FLY_PARAMETERS = {
 export const JUMP_PARAMETERS = {
   SHIP_WIDTH: 40 * (3/4),
   SHIP_HEIGHT: 50,
+  OBSTACLE_SIZE: 50,
   BASE_OBSTACLE_SPEED: -3, // Higher (e.g., -5) = faster obstacles, harder; Lower (e.g., -2) = easier
   MIN_SPAWN_INTERVAL: 300, // Lower (e.g., 200) = tighter gaps, harder; Higher (e.g., 400) = easier
+  MAX_SPAWN_INTERVAL: 1000, // starting frequency of obstacles in ms
   GRAVITY: 0.4, // Higher (e.g., 0.5) = faster fall, harder; Lower (e.g., 0.3) = easier
   JUMP_VELOCITY: -12, // Higher (e.g., -14) = higher jumps, easier; Lower (e.g., -10) = harder
   SCORE_MULTIPLIER: 100,
   DIFFICULTY_FACTOR_TIME: 90, //seonds till max difficulty
+  DOUBLE_PRESS_THRESHOLD: 300, // ms for double jump
+  GROUND_HEIGHT_RATIO: 0.8,
 };
 export const SHOOT_PARAMETERS = {
   SHIP_WIDTH: 30,

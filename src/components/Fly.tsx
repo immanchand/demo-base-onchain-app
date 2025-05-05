@@ -264,7 +264,6 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             const difficultyFactor = Math.min(elapsedTime / FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME, 1);
             const spawnInterval = FLY_PARAMETERS.MAX_SPAWN_INTERVAL * (1 - difficultyFactor) + FLY_PARAMETERS.MIN_SPAWN_INTERVAL;
             const obstacleSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-            const clusterChance = difficultyFactor;// * FLY_PARAMETERS.CLUSTER_CHANCE;
             const obstacleSize = FLY_PARAMETERS.OBSTACLE_SIZE;
 
             if (!gameOver) {
@@ -344,7 +343,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
             const currentTime = performance.now();
             if (currentTime - lastSpawnTimeRef.current >= spawnInterval && !gameOver) {
-                const numObstacles = Math.random() < clusterChance ? 2 : 1;
+                const numObstacles = Math.random() < difficultyFactor ? 2 : 1;
                 for (let i = 0; i < numObstacles; i++) {
                     const obstacle = spawnObstacle(canvas, obstacleSpeed, frameCount);
                     //obstaclePool.push({ ...obstacle, y: obstacle.y + (i * obstacleSize * 2) });

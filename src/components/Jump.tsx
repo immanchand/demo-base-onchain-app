@@ -272,7 +272,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         resizeObserver.observe(container);
 
         let ship = {
-            x: 200,
+            x: canvasRef.current.width * 0.15,
             y: canvas.height * JUMP_PARAMETERS.GROUND_HEIGHT_RATIO - JUMP_PARAMETERS.SHIP_HEIGHT,
             width: JUMP_PARAMETERS.SHIP_WIDTH,
             height: JUMP_PARAMETERS.SHIP_HEIGHT,
@@ -354,7 +354,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     ...pendingStatsUpdate,
                     score,
                     time: performance.now() - startTimeRef.current,
-                    jumpsPerSec: pendingStatsUpdate.flaps / (pendingStatsUpdate.time / 1000 || 1),
+                    jumpsPerSec: pendingStatsUpdate.jumps / (pendingStatsUpdate.time / 1000 || 1),
                     maxObstacles: maxObstacles,
                     inputsPerSec: inputCount / (pendingStatsUpdate.time / 1000 || 1),
                     framesCount: frameCount
@@ -415,7 +415,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
                         ? [...telemetryRef.current.slice(1), newEvent]
                         : [...telemetryRef.current, newEvent];
-                    pendingStatsUpdate = { ...pendingStatsUpdate, flaps: pendingStatsUpdate.flaps + 1 };
+                    pendingStatsUpdate = { ...pendingStatsUpdate, jumps: pendingStatsUpdate.jumps + 1 };
                 } else if (jumpCountRef.current === 0) {
                     ship.vy = JUMP_PARAMETERS.JUMP_VELOCITY;
                     jumpCountRef.current += 1;
@@ -423,7 +423,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
                         ? [...telemetryRef.current.slice(1), newEvent]
                         : [...telemetryRef.current, newEvent];
-                    pendingStatsUpdate = { ...pendingStatsUpdate, flaps: pendingStatsUpdate.flaps + 1 };
+                    pendingStatsUpdate = { ...pendingStatsUpdate, jumps: pendingStatsUpdate.jumps + 1 };
                 }
                 lastKeyPressRef.current = now;
             }

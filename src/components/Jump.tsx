@@ -191,19 +191,6 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         const baseX = canvas.width;
         const baseY = canvas.height * JUMP_PARAMETERS.GROUND_HEIGHT_RATIO - JUMP_PARAMETERS.SHIP_HEIGHT;
 
-        //let widthCount = 1;
-        //let heightCount = 1;
-
-        //const timeLevel = Math.floor(elapsedTime / 10);
-        // if (timeLevel >= 1) heightCount = 2;
-        // if (timeLevel >= 3) widthCount = 2;
-        // if (timeLevel >= 4) {
-        //     widthCount = 2;
-        //     heightCount = 2;
-        // }
-        // if (timeLevel >= 5 && Math.random() < 0.3) heightCount = 3;
-        // if (timeLevel >= 6 && Math.random() < 0.2) heightCount = 4;
-
         for (let w = 0; w < widthCount; w++) {
             for (let h = 0; h < heightCount; h++) {
                 const newEvent = { event: 'spawn' as const, time: performance.now(), frameId: frameCount, 
@@ -301,17 +288,14 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         const update = (deltaTime: number) => {
             const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
             const difficultyFactor = Math.min(elapsedTime / JUMP_PARAMETERS.DIFFICULTY_FACTOR_TIME, 1);
-            //const clusterChanceACTUAL = difficultyFactor * JUMP_PARAMETERS.CLUSTER_CHANCE;
+            const clusterChanceACTUAL = difficultyFactor * JUMP_PARAMETERS.CLUSTER_CHANCE;
             const clusterChance = difficultyFactor * 0.8;
             const timeLevel = Math.floor(elapsedTime / 8);
             const speedMultiplier = 1 + timeLevel * 0.05;
-            //const obstacleSpeed = JUMP_PARAMETERS.BASE_OBSTACLE_SPEED * speedMultiplier;
             const obstacleSpeed = JUMP_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-            //const minGap = JUMP_PARAMETERS.OBSTACLE_SIZE * (50 - Math.min(timeLevel, 10) * 4);
-
             const minGapACTUAL = JUMP_PARAMETERS.MAX_SPAWN_INTERVAL * (1 - difficultyFactor) + JUMP_PARAMETERS.MIN_SPAWN_INTERVAL;
             //to figure out constants
-            const minGap = 1000 * (1 - difficultyFactor) + 200;
+            const minGap = 1000 * (1 - difficultyFactor) + 400;
             //const minGap = JUMP_PARAMETERS.OBSTACLE_SIZE * 5 * Math.min((10 - (difficultyFactor*10)),1);
             
             const obstacleSize = JUMP_PARAMETERS.OBSTACLE_SIZE;

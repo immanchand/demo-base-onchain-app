@@ -34,6 +34,7 @@ export const JUMP_PARAMETERS = {
   DIFFICULTY_FACTOR_TIME: 90, //seonds till max difficulty
   DOUBLE_PRESS_THRESHOLD: 300, // ms for double jump
   GROUND_HEIGHT_RATIO: 0.8,
+  CLUSTER_CHANCE: 0.5,
 };
 export const SHOOT_PARAMETERS = {
   SHIP_WIDTH: 30,

@@ -427,7 +427,7 @@ export async function POST(request) {
             // if client game time is more, or too less by 2 seconds difference, indicates cheating attempts
             const serverDuration = nowEnd - gameDurationStoreValue;
             console.log('serverDuration - stats.time',serverDuration - stats.time);
-            if (stats.time <= serverDuration && serverDuration - stats.time < 2000) {
+            if (stats.time <= serverDuration && serverDuration - stats.time < 5000) {
               //positive case do nothing
             } else {
                 console.log('GameDurationStore Stats Time Check failed for', {
@@ -565,7 +565,8 @@ export async function POST(request) {
                                     
             //All games events filtered required
             const spawnEvents = telemetry.filter(e => e.event === 'spawn');
-            // common duration and score checks for TIME based games
+
+            // common duration, score and ship position checks for FLY and JUMP
             if (stats.game === 'fly' || stats.game === 'jump') {
               
               // TIME based games Check if score is less than client side game duration with 1 seconds tolerance for start game
@@ -582,7 +583,6 @@ export async function POST(request) {
                   status: 400,
                 });
               }
-
               // TIME based games telemetry computed score validation
               let computedScore = totalFrameDeltaTime * gameParams.SCORE_MULTIPLIER;
               console.log('computedScore max', computedScore * 1.01); // 1 percent variance
@@ -592,8 +592,20 @@ export async function POST(request) {
                 console.log('Number(score) > computedScore * 1.1', Number(score), '>', computedScore, '* 1.1');
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score: computed events and reported score don’t match' }), { status: 400 });
               }
-
-              //Time based games check ship x position
+              // Static x position games check ship x position
+              // check ship start position
+              if (stats.shipX === stats.canvasWidth * 0.15) {
+                //positve case do nothing
+              } else {
+                console.log('Stats score should be 0', {
+                  address,
+                  gameId,
+                  statsShipX: stats.shipX,
+                  shipX: stats.canvasWidth * 0.15,
+              });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship start position' }), { status: 400 });
+              }
+              // check each frame event ship position
               for (const event of frameEvents) {
                 if(event.data.x === stats.shipX) {
                   //positive case do nothing
@@ -608,12 +620,15 @@ export async function POST(request) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship size' }), { status: 400 });
                 }
               }
-              
             }
-                        
+   
 			      // Stats validation and telemetry validation specific to each Game
+            // JUMP GAME
+            if (stats.game === 'jump') {
+
+              //end JUMP GAME
             // FLY GAME
-            if (stats.game === 'fly') {
+            } else if (stats.game === 'fly') {
               
               // SPAWN RELATED VALIDATION
               // obsData validation for maxObstaclesInPool vs stats.maxObstacles
@@ -1117,23 +1132,10 @@ export async function POST(request) {
                     JSON.stringify({ status: 'success', isHighScore: false }),
                     { status: 200 }
                   );
+            }
 
               
-            // JUMP GAME
-            } else if (stats.game === 'jump') {
-              // Check if score is less than client side game duration with 1 seconds tolerance for start game
-              if (score > (stats.time + 1000)/10) {
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: score and game duration dont match' }), {
-                  status: 400,
-                });
-              }
-
-              if (stats.jumpsPerSec > 1 || stats.obstaclesCleared > stats.time / 10) {
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay stats' }), {
-                  status: 400,
-                });
-              }
-            }
+            
 
 
 

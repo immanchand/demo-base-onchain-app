@@ -981,6 +981,7 @@ export async function POST(request) {
               for (const event of telemetry) {
                 // Skip the initial frame used for initialization
                 if (event === lastFrame || event.frameId < 10 || event.event === 'fps') continue;
+                console.log('inside here event',event);
                 if (event.event === 'collision' || event === stopFrame) break;
                 
                 const framesElapsed = event.frameId - lastFrameId;

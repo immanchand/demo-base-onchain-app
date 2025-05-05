@@ -907,11 +907,11 @@ export async function POST(request) {
               }
               const avgInterval = flapIntervals.reduce((a, b) => a + b, 0) / flapIntervals.length;
               const variance = flapIntervals.reduce((a, b) => a + Math.pow(b - avgInterval, 2), 0) / flapIntervals.length;
-              console.log('Flap Interval Variance (min 1, max 6, variance:', variance);
-              if (variance > 1 && variance < 6) {
+              console.log('Flap Interval Variance (min 3, max 6, variance:', variance);
+              if (variance > 3 && variance < 6) {
                 //positive case do nothing
               } else {
-                console.log('Suspicious flap interval variance not between 1< >6', variance);
+                console.log('Suspicious flap interval variance not between 3< >6', variance);
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap interval variance' }), { status: 400 });
               }
 
@@ -999,15 +999,16 @@ export async function POST(request) {
                   // Update ship physics
                   currentVy += gameParams.GRAVITY;
                   currentY += currentVy;
-                  if (currentY < 0) {
-                    currentY = 0; // Clamp y-position to 0
-                    currentVy = 0; // Clamp vy to 0
-                  }
-                  if (currentY <= stats.canvasHeight - gameParams.SHIP_HEIGHT) {
+                  //commented out to change top to collision also
+                  // if (currentY < 0) {
+                  //   currentY = 0; // Clamp y-position to 0
+                  //   currentVy = 0; // Clamp vy to 0
+                  // }
+                  if (currentY <= stats.canvasHeight - gameParams.SHIP_HEIGHT || currentY < 0) {
                     //positive case do nothing
                   } else {
-                    console.log('Suspicious ship no collision with ground');
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship no collision with ground' }), { status: 400 });
+                    console.log('Suspicious ship no collision with ground or top');
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship no collision with ground or top' }), { status: 400 });
                   }
 
                   // Update obstacle positions

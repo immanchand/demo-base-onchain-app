@@ -270,11 +270,11 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             if (!gameOver) {
                 ship.vy += FLY_PARAMETERS.GRAVITY;
                 ship.y += ship.vy;
-                if (ship.y < 0) {
-                    ship.y = 0;
-                    ship.vy = 0;
-                }
-                if (ship.y > canvas.height - FLY_PARAMETERS.SHIP_HEIGHT) {
+                // if (ship.y < 0) {
+                //     ship.y = 0;
+                //     ship.vy = 0;
+                // }
+                if (ship.y > canvas.height - FLY_PARAMETERS.SHIP_HEIGHT || ship.y <= 0) {
                     setGameOver(true);
                     const newEvent = { event: 'collision' as const, time: performance.now() };
                     telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT

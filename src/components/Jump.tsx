@@ -308,7 +308,9 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             const obstacleSpeed = JUMP_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
             //const minGap = JUMP_PARAMETERS.OBSTACLE_SIZE * (50 - Math.min(timeLevel, 10) * 4);
             //const minGap2 = JUMP_PARAMETERS.OBSTACLE_SIZE * 10 * (1 - difficultyFactor);
-            const minGap = JUMP_PARAMETERS.OBSTACLE_SIZE * 5 * Math.min((10 - (difficultyFactor*10)),1);
+            const minGap = JUMP_PARAMETERS.MAX_SPAWN_INTERVAL * (1 - difficultyFactor) + JUMP_PARAMETERS.MIN_SPAWN_INTERVAL;
+            //const minGap = JUMP_PARAMETERS.OBSTACLE_SIZE * 5 * Math.min((10 - (difficultyFactor*10)),1);
+            
             const obstacleSize = JUMP_PARAMETERS.OBSTACLE_SIZE;
 
             cloudOffset += 0.3 * deltaTime * 60; //sky speed 0.3

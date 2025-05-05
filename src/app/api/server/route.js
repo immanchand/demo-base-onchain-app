@@ -844,7 +844,7 @@ export async function POST(request) {
               const spawnStdDev = Math.sqrt(Math.abs(expectedSpawns * (1 + gameParams.CLUSTER_CHANCE) * (1 - (1 + gameParams.CLUSTER_CHANCE)))); // Approximate variance for obstacles
               const spawnTolerance = 1.2 * spawnStdDev;
               const minExpectedSpawns = Math.floor(expectedSpawns - spawnTolerance);
-              const maxExpectedSpawns = Math.ceil(expectedSpawns + spawnTolerance*1.5);
+              const maxExpectedSpawns = Math.ceil(expectedSpawns + spawnTolerance*2);
               console.log('minExpectedSpawns',minExpectedSpawns);
               console.log('maxExpectedSpawns',maxExpectedSpawns);
               console.log('actual spawns',spawnEvents.length);
@@ -864,7 +864,7 @@ export async function POST(request) {
               const doubleSpawnStdDev = Math.sqrt(expectedDoubleSpawns * gameParams.CLUSTER_CHANCE * (1 - gameParams.CLUSTER_CHANCE)); // Variance for double spawns
               const doubleSpawnTolerance = 1.7 * doubleSpawnStdDev;
               const minExpectedDoubleSpawns = Math.floor(expectedDoubleSpawns - doubleSpawnTolerance);
-              const maxExpectedDoubleSpawns = Math.ceil(expectedDoubleSpawns + doubleSpawnTolerance*1.5);
+              const maxExpectedDoubleSpawns = Math.ceil(expectedDoubleSpawns + doubleSpawnTolerance*2);
               console.log('min',minExpectedDoubleSpawns,'max',maxExpectedDoubleSpawns,'and actual double spawns',doubleSpawnCount);
               if (doubleSpawnCount >= minExpectedDoubleSpawns && doubleSpawnCount <= maxExpectedDoubleSpawns) {
                 //positive case do nothing
@@ -882,7 +882,7 @@ export async function POST(request) {
               const maxObstaclesStdDev = Math.sqrt(Math.abs(expectedMaxObstacles * (1 + gameParams.CLUSTER_CHANCE) * (1 - (1 + gameParams.CLUSTER_CHANCE))));
               const maxObstaclesTolerance = 1.5 * maxObstaclesStdDev;
               const minExpectedMaxObstacles = Math.floor(expectedMaxObstacles - maxObstaclesTolerance);
-              const maxExpectedMaxObstacles = Math.ceil(expectedMaxObstacles + maxObstaclesTolerance*1.5 + 2);
+              const maxExpectedMaxObstacles = Math.ceil(expectedMaxObstacles + maxObstaclesTolerance*2 + 2);
               console.log('min',minExpectedMaxObstacles,'max',maxExpectedMaxObstacles,'and actual maxObstacles',stats.maxObstacles);
               if (stats.maxObstacles >= minExpectedMaxObstacles && stats.maxObstacles <= maxExpectedMaxObstacles) {
                 //positive case do nothing
@@ -1004,7 +1004,13 @@ export async function POST(request) {
                   if (currentY <= stats.canvasHeight - gameParams.SHIP_HEIGHT && currentY > 0) {
                     //positive case do nothing
                   } else {
-                    console.log('Suspicious ship no collision with ground or top');
+                    console.log('Suspicious ship no collision with ground or top', {
+                      event,
+                      lastFrameId,
+                      eventFrameId: event.frameId,
+                      frameId: i,
+                      currentY,
+                    });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship no collision with ground or top' }), { status: 400 });
                   }
                   // Update obstacle positions

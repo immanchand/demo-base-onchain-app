@@ -426,8 +426,7 @@ export async function POST(request) {
             // All gamess Check if server game duration is more than client game duration. With network latency, it can never be less.
             // if client game time is more, or too less by 2 seconds difference, indicates cheating attempts
             const serverDuration = nowEnd - gameDurationStoreValue;
-            console.log('serverDuration - stats.time',serverDuration - stats.time);
-            if (stats.time <= serverDuration && serverDuration - stats.time < 5000) {
+            if (stats.time <= serverDuration) {
               //positive case do nothing
             } else {
                 console.log('GameDurationStore Stats Time Check failed for', {

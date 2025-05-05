@@ -831,18 +831,19 @@ export async function POST(request) {
               for (let t = 0; t < gameTimeSec; t++) {
                 const difficultyFactor = Math.min(t / gameParams.DIFFICULTY_FACTOR_TIME, 1);
                 const spawnInterval = (gameParams.MAX_SPAWN_INTERVAL/1000) * (1 - difficultyFactor) + gameParams.MIN_SPAWN_INTERVAL/1000; // in seconds
-                const clusterChance = difficultyFactor * gameParams.CLUSTER_CHANCE;
+                //const clusterChance = difficultyFactor * gameParams.CLUSTER_CHANCE;
                 const spawnsPerSecond = 1 / spawnInterval;
                 const obstacleSpeed = Math.abs(gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor)); // pixels per frame
                 const timeToCross = stats.canvasWidth / obstacleSpeed * (1 / avgFps); // seconds to cross screen
-                const maxObstaclesAtTime = timeToCross * spawnsPerSecond * (1 + clusterChance);
+                const maxObstaclesAtTime = timeToCross * spawnsPerSecond * (1 + difficultyFactor);
                 expectedMaxObstacles = Math.max(expectedMaxObstacles, maxObstaclesAtTime);
-                expectedSpawns += spawnsPerSecond * (1 + clusterChance);
-                expectedDoubleSpawns += spawnsPerSecond * clusterChance;
+                expectedSpawns += spawnsPerSecond * (1 + difficultyFactor);
+                expectedDoubleSpawns += spawnsPerSecond * difficultyFactor;
               }
               // expected total spawn calculation and validations
-              const spawnStdDev = Math.sqrt(Math.abs(expectedSpawns * (1 + gameParams.CLUSTER_CHANCE) * (1 - (1 + gameParams.CLUSTER_CHANCE)))); // Approximate variance for obstacles
-              const spawnTolerance = 1.2 * spawnStdDev;
+              //const spawnStdDev = Math.sqrt(Math.abs(expectedSpawns * (2) * (1 - (2)))); // Approximate variance for obstacles
+              //const spawnTolerance = 1.2 * spawnStdDev;
+              const spawnTolerance = 0
               const minExpectedSpawns = Math.floor(expectedSpawns - spawnTolerance);
               const maxExpectedSpawns = Math.ceil(expectedSpawns + spawnTolerance*1.5);
               console.log('minExpectedSpawns',minExpectedSpawns);
@@ -861,8 +862,9 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn count' }), { status: 400 });
               }
               // Expected Double spawn calculations and validations
-              const doubleSpawnStdDev = Math.sqrt(expectedDoubleSpawns * gameParams.CLUSTER_CHANCE * (1 - gameParams.CLUSTER_CHANCE)); // Variance for double spawns
-              const doubleSpawnTolerance = 2 * doubleSpawnStdDev;
+              //const doubleSpawnStdDev = Math.sqrt(expectedDoubleSpawns * gameParams.CLUSTER_CHANCE * (1 - gameParams.CLUSTER_CHANCE)); // Variance for double spawns
+              //const doubleSpawnTolerance = 2 * doubleSpawnStdDev;
+              const doubleSpawnTolerance = 0;
               const minExpectedDoubleSpawns = Math.floor(expectedDoubleSpawns - doubleSpawnTolerance);
               const maxExpectedDoubleSpawns = Math.ceil(expectedDoubleSpawns + doubleSpawnTolerance*1.5);
               console.log('min',minExpectedDoubleSpawns,'max',maxExpectedDoubleSpawns,'and actual double spawns',doubleSpawnCount);
@@ -879,8 +881,8 @@ export async function POST(request) {
                 return new Response(JSON.stringify({status: 'error', message: 'Suspicious double spawn count' }), { status: 400 });
               }
               // expected maxObstacles range calcuations and validations
-              const maxObstaclesStdDev = Math.sqrt(Math.abs(expectedMaxObstacles * (1 + gameParams.CLUSTER_CHANCE) * (1 - (1 + gameParams.CLUSTER_CHANCE))));
-              const maxObstaclesTolerance = 1.5 * maxObstaclesStdDev;
+              //const maxObstaclesStdDev = Math.sqrt(Math.abs(expectedMaxObstacles * (1 + gameParams.CLUSTER_CHANCE) * (1 - (1 + gameParams.CLUSTER_CHANCE))));
+              const maxObstaclesTolerance = 0;// 1.5 * maxObstaclesStdDev;
               const minExpectedMaxObstacles = Math.floor(expectedMaxObstacles - maxObstaclesTolerance);
               const maxExpectedMaxObstacles = Math.ceil(expectedMaxObstacles + maxObstaclesTolerance*2);
               console.log('min',minExpectedMaxObstacles,'max',maxExpectedMaxObstacles,'and actual maxObstacles',stats.maxObstacles);

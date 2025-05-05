@@ -907,11 +907,11 @@ export async function POST(request) {
               }
               const avgInterval = flapIntervals.reduce((a, b) => a + b, 0) / flapIntervals.length;
               const variance = flapIntervals.reduce((a, b) => a + Math.pow(b - avgInterval, 2), 0) / flapIntervals.length;
-              console.log('Flap Interval Variance (min 3, max 6, variance:', variance);
-              if (variance > 3 && variance < 6) {
+              console.log('Flap Interval Variance (min 2, max 6, variance:', variance);
+              if (variance > 2 && variance < 6) {
                 //positive case do nothing
               } else {
-                console.log('Suspicious flap interval variance not between 3< >6', variance);
+                console.log('Suspicious flap interval variance not between 2< >6', variance);
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap interval variance' }), { status: 400 });
               }
 
@@ -1004,7 +1004,7 @@ export async function POST(request) {
                   //   currentY = 0; // Clamp y-position to 0
                   //   currentVy = 0; // Clamp vy to 0
                   // }
-                  if (currentY <= stats.canvasHeight - gameParams.SHIP_HEIGHT || currentY < 0) {
+                  if (currentY <= stats.canvasHeight - gameParams.SHIP_HEIGHT && currentY > 0) {
                     //positive case do nothing
                   } else {
                     console.log('Suspicious ship no collision with ground or top');

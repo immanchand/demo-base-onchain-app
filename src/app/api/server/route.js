@@ -832,7 +832,7 @@ export async function POST(request) {
                 const difficultyFactor = Math.min(t / gameParams.DIFFICULTY_FACTOR_TIME, 1);
                 const spawnInterval = (gameParams.MAX_SPAWN_INTERVAL/1000) * (1 - difficultyFactor) + gameParams.MIN_SPAWN_INTERVAL/1000; // in seconds
                 const spawnsPerSecond = 1 / spawnInterval;
-                const obstacleSpeed = Math.abs(gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor)); // pixels per frame
+                const obstacleSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor); // pixels per frame
                 const timeToCross = stats.canvasWidth / obstacleSpeed * (1 / avgFps); // seconds to cross screen
                 const maxObstaclesAtTime = timeToCross * spawnsPerSecond * (1 + difficultyFactor) + 2; //2 for double spawn
                 expectedMaxObstacles = Math.max(expectedMaxObstacles, maxObstaclesAtTime);
@@ -840,11 +840,11 @@ export async function POST(request) {
                 expectedDoubleSpawns += spawnsPerSecond * difficultyFactor;
               }
               // expected total spawn calculation and validations
-              console.log('minExpectedSpawns',expectedSpawns * 0.95);
-              console.log('maxExpectedSpawns',expectedSpawns * 1.1);
+              console.log('minExpectedSpawns',expectedSpawns * 0.98);
+              console.log('maxExpectedSpawns',expectedSpawns * 1.2);
               console.log('actual spawns',spawnEvents.length);
               // check with 5% variance
-              if (spawnEvents.length <= expectedSpawns * 1.1 && spawnEvents.length >= expectedSpawns * 0.95) {
+              if (spawnEvents.length <= expectedSpawns * 1.2 && spawnEvents.length >= expectedSpawns * 0.98) {
                 //positive case do nothing
               } else {
                 console.log('Suspicious spawn count', {
@@ -854,8 +854,8 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn count' }), { status: 400 });
               }
               // Expected Double spawn calculations and validations
-              console.log('min',expectedDoubleSpawns * 0.95,'max',expectedDoubleSpawns * 1.1,'and actual double spawns',doubleSpawnCount);
-              if (doubleSpawnCount <= expectedDoubleSpawns * 1.1 && doubleSpawnCount >= expectedDoubleSpawns * 0.95) {
+              console.log('min',expectedDoubleSpawns * 0.98,'max',expectedDoubleSpawns * 1.2,'and actual double spawns',doubleSpawnCount);
+              if (doubleSpawnCount <= expectedDoubleSpawns * 1.2 && doubleSpawnCount >= expectedDoubleSpawns * 0.98) {
                 //positive case do nothing
               } else {
                 console.log('Suspicious double spawn count', {
@@ -865,8 +865,8 @@ export async function POST(request) {
                 return new Response(JSON.stringify({status: 'error', message: 'Suspicious double spawn count' }), { status: 400 });
               }
               // expected maxObstacles range calcuations and validations
-              console.log('min',expectedMaxObstacles * 0.95,'max',expectedMaxObstacles * 1.1,'and actual maxObstacles',stats.maxObstacles);
-              if (stats.maxObstacles <= expectedMaxObstacles * 1.1 + 2 && stats.maxObstacles >= expectedMaxObstacles * 0.95 - 2) {
+              console.log('min',expectedMaxObstacles * 0.98,'max',expectedMaxObstacles * 1.2,'and actual maxObstacles',stats.maxObstacles);
+              if (stats.maxObstacles <= expectedMaxObstacles * 1.2 && stats.maxObstacles >= expectedMaxObstacles * 0.98) {
                 //positive case do nothing
               } else {
                   console.log('Suspicious maxObstacles', {

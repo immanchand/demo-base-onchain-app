@@ -331,7 +331,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                         event: 'frame',
                         time: performance.now(),
                         frameId: frameCount,
-                        data: { deltaTime: deltaTime * 10, difficulty: timeLevel, score, speed: speedMultiplier, x: ship.x, y: ship.y, vy: ship.vy, width: ship.width, height: ship.height},
+                        data: { deltaTime: deltaTime * 10, difficulty: difficultyFactor, score, speed: speedMultiplier, x: ship.x, y: ship.y, vy: ship.vy, width: ship.width, height: ship.height},
                         obsData: { obstacles: obstaclePool.map(o => ({ x: o.x, y: o.y, dx: o.dx, dodged: o.dodged, width: o.width, height: o.height })) }
                     };
                     telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
@@ -382,9 +382,9 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             if (canvas.width - rightmostObstacle >= minGap && !gameOver) {
                 const randNumber = Math.random();
                 const widthCount = randNumber < clusterChance ? 2 : 1;
-                const heightCount = randNumber < clusterChance/2 ? 4 :
-                                    randNumber < clusterChance ? 3 :
-                                    randNumber < clusterChance * 1.5 ? 2 : 1;
+                const heightCount = randNumber < clusterChance/4 ? 4 :
+                                    randNumber < clusterChance/3 ? 3 :
+                                    randNumber < clusterChance ? 2 : 1;
 
                 obstaclePool.push(...spawnObstacles(canvas, obstacleSpeed, frameCount, widthCount, heightCount));
                 //lastObstacleSpawnX = canvas.width; ??

@@ -385,7 +385,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             if (canvas.width - rightmostObstacle >= minGap && !gameOver) {
                 const randNumber = Math.random();
                 const widthCount = randNumber < clusterChance ? 2 : 1;
-                const heightCount = randNumber < clusterChance/4 ? 4 :
+                const heightCount = randNumber < clusterChance/6 ? 4 :
                                     randNumber < clusterChance/3 ? 3 :
                                     randNumber < clusterChance ? 2 : 1;
 

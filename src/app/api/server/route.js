@@ -1001,27 +1001,19 @@ export async function POST(request) {
                   // Update ship physics
                   currentVy += gameParams.GRAVITY;
                   currentY += currentVy;
-                  //commented out to change top to collision also
-                  // if (currentY < 0) {
-                  //   currentY = 0; // Clamp y-position to 0
-                  //   currentVy = 0; // Clamp vy to 0
-                  // }
-                  console.log('currentY',currentY);
+                  //check ground and top collisions
                   if (currentY <= stats.canvasHeight - gameParams.SHIP_HEIGHT && currentY > 0) {
                     //positive case do nothing
                   } else {
                     console.log('Suspicious ship no collision with ground or top');
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship no collision with ground or top' }), { status: 400 });
                   }
-
                   // Update obstacle positions
                   activeObstacles.forEach(obs => {
                     obs.x += obs.dx; // Interpolate x using dx
                   });
-
                   // Remove obstacles that have moved off-screen (x < 0)
                   activeObstacles = activeObstacles.filter(obs => obs.x >= 0);
-
                   // Check for collisions with obstacles
                   const shipCenterX = shipStartX + gameParams.SHIP_WIDTH / 2;
                   const shipCenterY = currentY + gameParams.SHIP_HEIGHT / 2;

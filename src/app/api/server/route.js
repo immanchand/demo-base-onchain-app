@@ -384,7 +384,7 @@ export async function POST(request) {
               lastTime = event.time;
 
               // Verify frameId is strictly increasing for frame events
-              if (event.event === 'frame' || event.event === 'spawn' || event.event === 'flap') {
+              if (event.event === 'frame' || event.event === 'spawn' || event.event === 'flap' || event.event === 'jump') {
                 const currentFrameId = event.frameId;
                 if (currentFrameId >= lastFrameId) {
                   //positve case do nothing
@@ -401,7 +401,7 @@ export async function POST(request) {
             }
             // All game check telemetry only one event collision
             const collisionEvents = telemetry.filter(e => e.event === 'collision');
-            if (collisionEvents.length === 1 || (collisionEvents.length == 2 && collisionEvents[0].time === collisionEvents[1].time)) {
+            if (collisionEvents.length === 1 || (collisionEvents.length == 2 && Math.abs(collisionEvents[0].time - collisionEvents[1].time) < 100 )) {
               //positve case do nothing
             } else {
               console.log('Incorrect number of collision events found for', {
@@ -423,10 +423,11 @@ export async function POST(request) {
               console.log('lastEvent.event', lastEvent.event, 'or secondLastEvent.event', secondLastEvent.event, '!== collision');
               return new Response(JSON.stringify({ status: 'error', message: 'Last event must be collision' }), { status: 400 });
             }
-            // All gamess Check if server game duration is less than client game duration. With network latency, it can never be less.
-            // if less, indicates cheating on client side
+            // All gamess Check if server game duration is more than client game duration. With network latency, it can never be less.
+            // if client game time is more, or too less by 2 seconds difference, indicates cheating attempts
             const serverDuration = nowEnd - gameDurationStoreValue;
-            if (stats.time <= serverDuration) {
+            console.log('serverDuration - stats.time',serverDuration - stats.time);
+            if (stats.time <= serverDuration && serverDuration - stats.time < 2000) {
               //positive case do nothing
             } else {
                 console.log('GameDurationStore Stats Time Check failed for', {

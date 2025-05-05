@@ -270,11 +270,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             if (!gameOver) {
                 ship.vy += FLY_PARAMETERS.GRAVITY;
                 ship.y += ship.vy;
-                if (ship.y < 0) {
-                    ship.y = 0;
-                    ship.vy = 0;
-                }
-                if (ship.y > canvas.height - FLY_PARAMETERS.SHIP_HEIGHT) {
+                if (ship.y > canvas.height - FLY_PARAMETERS.SHIP_HEIGHT || ship.y <= 0) {
                     setGameOver(true);
                     const newEvent = { event: 'collision' as const, time: performance.now() };
                     telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
@@ -347,7 +343,6 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 const numObstacles = Math.random() < clusterChance ? 2 : 1;
                 for (let i = 0; i < numObstacles; i++) {
                     const obstacle = spawnObstacle(canvas, obstacleSpeed, frameCount);
-                    //obstaclePool.push({ ...obstacle, y: obstacle.y + (i * obstacleSize * 2) });
                     obstaclePool.push(obstacle);
                 }
                 lastSpawnTimeRef.current = currentTime;
@@ -565,7 +560,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                     <h1 className="text-3xl text-accent-yellow mb-4">FLY</h1>
                     <p className="text-xl mb-2">INSTRUCTIONS:</p>
                     <p className="mb-2">Use the spacebar or mouse click to fly upward.</p>
-                    <p className="mb-4">Avoid hitting obstacles and avoid hitting the ground!</p>
+                    <p className="mb-4">Avoid hitting obstacles and avoid hitting the ground or the top!</p>
                     <p className="mb-2">CONTROLS:</p>
                     <p className="mb-4">Spacebar or Mouse Click: Fly Upward</p>
                     <div className="mb-4 flex items-center justify-center">

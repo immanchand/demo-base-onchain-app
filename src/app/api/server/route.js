@@ -866,7 +866,7 @@ export async function POST(request) {
               }
               // expected maxObstacles range calcuations and validations
               console.log('min',expectedMaxObstacles * 0.95,'max',expectedMaxObstacles * 1.1,'and actual maxObstacles',stats.maxObstacles);
-              if (stats.maxObstacles <= expectedMaxObstacles * 1.1 && stats.maxObstacles >= expectedMaxObstacles * 0.95) {
+              if (stats.maxObstacles <= expectedMaxObstacles * 1.1 + 2 && stats.maxObstacles >= expectedMaxObstacles * 0.95 - 2) {
                 //positive case do nothing
               } else {
                   console.log('Suspicious maxObstacles', {

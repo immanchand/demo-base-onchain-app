@@ -301,14 +301,17 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         const update = (deltaTime: number) => {
             const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
             const difficultyFactor = Math.min(elapsedTime / JUMP_PARAMETERS.DIFFICULTY_FACTOR_TIME, 1);
-            const clusterChance = difficultyFactor * JUMP_PARAMETERS.CLUSTER_CHANCE;
+            const clusterChanceACTUAL = difficultyFactor * JUMP_PARAMETERS.CLUSTER_CHANCE;
+            const clusterChance = difficultyFactor * 0.8;
             const timeLevel = Math.floor(elapsedTime / 8);
             const speedMultiplier = 1 + timeLevel * 0.05;
             //const obstacleSpeed = JUMP_PARAMETERS.BASE_OBSTACLE_SPEED * speedMultiplier;
             const obstacleSpeed = JUMP_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
             //const minGap = JUMP_PARAMETERS.OBSTACLE_SIZE * (50 - Math.min(timeLevel, 10) * 4);
-            //const minGap2 = JUMP_PARAMETERS.OBSTACLE_SIZE * 10 * (1 - difficultyFactor);
-            const minGap = JUMP_PARAMETERS.MAX_SPAWN_INTERVAL * (1 - difficultyFactor) + JUMP_PARAMETERS.MIN_SPAWN_INTERVAL;
+
+            const minGapACTUAL = JUMP_PARAMETERS.MAX_SPAWN_INTERVAL * (1 - difficultyFactor) + JUMP_PARAMETERS.MIN_SPAWN_INTERVAL;
+            //to figure out constants
+            const minGap = 1000 * (1 - difficultyFactor) + JUMP_PARAMETERS.MIN_SPAWN_INTERVAL;
             //const minGap = JUMP_PARAMETERS.OBSTACLE_SIZE * 5 * Math.min((10 - (difficultyFactor*10)),1);
             
             const obstacleSize = JUMP_PARAMETERS.OBSTACLE_SIZE;

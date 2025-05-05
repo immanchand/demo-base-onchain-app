@@ -994,7 +994,7 @@ export async function POST(request) {
                 }
 
                 // Simulate frame by frame physics and obstacle movement
-                for (let i = lastFrameId; i < event.frameId; i++) {
+                for (let i = lastFrameId +1; i <= event.frameId; i++) {
                   //if (event.frameId + i >= stats.framesCount) console.log('event.frameId + i', event.frameId + i);
                   // Update ship physics
                   currentVy += gameParams.GRAVITY;
@@ -1004,6 +1004,7 @@ export async function POST(request) {
                   //   currentY = 0; // Clamp y-position to 0
                   //   currentVy = 0; // Clamp vy to 0
                   // }
+                  console.log('currentY',currentY);
                   if (currentY <= stats.canvasHeight - gameParams.SHIP_HEIGHT && currentY > 0) {
                     //positive case do nothing
                   } else {

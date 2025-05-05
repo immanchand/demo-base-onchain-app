@@ -56,15 +56,6 @@ interface TelemetryEvent {
         }[];
     };
     parameters?: {
-        SHIP_WIDTH: number;
-        SHIP_HEIGHT: number;
-        OBSTACLE_SIZE: number;
-        BASE_OBSTACLE_SPEED: number;
-        MIN_SPAWN_INTERVAL: number;
-        GRAVITY: number;
-        FLAP_VELOCITY: number;
-        SCORE_MULTIPLIER: number;
-        DIFFICULTY_FACTOR_TIME: number;
     }
 }
 

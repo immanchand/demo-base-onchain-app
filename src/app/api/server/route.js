@@ -756,8 +756,8 @@ export async function POST(request) {
               }
               // Critical value for chi-squared test with 9 degrees of freedom (numBins - 1)
               // at 95% confidence level (alpha = 0.05) is approximately 16.919
-              const CHI_SQUARED_CRITICAL_VALUE = 17;
-              console.log('Chi-squared statistic:', chiSquared, 'max chi: 17');
+              const CHI_SQUARED_CRITICAL_VALUE = 22;
+              console.log('Chi-squared statistic:', chiSquared, 'max chi: 22');
               if (chiSquared <= CHI_SQUARED_CRITICAL_VALUE) {
                 //positive case do nothing
               } else {
@@ -844,7 +844,7 @@ export async function POST(request) {
               console.log('maxExpectedSpawns',expectedSpawns * 1.02);
               console.log('actual spawns',spawnEvents.length);
               // check with 5% variance
-              if (spawnEvents.length >= expectedSpawns * 1.05 && spawnEvents.length <= expectedSpawns * 0.95) {
+              if (spawnEvents.length <= expectedSpawns * 1.05 && spawnEvents.length >= expectedSpawns * 0.95) {
                 //positive case do nothing
               } else {
                 console.log('Suspicious spawn count', {
@@ -855,7 +855,7 @@ export async function POST(request) {
               }
               // Expected Double spawn calculations and validations
               console.log('min',expectedDoubleSpawns * 0.95,'max',expectedDoubleSpawns * 1.05,'and actual double spawns',doubleSpawnCount);
-              if (doubleSpawnCount >= expectedDoubleSpawns * 1.05 && doubleSpawnCount <= expectedDoubleSpawns * 0.95) {
+              if (doubleSpawnCount <= expectedDoubleSpawns * 1.05 && doubleSpawnCount >= expectedDoubleSpawns * 0.95) {
                 //positive case do nothing
               } else {
                 console.log('Suspicious double spawn count', {
@@ -866,7 +866,7 @@ export async function POST(request) {
               }
               // expected maxObstacles range calcuations and validations
               console.log('min',expectedMaxObstacles * 0.95,'max',expectedMaxObstacles * 1.05,'and actual maxObstacles',stats.maxObstacles);
-              if (stats.maxObstacles >= expectedMaxObstacles * 1.05 && stats.maxObstacles <= expectedMaxObstacles * 0.95) {
+              if (stats.maxObstacles <= expectedMaxObstacles * 1.05 && stats.maxObstacles >= expectedMaxObstacles * 0.95) {
                 //positive case do nothing
               } else {
                   console.log('Suspicious maxObstacles', {

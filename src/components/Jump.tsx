@@ -186,23 +186,23 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     }, []);
 
     // Game logic
-    const spawnObstacles = useCallback((canvas: HTMLCanvasElement, speed: number, elapsedTime: number, frameCount: number): Obstacle[] => {
+    const spawnObstacles = useCallback((canvas: HTMLCanvasElement, speed: number, frameCount: number, widthCount: number, heightCount: number): Obstacle[] => {
         const obstacles: Obstacle[] = [];
         const baseX = canvas.width;
         const baseY = canvas.height * JUMP_PARAMETERS.GROUND_HEIGHT_RATIO - JUMP_PARAMETERS.SHIP_HEIGHT;
 
-        let widthCount = 1;
-        let heightCount = 1;
+        //let widthCount = 1;
+        //let heightCount = 1;
 
-        const timeLevel = Math.floor(elapsedTime / 10);
-        if (timeLevel >= 1) heightCount = 2;
-        if (timeLevel >= 3) widthCount = 2;
-        if (timeLevel >= 4) {
-            widthCount = 2;
-            heightCount = 2;
-        }
-        if (timeLevel >= 5 && Math.random() < 0.3) heightCount = 3;
-        if (timeLevel >= 6 && Math.random() < 0.2) heightCount = 4;
+        //const timeLevel = Math.floor(elapsedTime / 10);
+        // if (timeLevel >= 1) heightCount = 2;
+        // if (timeLevel >= 3) widthCount = 2;
+        // if (timeLevel >= 4) {
+        //     widthCount = 2;
+        //     heightCount = 2;
+        // }
+        // if (timeLevel >= 5 && Math.random() < 0.3) heightCount = 3;
+        // if (timeLevel >= 6 && Math.random() < 0.2) heightCount = 4;
 
         for (let w = 0; w < widthCount; w++) {
             for (let h = 0; h < heightCount; h++) {
@@ -378,10 +378,13 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
             const rightmostObstacle = obstaclePool.reduce((max, obs) => Math.max(max, obs.x), -minGap);
             if (canvas.width - rightmostObstacle >= minGap && !gameOver) {
+                const randNumber = Math.random();
+                const widthCount = randNumber < clusterChance ? 2 : 1;
+                const heightCount = randNumber < clusterChance/2 ? 4 :
+                                    randNumber < clusterChance ? 3 :
+                                    randNumber < clusterChance * 1.5 ? 2 : 1;
 
-                
-
-                obstaclePool.push(...spawnObstacles(canvas, obstacleSpeed, elapsedTime, frameCount));
+                obstaclePool.push(...spawnObstacles(canvas, obstacleSpeed, frameCount, widthCount, heightCount));
                 //lastObstacleSpawnX = canvas.width; ??
             }
 
@@ -493,7 +496,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             ship.y = canvas.height * JUMP_PARAMETERS.GROUND_HEIGHT_RATIO - JUMP_PARAMETERS.SHIP_HEIGHT;
             ship.vy = 0;
             jumpCountRef.current = 0;
-            obstaclePool = spawnObstacles(canvas, JUMP_PARAMETERS.BASE_OBSTACLE_SPEED, 0, 0);
+            obstaclePool = spawnObstacles(canvas, JUMP_PARAMETERS.BASE_OBSTACLE_SPEED, 0, 0, 0);
             //lastObstacleSpawnX = canvas.width; ??
             startTimeRef.current = performance.now();
             backgroundOffset = 0;

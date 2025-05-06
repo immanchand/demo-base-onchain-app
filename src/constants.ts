@@ -12,7 +12,7 @@ export const FLY_PARAMETERS = {
   SHIP_WIDTH: 40,
   SHIP_HEIGHT: 40 * (3/4),
   OBSTACLE_SIZE: 50,
-  BASE_OBSTACLE_SPEED: -3, // Higher (e.g., -4) = faster obstacles, harder; Lower (e.g., -2) = easier
+  BASE_OBSTACLE_SPEED: -4, // Higher (e.g., -4) = faster obstacles, harder; Lower (e.g., -2) = easier
   MIN_SPAWN_INTERVAL: 200, // ms Lower (e.g., 200) = more frequent obstacles, harder; Higher (e.g., 500) = easier
   MAX_SPAWN_INTERVAL: 1000, // ms starting frequency of obstacles
   GRAVITY: 0.2, // Higher (e.g., 0.3) = faster fall, harder; Lower (e.g., 0.1) = easier

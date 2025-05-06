@@ -782,12 +782,94 @@ export async function POST(request) {
 
               //JUMP SPAWN RELATED VALIDATIONS
 
-              
               //end JUMP SPAWN RELATED VALIDATIONS
 
               //JUMPING RELATED VALIDATIONS
               const jumpEvents = telemetry.filter(e => e.event === 'jump');
               console.log('jumpEvents.length',jumpEvents.length);
+
+              // validate jumpEvents.length and stats.jump
+              if (jumpEvents.length == stats.jumps) {
+                //positive case do nothing
+              } else {
+                console.log('Suspicious jumpEvents vs stats.jumps', {
+                  statsJumps: stats.jumps,
+                  jumpEventsLength: jumpEvents.length,
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious stats jumpEvents vs stats.jumps' }), { status: 400 });
+              }
+
+              // Count jumps using both methods
+              const GROUND_Y = stats.canvasHeight * gameParams.GROUND_HEIGHT_RATIO - gameParams.SHIP_HEIGHT;
+              let posSingleJumpCount = 0;
+              let posDoubleJumpCount = 0;
+              let timeSingleJumpCount = 0;
+              let timeDoubleJumpCount = 0;
+              let prevTime = jumpEvents[0].time;
+              let lastJumpEvent = jumpEvents[0];
+
+              // Process remaining jumps
+              for (const event of jumpEvents) {
+                //handle differently for first jump event
+                if (event == lastJumpEvent) {
+                  if (Math.abs(event.data.y - GROUND_Y) <= 0.001) {
+                    //positive case do nothing
+                  } else {
+                    console.log('Suspicious first jump vs ground', {
+                      shipY: event.data.y,
+                      GROUND_Y,
+                    });
+                    return new Response(JSON.stringify({ status: 'error', message: 'first jump must be on the ground' }), { status: 400 });    
+                  }
+                  posSingleJumpCount++;
+                  timeSingleJumpCount++;
+                  continue;
+                }
+                //for all other jump events, check ground position
+                if (Math.abs(event.data.y - GROUND_Y) <= 0.001) {
+                  //on the ground first of double jump or only jump
+                  posSingleJumpCount++;
+                } else if (event.data.y < GROUND_Y + 1) {
+                  //in the air second of double jump
+                  posDoubleJumpCount++;
+                }
+                //for all other jump events, check time difference
+                if (event.time - prevTime > gameParams.DOUBLE_PRESS_THRESHOLD) {
+                  //long time so first of double jump or only jump
+                  timeSingleJumpCount++;
+                } else if (event.time - prevTime <= gameParams.DOUBLE_PRESS_THRESHOLD) {
+                  //less time so second of double jump
+                  timeDoubleJumpCount++;
+                }
+                //set previous time before closing the loop
+                prevTime = event.time;
+              }
+
+              // Validate single and double jump counts
+              if (posSingleJumpCount === timeSingleJumpCount && posDoubleJumpCount === timeDoubleJumpCount) {
+                // positive case do nothing
+              } else {
+                console.log('Jump count mismatch between methods', {
+                  posSingleJumpCount,
+                  posDoubleJumpCount,
+                  timeSingleJumpCount,
+                  timeDoubleJumpCount
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Inconsistent single/double jump counts' }), { status: 400 });
+              }
+              // Validate total jumps
+              if (jumpEvents.length === posSingleJumpCount + posDoubleJumpCount) {
+                // positive case do nothing
+              } else {
+                console.log('Total jump count mismatch', {
+                  totalJumps: posSingleJumpCount + posDoubleJumpCount,
+                  expectedJumps: jumpEvents.length,
+                  posSingleJumpCount,
+                  posDoubleJumpCount
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Total jump count mismatch' }), { status: 400 });
+              }
+
               // Validate Jump Frequency
               const jumpCount = jumpEvents.length;
               const expectedJumpsPerSec = jumpCount / gameTimeSec;
@@ -961,7 +1043,6 @@ export async function POST(request) {
               
               // Dynamic spawn count, double spawn count, and max obstacle count caluculations 
               let doubleSpawnCount = clusterCounts['1x2'];
-              console.log('FLY doubleSpawnCount',doubleSpawnCount);
               let expectedSpawns = 0;
               let expectedDoubleSpawns = 0;
               let expectedMaxObstacles = 0;
@@ -1036,6 +1117,16 @@ export async function POST(request) {
 
               // FLY GAME FLAP VALIDATIONS
               const flapEvents = telemetry.filter(e => e.event === 'flap');
+              // validate jumpEvents.length and stats.jump
+              if (flapEvents.length == stats.flaps) {
+                //positive case do nothing
+              } else {
+                console.log('Suspicious flapEvents vs stats.flaps', {
+                  statsFlaps: stats.flaps,
+                  flapEventsLength: flapEvents.length,
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious stats flapEvents vs stats.flaps' }), { status: 400 });
+              }
               // 1. Flap Interval Variance
               const flapIntervals = [];
               for (let i = 1; i < flapEvents.length; i++) {

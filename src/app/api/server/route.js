@@ -26,6 +26,24 @@ const GAME_RECAPTCHA_END_THRESHOLD = {
   shoot: process.env.SHOOT_RECAPTCHA_END_THRESHOLD,
   jump: process.env.JUMP_RECAPTCHA_END_THRESHOLD,
 };
+// Game-specific cluster configurations
+const clusterConfigs = {
+  fly: {
+    validClusters: [
+      { xCount: 1, yCount: 1, obstacleCount: 1 }, // Single spawn
+      { xCount: 2, yCount: 1, obstacleCount: 2 }  // Double spawn
+    ]
+  },
+  jump: {
+    validClusters: [
+      { xCount: 1, yCount: 1, obstacleCount: 1 }, // 1x1
+      { xCount: 2, yCount: 1, obstacleCount: 2 }, // 2x1
+      { xCount: 2, yCount: 2, obstacleCount: 4 }, // 2x2
+      { xCount: 3, yCount: 3, obstacleCount: 9 }, // 3x3
+      { xCount: 4, yCount: 2, obstacleCount: 8 }  // 4x2
+    ]
+  }
+};
 
 if (!GAME_MASTER_PRIVATE_KEY || !PROVIDER_URL) {
   throw new Error('Missing GAME_MASTER_PRIVATE_KEY or PROVIDER_URL in environment');
@@ -656,7 +674,86 @@ export async function POST(request) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship size' }), { status: 400 });
                 }
               }
-            }
+
+              //check and count clusters
+              const clusterConfig = clusterConfigs[stats.game];
+              // Cluster counts
+              const clusterCounts = {
+                fly: { doubleSpawnCount: 0 },
+                jump: { '1x1': 0, '2x1': 0, '2x2': 0, '3x3': 0, '4x2': 0 }
+              }[stats.game];
+              // Group spawn events by frameId
+              const spawnGroups = {};
+              for (const event of spawnEvents) {
+                if (!spawnGroups[event.frameId]) {
+                  spawnGroups[event.frameId] = [];
+                }
+                spawnGroups[event.frameId].push(event);
+              }
+              // Validate each spawn group
+              for (const frameId in spawnGroups) {
+                const events = spawnGroups[frameId];
+
+                // Size and speed checks for each event
+                for (const event of events) {
+                  // Size check
+                  if (event.data.width !== gameParams.OBSTACLE_SIZE || event.data.height !== gameParams.OBSTACLE_SIZE) {
+                    console.log('Invalid obstacle size', { frameId, actualWidth: event.data.width, actualHeight: event.data.height });
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
+                  }
+
+                  // Speed check
+                  const elapsedTimeSec = (event.time - gameStartTime) / 1000;
+                  const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
+                  const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
+                  if (Math.abs(event.data.speed - expectedSpeed) <= 0.001) {
+                    //positive case do nothing
+                  } else {
+                    console.log('Obstacle speed check failed', {
+                      address,
+                      gameId,
+                      gameName: stats.game,
+                      event,
+                      expectedSpeed,
+                      actualSpeed: event.data.speed,
+                      difficultyFactor
+                    });
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle speed' }), { status: 400 });
+                  }
+                }
+                // Cluster validation
+                const uniqueX = [...new Set(events.map(e => e.data.x))];
+                const uniqueY = [...new Set(events.map(e => e.data.y))];
+                const obstacleCount = events.length;
+
+                const cluster = clusterConfig.validClusters.find(
+                  c => c.xCount === uniqueX.length && c.yCount === uniqueY.length && c.obstacleCount === obstacleCount
+                );
+
+                if (!cluster) {
+                  console.log('Invalid cluster configuration', { frameId, xCount: uniqueX.length, yCount: uniqueY.length, obstacleCount });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Invalid obstacle cluster configuration' }), { status: 400 });
+                }
+
+                // Increment cluster count
+                if (stats.game === 'fly' && obstacleCount === 2) {
+                  clusterCounts.doubleSpawnCount++;
+                  const clusterKey = `${uniqueX.length}x${uniqueY.length}`;
+                  clusterCounts[clusterKey]++;
+                } else if (stats.game === 'jump') {
+                  const clusterKey = `${uniqueX.length}x${uniqueY.length}`;
+                  clusterCounts[clusterKey]++;
+                }
+              }
+              // Log cluster counts for debugging
+              console.log('Cluster counts', clusterCounts);
+
+              
+
+
+
+            } // end if FLY or JUMP only
+            
    
 			      // Stats validation and telemetry validation specific to each Game
             // JUMP GAME

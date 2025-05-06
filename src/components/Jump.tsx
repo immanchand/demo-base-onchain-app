@@ -371,7 +371,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 const widthCount = randNumber < clusterChance ? 2 : 1;
                 const heightCount = randNumber < clusterChance/6 ? 4 :
                                     randNumber < clusterChance/3 ? 3 :
-                                    randNumber < clusterChance ? 2 : 1;
+                                    randNumber < clusterChance*2 ? 2 : 1;
 
                 obstaclePool.push(...spawnObstacles(canvas, obstacleSpeed, frameCount, widthCount, heightCount));
                 //lastObstacleSpawnX = canvas.width; ??

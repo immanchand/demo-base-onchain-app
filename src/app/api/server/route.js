@@ -44,6 +44,9 @@ const clusterConfigs = {
     ]
   }
 };
+// Cluster counts
+const clusterCounts = { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
+
 
 if (!GAME_MASTER_PRIVATE_KEY || !PROVIDER_URL) {
   throw new Error('Missing GAME_MASTER_PRIVATE_KEY or PROVIDER_URL in environment');
@@ -678,7 +681,7 @@ export async function POST(request) {
               //check and count clusters
               const clusterConfig = clusterConfigs[stats.game];
               // Cluster counts
-              const clusterCounts = { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
+              //const clusterCounts = { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
               // Group spawn events by frameId
               const spawnGroups = {};
               for (const event of spawnEvents) {
@@ -703,6 +706,7 @@ export async function POST(request) {
                   const elapsedTimeSec = (event.time - gameStartTime) / 1000;
                   const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
                   const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
+                  console.log('event.frameId',event.frameId, 'Math.abs(event.data.speed - expectedSpeed)',Math.abs(event.data.speed - expectedSpeed));
                   if (Math.abs(event.data.speed - expectedSpeed) <= 0.001) {
                     //positive case do nothing
                   } else {
@@ -722,32 +726,23 @@ export async function POST(request) {
                 const uniqueX = [...new Set(events.map(e => e.data.x))];
                 const uniqueY = [...new Set(events.map(e => e.data.y))];
                 const obstacleCount = events.length;
-
+                //quick check that the cluster array found is valid
                 const cluster = clusterConfig.validClusters.find(
                   c => c.xCount === uniqueX.length && c.yCount === uniqueY.length && c.obstacleCount === obstacleCount
                 );
-
                 if (!cluster) {
                   console.log('Invalid cluster configuration', { frameId, xCount: uniqueX.length, yCount: uniqueY.length, obstacleCount });
                   return new Response(JSON.stringify({ status: 'error', message: 'Invalid obstacle cluster configuration' }), { status: 400 });
                 }
 
                 // Increment cluster count
-                //if (stats.game === 'fly' && obstacleCount === 2) {
-                  //clusterCounts.doubleSpawnCount++;
-                  const clusterKey = `${uniqueX.length}x${uniqueY.length}`;
-                  clusterCounts[clusterKey]++;
-                //} else if (stats.game === 'jump') {
-                  //const clusterKey = `${uniqueX.length}x${uniqueY.length}`;
-                  //clusterCounts[clusterKey]++;
-                //}
+                const clusterKey = `${uniqueX.length}x${uniqueY.length}`;
+                clusterCounts[clusterKey]++;
               }
               // Log cluster counts for debugging
               console.log('Cluster counts', clusterCounts);
 
-              
-
-
+              console.log()
 
             } // end if FLY or JUMP only
             
@@ -758,42 +753,7 @@ export async function POST(request) {
 
               //JUMP SPAWN RELATED VALIDATIONS
 
-              // Combined loop for size, speed, and double spawn counting
-              let doubleSpawnCount = 0;
-              // need to add code to count 1x1, 2x1, 2x2, 3x3, and 4x2 separately
-              for (let i = 0; i < spawnEvents.length; i++) {
-                const event = spawnEvents[i];
-                // Size check
-                if (event.data.width === gameParams.OBSTACLE_SIZE && event.data.height === gameParams.OBSTACLE_SIZE) {
-                  //positive case do nothing
-                } else {
-                  console.log('Invalid obstacle size', { actualWidth: event.data.width, actualHeight: event.data.height });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
-                }
-                // Speed check
-                const elapsedTimeSec = ((event.time - gameStartTime) / 1000);
-                const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
-                const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-                if (Math.abs(event.data.speed - expectedSpeed) <= 0.001) {
-                  //positive case do nothing
-                } else {
-                    console.log('Obstacle speed check failed', { 
-                        address,
-                        gameId,
-                        gameName: stats.game,
-                        event,
-                        expectedSpeed,
-                        actualSpeed: event.data.speed,
-                        difficultyFactor
-                    });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle speed' }), { status: 400 });
-                }
-                // Double spawn check
-                if (i > 0 && event.frameId === spawnEvents[i-1].frameId) {
-                    doubleSpawnCount++;
-                }
-              }
-              console.log('doubleSpawnCount',doubleSpawnCount);
+              
               //end JUMP SPAWN RELATED VALIDATIONS
 
               //JUMPING RELATED VALIDATIONS
@@ -844,26 +804,6 @@ export async function POST(request) {
             } else if (stats.game === 'fly') {
               
               // SPAWN RELATED VALIDATION
-              // obsData validation for maxObstaclesInPool vs stats.maxObstacles
-              // moved to all games validations for now
-              // let maxObstaclesInPool = 0;
-              // for (const event of frameEvents) {
-              //   maxObstaclesInPool = Math.max(maxObstaclesInPool, event.obsData.obstacles.length);
-              // }
-              // if (Math.abs(maxObstaclesInPool - stats.maxObstacles) <= 2) {
-              //   //positive case do nothing
-              // } else {
-              //   console.log('Invalid maxObstaclesInPool vs stats.maxObstacles', {
-              //     address,
-              //     gameId,
-              //     gameName: stats.game,
-              //     maxObstaclesInPool,
-              //     maxObstaclesStats: stats.maxObstacles,
-              //   });
-              //   return new Response(JSON.stringify({ status: 'error', message: 'Invalid maxObstaclesInPool vs stats.maxObstacles' }), { status: 400 });
-              // }
-              // console.log('maxObstaclesInPool',maxObstaclesInPool);
-
               // Extract y positions from all obstacles in obsData
               const yPositionsFrames = [];
               for (const event of frameEvents) {
@@ -988,59 +928,11 @@ export async function POST(request) {
                   message: 'Obstacle y positions show suspicious distribution',
                 }), { status: 400 });
               }
-
-              // Validate spawn events vs. obstacles cleared and maxObstacles
-              // moved to common for all games
-              // if (stats.obstaclesCleared >= spawnEvents.length - stats.maxObstacles &&
-              //     stats.obstaclesCleared <= spawnEvents.length) {
-              //       //positive case do nothing
-              // } else {
-              //   console.log('Spawn events count mismatch', {
-              //       address,
-              //       gameId,
-              //       gameName: stats.game,
-              //       obstaclesCleared: stats.obstaclesCleared,
-              //       maxObstacles: stats.maxObstacles,
-              //       spawnEventsCount: spawnEvents.length
-              //   });
-              //   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle count in stats and telemetry' }), { status: 400 });
-              // }
-
-              // Combined loop for size, speed, and double spawn counting
-              let doubleSpawnCount = 0;
-              for (let i = 0; i < spawnEvents.length; i++) {
-                const event = spawnEvents[i];
-                // Size check
-                if (event.data.width === gameParams.OBSTACLE_SIZE && event.data.height === gameParams.OBSTACLE_SIZE) {
-                  //positive case do nothing
-                } else {
-                  console.log('Invalid obstacle size', { actualWidth: event.data.width, actualHeight: event.data.height });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
-                }
-                // Speed check
-                const elapsedTimeSec = ((event.time - gameStartTime) / 1000);
-                const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
-                const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-                if (Math.abs(event.data.speed - expectedSpeed) <= 0.001) {
-                  //positive case do nothing
-                } else {
-                    console.log('Obstacle speed check failed', { 
-                        address,
-                        gameId,
-                        gameName: stats.game,
-                        event,
-                        expectedSpeed,
-                        actualSpeed: event.data.speed,
-                        difficultyFactor
-                    });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle speed' }), { status: 400 });
-                }
-                // Double spawn check
-                if (i > 0 && event.frameId === spawnEvents[i-1].frameId) {
-                    doubleSpawnCount++;
-                }
-              }
+              
+              
               // Dynamic spawn count, double spawn count, and max obstacle count caluculations 
+              let doubleSpawnCount = clusterCounts['1x2'];
+              console.log('FLY doubleSpawnCount',doubleSpawnCount);
               let expectedSpawns = 0;
               let expectedDoubleSpawns = 0;
               let expectedMaxObstacles = 0;

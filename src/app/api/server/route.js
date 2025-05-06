@@ -567,7 +567,7 @@ export async function POST(request) {
 
             // Validate spawn events vs. obstacles cleared and maxObstacles
             // need to modify for shoot (obstaclesCleared should equal kills)
-            console.log('spawnEvents.length', spawnEvents.length, 'stats.obstaclesCleared', stats.obstaclesCleared);
+            console.log('stats.obstaclesCleared', stats.obstaclesCleared, 'spawnEvents.length', spawnEvents.length);
             if (stats.obstaclesCleared >= spawnEvents.length - stats.maxObstacles &&
               stats.obstaclesCleared <= spawnEvents.length) {
                 //positive case do nothing
@@ -582,6 +582,26 @@ export async function POST(request) {
               });
               return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle count in stats and telemetry' }), { status: 400 });
             }
+
+            // obsData validation for maxObstaclesInPool vs stats.maxObstacles
+            // need to check if it works for shoot too
+            let maxObstaclesInPool = 0;
+            for (const event of frameEvents) {
+              maxObstaclesInPool = Math.max(maxObstaclesInPool, event.obsData.obstacles.length);
+            }
+            if (Math.abs(maxObstaclesInPool - stats.maxObstacles) <= 2) {
+              //positive case do nothing
+            } else {
+              console.log('Invalid maxObstaclesInPool vs stats.maxObstacles', {
+                address,
+                gameId,
+                gameName: stats.game,
+                maxObstaclesInPool,
+                maxObstaclesStats: stats.maxObstacles,
+              });
+              return new Response(JSON.stringify({ status: 'error', message: 'Invalid maxObstaclesInPool vs stats.maxObstacles' }), { status: 400 });
+            }
+            console.log('maxObstaclesInPool',maxObstaclesInPool);
 
             // common duration, score and ship position checks for FLY and JUMP
             if (stats.game === 'fly' || stats.game === 'jump') {
@@ -644,28 +664,10 @@ export async function POST(request) {
             if (stats.game === 'jump') {
 
               //JUMP SPAWN RELATED VALIDATIONS
-              // obsData validation for maxObstaclesInPool vs stats.maxObstacles
-              let maxObstaclesInPool = 0;
-              for (const event of frameEvents) {
-                maxObstaclesInPool = Math.max(maxObstaclesInPool, event.obsData.obstacles.length);
-              }
-              console.log('Math.abs(maxObstaclesInPool - stats.maxObstacles)',Math.abs(maxObstaclesInPool - stats.maxObstacles));
-              if (Math.abs(maxObstaclesInPool - stats.maxObstacles) <= 2) {
-                //positive case do nothing
-              } else {
-                console.log('Invalid maxObstaclesInPool vs stats.maxObstacles', {
-                  address,
-                  gameId,
-                  gameName: stats.game,
-                  maxObstaclesInPool,
-                  maxObstaclesStats: stats.maxObstacles,
-                });
-                return new Response(JSON.stringify({ status: 'error', message: 'Invalid maxObstaclesInPool vs stats.maxObstacles' }), { status: 400 });
-              }
-              console.log('maxObstaclesInPool',maxObstaclesInPool);
 
               // Combined loop for size, speed, and double spawn counting
               let doubleSpawnCount = 0;
+              // need to add code to count 1x1, 2x1, 2x2, 3x3, and 4x2 separately
               for (let i = 0; i < spawnEvents.length; i++) {
                 const event = spawnEvents[i];
                 // Size check
@@ -679,6 +681,7 @@ export async function POST(request) {
                 const elapsedTimeSec = ((event.time - gameStartTime) / 1000);
                 const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
                 const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
+                console.log('Math.abs(event.data.speed - expectedSpeed) should be <= 0.1',Math.abs(event.data.speed - expectedSpeed));
                 if (Math.abs(event.data.speed - expectedSpeed) <= 0.1) {
                   //positive case do nothing
                 } else {
@@ -713,23 +716,24 @@ export async function POST(request) {
               
               // SPAWN RELATED VALIDATION
               // obsData validation for maxObstaclesInPool vs stats.maxObstacles
-              let maxObstaclesInPool = 0;
-              for (const event of frameEvents) {
-                maxObstaclesInPool = Math.max(maxObstaclesInPool, event.obsData.obstacles.length);
-              }
-              if (Math.abs(maxObstaclesInPool - stats.maxObstacles) <= 2) {
-                //positive case do nothing
-              } else {
-                console.log('Invalid maxObstaclesInPool vs stats.maxObstacles', {
-                  address,
-                  gameId,
-                  gameName: stats.game,
-                  maxObstaclesInPool,
-                  maxObstaclesStats: stats.maxObstacles,
-                });
-                return new Response(JSON.stringify({ status: 'error', message: 'Invalid maxObstaclesInPool vs stats.maxObstacles' }), { status: 400 });
-              }
-              console.log('maxObstaclesInPool',maxObstaclesInPool);
+              // moved to all games validations for now
+              // let maxObstaclesInPool = 0;
+              // for (const event of frameEvents) {
+              //   maxObstaclesInPool = Math.max(maxObstaclesInPool, event.obsData.obstacles.length);
+              // }
+              // if (Math.abs(maxObstaclesInPool - stats.maxObstacles) <= 2) {
+              //   //positive case do nothing
+              // } else {
+              //   console.log('Invalid maxObstaclesInPool vs stats.maxObstacles', {
+              //     address,
+              //     gameId,
+              //     gameName: stats.game,
+              //     maxObstaclesInPool,
+              //     maxObstaclesStats: stats.maxObstacles,
+              //   });
+              //   return new Response(JSON.stringify({ status: 'error', message: 'Invalid maxObstaclesInPool vs stats.maxObstacles' }), { status: 400 });
+              // }
+              // console.log('maxObstaclesInPool',maxObstaclesInPool);
 
               // Extract y positions from all obstacles in obsData
               const yPositionsFrames = [];

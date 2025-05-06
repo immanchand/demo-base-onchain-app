@@ -680,7 +680,7 @@ export async function POST(request) {
               // Cluster counts
               const clusterCounts = {
                 fly: { doubleSpawnCount: 0 },
-                jump: { '1x1': 0, '2x1': 0, '2x2': 0, '3x3': 0, '4x2': 0 }
+                jump: { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 }
               }[stats.game];
               // Group spawn events by frameId
               const spawnGroups = {};

@@ -288,15 +288,9 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         const update = (deltaTime: number) => {
             const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
             const difficultyFactor = Math.min(elapsedTime / JUMP_PARAMETERS.DIFFICULTY_FACTOR_TIME, 1);
-            const clusterChanceACTUAL = difficultyFactor * JUMP_PARAMETERS.CLUSTER_CHANCE;
-            const clusterChance = difficultyFactor * 0.8;
-            const timeLevel = Math.floor(elapsedTime / 8);
-            const speedMultiplier = 1 + timeLevel * 0.05;
-            const obstacleSpeed = JUMP_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-            const minGapACTUAL = JUMP_PARAMETERS.MAX_SPAWN_INTERVAL * (1 - difficultyFactor) + JUMP_PARAMETERS.MIN_SPAWN_INTERVAL;
-            //to figure out constants
-            const minGap = 1000 * (1 - difficultyFactor) + 400;
-            //const minGap = JUMP_PARAMETERS.OBSTACLE_SIZE * 5 * Math.min((10 - (difficultyFactor*10)),1);
+            const clusterChance = difficultyFactor * JUMP_PARAMETERS.CLUSTER_CHANCE;
+            const obstacleSpeed = JUMP_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor*2);
+            const minGap = JUMP_PARAMETERS.MAX_SPAWN_INTERVAL * (1 - difficultyFactor) + JUMP_PARAMETERS.MIN_SPAWN_INTERVAL;
             
             const obstacleSize = JUMP_PARAMETERS.OBSTACLE_SIZE;
 
@@ -318,7 +312,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                         event: 'frame',
                         time: performance.now(),
                         frameId: frameCount,
-                        data: { deltaTime: deltaTime * 10, difficulty: difficultyFactor, score, speed: speedMultiplier, x: ship.x, y: ship.y, vy: ship.vy, width: ship.width, height: ship.height},
+                        data: { deltaTime: deltaTime * 10, difficulty: difficultyFactor, score, speed: obstacleSpeed, x: ship.x, y: ship.y, vy: ship.vy, width: ship.width, height: ship.height},
                         obsData: { obstacles: obstaclePool.map(o => ({ x: o.x, y: o.y, dx: o.dx, dodged: o.dodged, width: o.width, height: o.height })) }
                     };
                     telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT

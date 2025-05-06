@@ -681,8 +681,8 @@ export async function POST(request) {
                 const elapsedTimeSec = ((event.time - gameStartTime) / 1000);
                 const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
                 const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-                console.log('Math.abs(event.data.speed - expectedSpeed) should be <= 0.1',Math.abs(event.data.speed - expectedSpeed));
-                if (Math.abs(event.data.speed - expectedSpeed) <= 0.1) {
+                console.log('Math.abs(event.data.speed - expectedSpeed) should be <= 0.001',Math.abs(event.data.speed - expectedSpeed));
+                if (Math.abs(event.data.speed - expectedSpeed) <= 0.001) {
                   //positive case do nothing
                 } else {
                     console.log('Obstacle speed check failed', { 
@@ -705,6 +705,44 @@ export async function POST(request) {
               //end JUMP SPAWN RELATED VALIDATIONS
 
               //JUMPING RELATED VALIDATIONS
+              const jumpEvents = telemetry.filter(e => e.event === 'jump');
+              console.log('jumpEvents.length',jumpEvents.length);
+              // Validate Jump Frequency
+              const jumpCount = jumpEvents.length;
+              const expectedJumpsPerSec = jumpCount / gameTimeSec;
+              console.log('Math.abs(stats.jumpsPerSec - expectedJumpsPerSec) < 0.005',Math.abs(stats.jumpsPerSec - expectedJumpsPerSec));
+              if (Math.abs(stats.jumpsPerSec - expectedJumpsPerSec) < 0.005) {
+                //positive case do nothing
+              } else {
+                console.log('Suspicious jumpsPerSec vs jump events', {
+                  statsJumpsPerSec: stats.jumpsPerSec,
+                  expectedJumpsPerSec,
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious jumpsPerSec vs jump events patterns' }), { status: 400 });
+              }
+
+              // Existing jumpsPerSec vs inputsPerSec check more inputs since some triple jumps not counted
+              if (stats.jumpsPerSec < stats.inputsPerSec) {
+                //positive case do nothing
+              } else {
+                console.log('Suspicious jumpsPerSec vs inputsPerSec', {
+                  statsJumpsPerSec: stats.jumpsPerSec,
+                  statsInputsPerSec: stats.inputsPerSec,
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious stats jumpsPerSec vs inputsPerSec' }), { status: 400 });
+              }
+
+              // Existing min/max flaps per second checks
+              if (stats.jumpsPerSec > 1 && stats.jumpsPerSec < 3) {
+                //positive case do nothing
+              } else {
+                console.log('stats.jumpsPerSec is out of range', {
+                  statsJumpsPerSec: stats.jumpsPerSec,
+                  minJumpsPerSec: 1,
+                  maxJumpsPerSec: 3,
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay jumpsPerSec out of range' }), { status: 400 });
+              }
               //end JUMPING RELATED VALIDATIONS
 
               //JUMP FULL GAME PHYSICS SIMULATION
@@ -892,7 +930,7 @@ export async function POST(request) {
                 const elapsedTimeSec = ((event.time - gameStartTime) / 1000);
                 const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
                 const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-                if (Math.abs(event.data.speed - expectedSpeed) <= 0.1) {
+                if (Math.abs(event.data.speed - expectedSpeed) <= 0.001) {
                   //positive case do nothing
                 } else {
                     console.log('Obstacle speed check failed', { 

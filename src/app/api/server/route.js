@@ -736,14 +736,14 @@ export async function POST(request) {
                 }
 
                 // Increment cluster count
-                if (stats.game === 'fly' && obstacleCount === 2) {
-                  clusterCounts.doubleSpawnCount++;
+                //if (stats.game === 'fly' && obstacleCount === 2) {
+                  //clusterCounts.doubleSpawnCount++;
                   const clusterKey = `${uniqueX.length}x${uniqueY.length}`;
                   clusterCounts[clusterKey]++;
-                } else if (stats.game === 'jump') {
-                  const clusterKey = `${uniqueX.length}x${uniqueY.length}`;
-                  clusterCounts[clusterKey]++;
-                }
+                //} else if (stats.game === 'jump') {
+                  //const clusterKey = `${uniqueX.length}x${uniqueY.length}`;
+                  //clusterCounts[clusterKey]++;
+                //}
               }
               // Log cluster counts for debugging
               console.log('Cluster counts', clusterCounts);

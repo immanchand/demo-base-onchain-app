@@ -955,7 +955,17 @@ export async function POST(request) {
                   // Update ship physics
                   currentVy += gameParams.GRAVITY;
                   currentY += currentVy;
-                  
+                  // add logic to reset like front end code:
+                  // if (ship.y > canvas.height * JUMP_PARAMETERS.GROUND_HEIGHT_RATIO - JUMP_PARAMETERS.SHIP_HEIGHT) {
+                  //                     ship.y = canvas.height * JUMP_PARAMETERS.GROUND_HEIGHT_RATIO - JUMP_PARAMETERS.SHIP_HEIGHT;
+                  //                     ship.vy = 0;
+                  //                     jumpCountRef.current = 0;
+                  //                 }
+                  //like this:
+                  if (currentY > GROUND_Y) {
+                    currentY = GROUND_Y;
+                    currentVy = 0;
+                  }
                   // Update obstacle positions
                   activeObstacles.forEach(obs => {
                     obs.x += obs.dx; // Interpolate x using dx
@@ -1063,6 +1073,8 @@ export async function POST(request) {
               //end JUMP FULL GAME PHYSICS SIMULATION
 
               //end JUMP GAME
+
+
             // FLY GAME
             } else if (stats.game === 'fly') {
               

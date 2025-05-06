@@ -37,9 +37,9 @@ const clusterConfigs = {
   jump: {
     validClusters: [
       { xCount: 1, yCount: 1, obstacleCount: 1 }, // 1x1
-      { xCount: 2, yCount: 1, obstacleCount: 2 }, // 2x1
+      { xCount: 1, yCount: 2, obstacleCount: 2 }, // 1x2
       { xCount: 2, yCount: 2, obstacleCount: 4 }, // 2x2
-      { xCount: 2, yCount: 3, obstacleCount: 6 }, // 3x3 inva
+      { xCount: 2, yCount: 3, obstacleCount: 6 }, // 2x3
       { xCount: 2, yCount: 4, obstacleCount: 8 }  // 4x2
     ]
   }
@@ -678,11 +678,7 @@ export async function POST(request) {
               //check and count clusters
               const clusterConfig = clusterConfigs[stats.game];
               // Cluster counts
-              const clusterCountsOLD = {
-                fly: { doubleSpawnCount: 0, '1x1': 0, '1x2': 0,},
-                jump: { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 }
-              }[stats.game];
-              const clusterCounts = { doubleSpawnCount: 0, '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
+              const clusterCounts = { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
               // Group spawn events by frameId
               const spawnGroups = {};
               for (const event of spawnEvents) {

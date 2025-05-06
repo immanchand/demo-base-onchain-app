@@ -623,6 +623,37 @@ export async function POST(request) {
             }
             console.log('maxObstaclesInPool',maxObstaclesInPool);
 
+            // ALL Games Combined loop for size and speed checks
+            for (let i = 0; i < spawnEvents.length; i++) {
+              const event = spawnEvents[i];
+              // Size check
+              if (event.data.width === gameParams.OBSTACLE_SIZE && event.data.height === gameParams.OBSTACLE_SIZE) {
+                //positive case do nothing
+              } else {
+                console.log('Invalid obstacle size', { actualWidth: event.data.width, actualHeight: event.data.height });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
+              }
+              // Speed check
+              const elapsedTimeSec = ((event.time - gameStartTime) / 1000);
+              const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
+              const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
+              if (Math.abs(event.data.speed - expectedSpeed) <= 0.001) {
+                //positive case do nothing
+              } else {
+                  console.log('Obstacle speed check failed', { 
+                      address,
+                      gameId,
+                      gameName: stats.game,
+                      event,
+                      expectedSpeed,
+                      actualSpeed: event.data.speed,
+                      difficultyFactor
+                  });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle speed' }), { status: 400 });
+              }
+            }
+            
+
             // common duration, score and ship position checks for FLY and JUMP
             if (stats.game === 'fly' || stats.game === 'jump') {
               
@@ -679,6 +710,7 @@ export async function POST(request) {
               }
 
               //check and count clusters
+              // check later if this works for shoot. cluster is not important, only size and speed checks
               const clusterConfig = clusterConfigs[stats.game];
               // Cluster counts
               //const clusterCounts = { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
@@ -695,33 +727,33 @@ export async function POST(request) {
                 const events = spawnGroups[frameId];
 
                 // Size and speed checks for each event
-                for (const event of events) {
-                  // Size check
-                  if (event.data.width !== gameParams.OBSTACLE_SIZE || event.data.height !== gameParams.OBSTACLE_SIZE) {
-                    console.log('Invalid obstacle size', { frameId, actualWidth: event.data.width, actualHeight: event.data.height });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
-                  }
+                // for (const event of events) {
+                //   // Size check
+                //   if (event.data.width !== gameParams.OBSTACLE_SIZE || event.data.height !== gameParams.OBSTACLE_SIZE) {
+                //     console.log('Invalid obstacle size', { frameId, actualWidth: event.data.width, actualHeight: event.data.height });
+                //     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
+                //   }
 
-                  // Speed check
-                  const elapsedTimeSec = (event.time - gameStartTime) / 1000;
-                  const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
-                  const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-                  console.log('event.frameId',event.frameId, 'Math.abs(event.data.speed - expectedSpeed)',Math.abs(event.data.speed - expectedSpeed));
-                  if (Math.abs(event.data.speed - expectedSpeed) <= 0.001) {
-                    //positive case do nothing
-                  } else {
-                    console.log('Obstacle speed check failed', {
-                      address,
-                      gameId,
-                      gameName: stats.game,
-                      event,
-                      expectedSpeed,
-                      actualSpeed: event.data.speed,
-                      difficultyFactor
-                    });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle speed' }), { status: 400 });
-                  }
-                }
+                //   // Speed check
+                //   const elapsedTimeSec = (event.time - gameStartTime) / 1000;
+                //   const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
+                //   const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
+                //   console.log('event.frameId',event.frameId, 'Math.abs(event.data.speed - expectedSpeed)',Math.abs(event.data.speed - expectedSpeed));
+                //   if (Math.abs(event.data.speed - expectedSpeed) <= 0.001) {
+                //     //positive case do nothing
+                //   } else {
+                //     console.log('Obstacle speed check failed', {
+                //       address,
+                //       gameId,
+                //       gameName: stats.game,
+                //       event,
+                //       expectedSpeed,
+                //       actualSpeed: event.data.speed,
+                //       difficultyFactor
+                //     });
+                //     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle speed' }), { status: 400 });
+                //   }
+                // }
                 // Cluster validation
                 const uniqueX = [...new Set(events.map(e => e.data.x))];
                 const uniqueY = [...new Set(events.map(e => e.data.y))];
@@ -734,15 +766,12 @@ export async function POST(request) {
                   console.log('Invalid cluster configuration', { frameId, xCount: uniqueX.length, yCount: uniqueY.length, obstacleCount });
                   return new Response(JSON.stringify({ status: 'error', message: 'Invalid obstacle cluster configuration' }), { status: 400 });
                 }
-
                 // Increment cluster count
                 const clusterKey = `${uniqueX.length}x${uniqueY.length}`;
                 clusterCounts[clusterKey]++;
               }
               // Log cluster counts for debugging
               console.log('Cluster counts', clusterCounts);
-
-              console.log()
 
             } // end if FLY or JUMP only
             
@@ -773,7 +802,7 @@ export async function POST(request) {
               }
 
               // Existing jumpsPerSec vs inputsPerSec check more inputs since some triple jumps not counted
-              if (stats.jumpsPerSec < stats.inputsPerSec) {
+              if (stats.jumpsPerSec <= stats.inputsPerSec) {
                 //positive case do nothing
               } else {
                 console.log('Suspicious jumpsPerSec vs inputsPerSec', {

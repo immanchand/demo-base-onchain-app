@@ -31,7 +31,7 @@ const clusterConfigs = {
   fly: {
     validClusters: [
       { xCount: 1, yCount: 1, obstacleCount: 1 }, // Single spawn
-      { xCount: 2, yCount: 1, obstacleCount: 2 }  // Double spawn
+      { xCount: 1, yCount: 2, obstacleCount: 2 }  // Double spawn
     ]
   },
   jump: {
@@ -39,8 +39,8 @@ const clusterConfigs = {
       { xCount: 1, yCount: 1, obstacleCount: 1 }, // 1x1
       { xCount: 2, yCount: 1, obstacleCount: 2 }, // 2x1
       { xCount: 2, yCount: 2, obstacleCount: 4 }, // 2x2
-      { xCount: 3, yCount: 3, obstacleCount: 9 }, // 3x3
-      { xCount: 4, yCount: 2, obstacleCount: 8 }  // 4x2
+      { xCount: 2, yCount: 3, obstacleCount: 6 }, // 3x3 inva
+      { xCount: 2, yCount: 4, obstacleCount: 8 }  // 4x2
     ]
   }
 };

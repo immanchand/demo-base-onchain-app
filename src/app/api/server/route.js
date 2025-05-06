@@ -812,7 +812,7 @@ export async function POST(request) {
               for (const event of jumpEvents) {
                 //handle differently for first jump event
                 if (event == lastJumpEvent) {
-                  if (Math.abs(event.data.y - GROUND_Y) <= 0.001) {
+                  if (Math.abs(event.data.y - GROUND_Y) <= 1) {
                     //positive case do nothing
                   } else {
                     console.log('Suspicious first jump vs ground', {
@@ -826,10 +826,10 @@ export async function POST(request) {
                   continue;
                 }
                 //for all other jump events, check ground position
-                if (Math.abs(event.data.y - GROUND_Y) <= 0.001) {
+                if (Math.abs(event.data.y - GROUND_Y) < 1) {
                   //on the ground first of double jump or only jump
                   posSingleJumpCount++;
-                } else if (event.data.y < GROUND_Y + 1) {
+                } else if (event.data.y <= GROUND_Y - 1) {
                   //in the air second of double jump
                   posDoubleJumpCount++;
                 }
@@ -1000,7 +1000,20 @@ export async function POST(request) {
               if(minObserved >= (maxObserved/2) * 0.5) {
                 //positive case do nothing
               } else {
-                console.log('Insufficient obstacle y position spawns in min bin', {
+                console.log('Insufficient variable obstacle y position spawns in min bin', {
+                  address,
+                  gameId,
+                  gameName: stats.game,
+                  minObserved,
+                  maxObserved,
+                });
+                // enable after more testing *******************
+                //return new Response(JSON.stringify({ status: 'error', message: 'Insufficient obstacle y position spawns in min bin' }), { status: 400 });
+              }
+              if(minObserved >= 3) {
+                //positive case do nothing
+              } else {
+                console.log('Insufficient fixed obstacle y position spawns in min bin', {
                   address,
                   gameId,
                   gameName: stats.game,

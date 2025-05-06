@@ -565,6 +565,24 @@ export async function POST(request) {
             //All games events filtered required
             const spawnEvents = telemetry.filter(e => e.event === 'spawn');
 
+            // Validate spawn events vs. obstacles cleared and maxObstacles
+            // need to modify for shoot (obstaclesCleared should equal kills)
+            console.log('spawnEvents.length', spawnEvents.length, 'stats.obstaclesCleared', stats.obstaclesCleared);
+            if (stats.obstaclesCleared >= spawnEvents.length - stats.maxObstacles &&
+              stats.obstaclesCleared <= spawnEvents.length) {
+                //positive case do nothing
+            } else {
+              console.log('Spawn events count mismatch', {
+                  address,
+                  gameId,
+                  gameName: stats.game,
+                  obstaclesCleared: stats.obstaclesCleared,
+                  maxObstacles: stats.maxObstacles,
+                  spawnEventsCount: spawnEvents.length
+              });
+              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle count in stats and telemetry' }), { status: 400 });
+            }
+
             // common duration, score and ship position checks for FLY and JUMP
             if (stats.game === 'fly' || stats.game === 'jump') {
               
@@ -625,6 +643,70 @@ export async function POST(request) {
             // JUMP GAME
             if (stats.game === 'jump') {
 
+              //JUMP SPAWN RELATED VALIDATIONS
+              // obsData validation for maxObstaclesInPool vs stats.maxObstacles
+              let maxObstaclesInPool = 0;
+              for (const event of frameEvents) {
+                maxObstaclesInPool = Math.max(maxObstaclesInPool, event.obsData.obstacles.length);
+              }
+              console.log('Math.abs(maxObstaclesInPool - stats.maxObstacles)',Math.abs(maxObstaclesInPool - stats.maxObstacles));
+              if (Math.abs(maxObstaclesInPool - stats.maxObstacles) <= 2) {
+                //positive case do nothing
+              } else {
+                console.log('Invalid maxObstaclesInPool vs stats.maxObstacles', {
+                  address,
+                  gameId,
+                  gameName: stats.game,
+                  maxObstaclesInPool,
+                  maxObstaclesStats: stats.maxObstacles,
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Invalid maxObstaclesInPool vs stats.maxObstacles' }), { status: 400 });
+              }
+              console.log('maxObstaclesInPool',maxObstaclesInPool);
+
+              // Combined loop for size, speed, and double spawn counting
+              let doubleSpawnCount = 0;
+              for (let i = 0; i < spawnEvents.length; i++) {
+                const event = spawnEvents[i];
+                // Size check
+                if (event.data.width === gameParams.OBSTACLE_SIZE && event.data.height === gameParams.OBSTACLE_SIZE) {
+                  //positive case do nothing
+                } else {
+                  console.log('Invalid obstacle size', { actualWidth: event.data.width, actualHeight: event.data.height });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
+                }
+                // Speed check
+                const elapsedTimeSec = ((event.time - gameStartTime) / 1000);
+                const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
+                const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
+                if (Math.abs(event.data.speed - expectedSpeed) <= 0.1) {
+                  //positive case do nothing
+                } else {
+                    console.log('Obstacle speed check failed', { 
+                        address,
+                        gameId,
+                        gameName: stats.game,
+                        event,
+                        expectedSpeed,
+                        actualSpeed: event.data.speed,
+                        difficultyFactor
+                    });
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle speed' }), { status: 400 });
+                }
+                // Double spawn check
+                if (i > 0 && event.frameId === spawnEvents[i-1].frameId) {
+                    doubleSpawnCount++;
+                }
+              }
+              console.log('doubleSpawnCount',doubleSpawnCount);
+              //end JUMP SPAWN RELATED VALIDATIONS
+
+              //JUMPING RELATED VALIDATIONS
+              //end JUMPING RELATED VALIDATIONS
+
+              //JUMP FULL GAME PHYSICS SIMULATION
+              //end JUMP FULL GAME PHYSICS SIMULATION
+
               //end JUMP GAME
             // FLY GAME
             } else if (stats.game === 'fly') {
@@ -648,6 +730,7 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Invalid maxObstaclesInPool vs stats.maxObstacles' }), { status: 400 });
               }
               console.log('maxObstaclesInPool',maxObstaclesInPool);
+
               // Extract y positions from all obstacles in obsData
               const yPositionsFrames = [];
               for (const event of frameEvents) {
@@ -661,7 +744,6 @@ export async function POST(request) {
               for (const event of spawnEvents) {
                 yPositionsSpawns.push(event.data.y);
               }
-
               //get unique y positions which should be all unique spawns
               const uniqueYPositions = new Set(yPositionsFrames);
               const uniqueYPositionsSpawn = new Set(yPositionsSpawns);
@@ -775,20 +857,21 @@ export async function POST(request) {
               }
 
               // Validate spawn events vs. obstacles cleared and maxObstacles
-              if (stats.obstaclesCleared >= spawnEvents.length - stats.maxObstacles &&
-                  stats.obstaclesCleared <= spawnEvents.length) {
-                    //positive case do nothing
-              } else {
-                console.log('Spawn events count mismatch', {
-                    address,
-                    gameId,
-                    gameName: stats.game,
-                    obstaclesCleared: stats.obstaclesCleared,
-                    maxObstacles: stats.maxObstacles,
-                    spawnEventsCount: spawnEvents.length
-                });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle count in stats and telemetry' }), { status: 400 });
-              }
+              // moved to common for all games
+              // if (stats.obstaclesCleared >= spawnEvents.length - stats.maxObstacles &&
+              //     stats.obstaclesCleared <= spawnEvents.length) {
+              //       //positive case do nothing
+              // } else {
+              //   console.log('Spawn events count mismatch', {
+              //       address,
+              //       gameId,
+              //       gameName: stats.game,
+              //       obstaclesCleared: stats.obstaclesCleared,
+              //       maxObstacles: stats.maxObstacles,
+              //       spawnEventsCount: spawnEvents.length
+              //   });
+              //   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle count in stats and telemetry' }), { status: 400 });
+              // }
 
               // Combined loop for size, speed, and double spawn counting
               let doubleSpawnCount = 0;
@@ -940,13 +1023,13 @@ export async function POST(request) {
               }
 
               // 4. Existing min/max flaps per second checks
-              if (stats.flapsPerSec > 1 && stats.flapsPerSec < 4) {
+              if (stats.flapsPerSec > 1 && stats.flapsPerSec < 3) {
                 //positive case do nothing
               } else {
                 console.log('stats.flapsPerSec is out of range', {
                   flapsPerSec,
                   minFlapsPerSec: 1,
-                  maxFlapsPerSec: 4,
+                  maxFlapsPerSec: 3,
                 });
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay flapsPerSec out of range' }), { status: 400 });
               }

@@ -567,7 +567,6 @@ export async function POST(request) {
 
             // Validate spawn events vs. obstacles cleared and maxObstacles
             // need to modify for shoot (obstaclesCleared should equal kills)
-            console.log('stats.obstaclesCleared', stats.obstaclesCleared, 'spawnEvents.length', spawnEvents.length);
             if (stats.obstaclesCleared >= spawnEvents.length - stats.maxObstacles &&
               stats.obstaclesCleared <= spawnEvents.length) {
                 //positive case do nothing
@@ -681,7 +680,6 @@ export async function POST(request) {
                 const elapsedTimeSec = ((event.time - gameStartTime) / 1000);
                 const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
                 const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-                console.log('Math.abs(event.data.speed - expectedSpeed) should be <= 0.001',Math.abs(event.data.speed - expectedSpeed));
                 if (Math.abs(event.data.speed - expectedSpeed) <= 0.001) {
                   //positive case do nothing
                 } else {
@@ -710,7 +708,6 @@ export async function POST(request) {
               // Validate Jump Frequency
               const jumpCount = jumpEvents.length;
               const expectedJumpsPerSec = jumpCount / gameTimeSec;
-              console.log('Math.abs(stats.jumpsPerSec - expectedJumpsPerSec) < 0.005',Math.abs(stats.jumpsPerSec - expectedJumpsPerSec));
               if (Math.abs(stats.jumpsPerSec - expectedJumpsPerSec) < 0.005) {
                 //positive case do nothing
               } else {
@@ -733,13 +730,13 @@ export async function POST(request) {
               }
 
               // Existing min/max flaps per second checks
-              if (stats.jumpsPerSec > 1 && stats.jumpsPerSec < 3) {
+              if (stats.jumpsPerSec > 0.2 && stats.jumpsPerSec < 1.4) {
                 //positive case do nothing
               } else {
                 console.log('stats.jumpsPerSec is out of range', {
                   statsJumpsPerSec: stats.jumpsPerSec,
-                  minJumpsPerSec: 1,
-                  maxJumpsPerSec: 3,
+                  minJumpsPerSec: 0.2,
+                  maxJumpsPerSec: 1.4,
                 });
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay jumpsPerSec out of range' }), { status: 400 });
               }

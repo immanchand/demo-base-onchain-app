@@ -68,7 +68,7 @@ export default function Terms() {
 
                         <h4 className="text-xl font-bold text-accent-yellow mt-6 mb-2">9. Governing Law</h4>
                         <p className="text-primary-text">
-                            These terms are governed by the laws of Delaware, USA, a crypto-friendly spot. Any disputes go through Delaware courts, but let’s keep it chill and sort things out on X first, yeah?
+                        These terms are governed by the laws of Singapore, a crypto-friendly hub. Any disputes go through Singapore courts, but let’s keep it chill and sort things out on X first, yeah?
                         </p>
 
                         <h4 className="text-xl font-bold text-accent-yellow mt-6 mb-2">10. Changes to Terms</h4>

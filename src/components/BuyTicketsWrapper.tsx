@@ -58,7 +58,7 @@ export default function BuyTicketsWrapper({ updateTickets }: BuyTicketsWrapperPr
         onError={(err) => console.error('Transaction error:', err)}
         onSuccess={(response) => { console.log('Transaction successful', response); updateTickets(); }}
       >
-        <TransactionButton className="btn-login" text="BUY TICKETS" />
+        <TransactionButton className="btn-login" text="BUY CHIPS" />
         <TransactionStatus>
           <TransactionStatusLabel />
           <TransactionStatusAction />

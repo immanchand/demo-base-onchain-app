@@ -31,7 +31,7 @@ export default function Home() {
                         <div className="card-container p-4">
                             <h4 className="text-xl font-bold text-accent-yellow">1. Grab Chips</h4>
                             <p className="text-primary-text">
-                                Buy chips for 0.0001 ETH (~$0.20) on the <Link href="/tickets" className="text-accent-yellow hover:underline">Chips page</Link>. Cheap enough for any degen!
+                                Buy chips for 0.0001 ETH (~$0.20) on the <Link href="/tickets" className="text-accent-yellow hover:underline">Chips</Link> page. Cheap enough for any degen!
                             </p>
                         </div>
                         <div className="card-container p-4">
@@ -62,21 +62,21 @@ export default function Home() {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="card-container p-4">
+                            <h4 className="text-xl font-bold text-accent-yellow">FLY</h4>
+                            <p className="text-primary-text">
+                                Fly your BaseShip-SpaceShip through a gauntlet of Gary The Clown. One wrong move, and you’re a rekt Security!
+                            </p>
+                        </div>
+                        <div className="card-container p-4">
                             <h4 className="text-xl font-bold text-accent-yellow">JUMP</h4>
                             <p className="text-primary-text">
-                                Dodge crates of FUD or Bitcoin traps in this jumping time run. Keep your avatar hopping to the top score!
+                                Dodge crates of FUD or Bitcoin Blocks in this jumping time run. Keep your avatar hopping to the top score!
                             </p>
                         </div>
                         <div className="card-container p-4">
                             <h4 className="text-xl font-bold text-accent-yellow">SHOOT</h4>
                             <p className="text-primary-text">
-                                Blast Bitcoin or Solana aliens with your Ethereum Space Ship. Pew, pew, pew your way to a high score!
-                            </p>
-                        </div>
-                        <div className="card-container p-4">
-                            <h4 className="text-xl font-bold text-accent-yellow">FLY</h4>
-                            <p className="text-primary-text">
-                                Fly your Base-Ship-Space-Ship through a gauntlet of Gary Gensler clown faces. One wrong move, and you’re a rekt Security!
+                                Blast Bitcoin or Solana invaders with your Ethereum Blaster. Pew, pew, pew your way to a high score!
                             </p>
                         </div>
                     </div>

@@ -595,15 +595,15 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             {!gameStarted ? (
                 <div className="text-center text-primary-text font-mono">
                     <h1 className="text-3xl text-accent-yellow mb-4">JUMP</h1>
-                    <p className="text-xl mb-2">INSTRUCTIONS:</p>
-                    <p className="mb-2">Use the spacebar or mouse to jump.</p>
-                    <p className="mb-2">Double-press or click quickly for a higher jump.</p>
-                    <p className="mb-4">Avoid hitting obstacles to keep going!</p>
-                    <p className="mb-2">CONTROLS:</p>
-                    <p className="mb-4">Spacebar: Jump (Double-press for higher jump)</p>
-                    <p className="mb-4">Mouse Click: Jump (Double-click for higher jump)</p>
+                    <p className="text-xl mb-2">DEGEN BRIEFING:</p>
+                    <p className="mb-2">Smash spacebar or click to make your runner leap over crypto FUD, fam!</p>
+                    <p className="mb-2">Double-tap fast for a moon-high jump to clear big obstacles!</p>
+                    <p className="mb-4">Crash into crates or clowns, and it’s game over, no WAGMI.</p>
+                    <p className="mb-2">CONTROLS, YO:</p>
+                    <p className="mb-2">Spacebar: Leap (Double-tap for higher)</p>
+                    <p className="mb-4">Mouse Click: Leap (Double-click for higher)</p>
                     <div className="mb-4 flex items-center justify-center">
-                        <p className="mr-2">CHOOSE RUNNER:</p>
+                        <p className="mr-2">PICK YOUR RUNNER:</p>
                         {imagesLoaded && shipImages[shipType] && (
                             <img src={shipImages[shipType].src} alt={shipType} className="w-10 h-15 mr-2" />
                         )}
@@ -612,14 +612,14 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                             onChange={(e) => setShipType(e.target.value as ShipType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="runner">DUDE</option>
-                            <option value="lady">LADY</option>
-                            <option value="eth">ETHEREUM</option>
-                            <option value="base">BASE</option>
+                            <option value="runner">DEGEN DUDE</option>
+                            <option value="lady">DEGEN LADY</option>
+                            <option value="eth">ETH SPRINTER</option>
+                            <option value="base">BASE BOUNCER</option>
                         </select>
                     </div>
                     <div className="mb-4 flex items-center justify-center">
-                        <p className="mr-2">CHOOSE OBSTACLE:</p>
+                        <p className="mr-2">CHOOSE YOUR FUD:</p>
                         {imagesLoaded && enemyImages[enemyType] && (
                             <img src={enemyImages[enemyType].src} alt={enemyType} className="w-10 h-10 mr-2" />
                         )}
@@ -628,24 +628,24 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                             onChange={(e) => setEnemyType(e.target.value as EnemyType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="obstacle">CRATE</option>
-                            <option value="barrel">BARREL</option>
-                            <option value="bitcoin">BITCOIN</option>
-                            <option value="xrp">XRP</option>
-                            <option value="solana">SOLANA</option>
-                            <option value="gensler">CLOWN GARY</option>
+                            <option value="obstacle">FUD CRATE</option>
+                            <option value="barrel">FUD BARREL</option>
+                            <option value="bitcoin">BTC BLOCK</option>
+                            <option value="xrp">XRP TRAP</option>
+                            <option value="solana">SOLANA SPIKE</option>
+                            <option value="gensler">GARY THE CLOWN</option>
                         </select>
                     </div>
                     {address ? (
                         <Button onClick={startGame} disabled={startGameStatus === 'pending' || !imagesLoaded}>
-                            {startGameStatus === 'pending' ? 'starting...' : !imagesLoaded ? 'Loading...' : 'START GAME'}
+                            {startGameStatus === 'pending' ? 'starting...' : !imagesLoaded ? 'Loading...' : 'LEAP IN'}
                         </Button>
                     ) : (
                         <div className="flex items-center justify-center">
                             <LoginButton />
                         </div>
                     )}
-                    <p className="mt-2">COST: 1 TICKET</p>
+                    <p className="mt-2">COST: 1 CHIP</p>
                     {startGameStatus === 'error' && startGameError && (
                         <p className="text-error-red mt-2">{startGameError}</p>
                     )}
@@ -654,18 +654,18 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 <div ref={containerRef} className="w-full max-w-[1008px] h-[80vh] min-h-[400px] min-w-[300px] relative">
                     <div className="text-primary-text mb-1 text-center font-mono">
                         <span className="text-2xl text-accent-yellow">SCORE: {Math.floor(score)}</span>
-                        <span className="text-2xl text-accent-yellow ml-8">HIGH SCORE: {existingHighScore}</span>
+                        <span className="text-2xl text-accent-yellow ml-8">TOP SCORE: {existingHighScore}</span>
                     </div>
                     {gameOver && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-primary-text text-2xl font-mono">
-                            <p>GAME OVER - YOUR SCORE: {Math.floor(score)}</p>
+                            <p>TRIPPED! YOUR SCORE: {Math.floor(score)}</p>
                             {gameOverMessages[endGameStatus]}
                             <Button
                                 className="mt-6"
                                 onClick={startGame}
                                 disabled={startGameStatus === 'pending' || endGameStatus === 'pending' || endGameStatus === 'leader'}
                             >
-                                {startGameStatus === 'pending' ? 'starting...' : 'PLAY AGAIN'}
+                                {startGameStatus === 'pending' ? 'starting...' : 'TRY AGAIN'}
                             </Button>
                             {startGameStatus === 'error' && startGameError && (
                                 <p className="text-error-red mt-2">{startGameError}</p>

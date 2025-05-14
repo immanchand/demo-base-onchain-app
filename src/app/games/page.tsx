@@ -45,7 +45,7 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
             </div>
           </div>
           <div className="col-span-1 text-center">
-            <p className="text-xl font-bold text-primary-text">HIGH SCORE {game.highScore.toString()}</p>
+            <p className="text-xl font-bold text-primary-text">TOP SCORE {game.highScore.toString()}</p>
             <div className="mt-4 flex justify-center">
               {!isGameOver ? (
                 <Link href="/active-game" className="btn-primary w-full max-w-xs text-center">
@@ -54,14 +54,14 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
               ) : isGameOver && !isGameWithdrawn && isUserLeader ? (
                 <WinnerWithdrawWrapper gameId={game.gameId} userAddress={userAddress} />
               ) : isGameOver && isGameWithdrawn && isUserLeader ? (
-                <p className="font-bold text-accent-yellow">PRIZE WITHDRAWN!</p>
+                <p className="font-bold text-accent-yellow">LOOT WITHDRAWN!</p>
               ) : null}
             </div>
           </div>
           <div className="col-span-1 text-right">
             <div className="relative group">
               <p className="text-primary-text">
-                <span className="font-bold">{isGameOver ? 'WINNER' : 'LEADER'}</span>{' '}
+                <span className="font-bold">{isGameOver ? 'CHAMP' : 'BOSS'}</span>{' '}
                 <Link
                   href="#"
                   onClick={(e) => {
@@ -79,7 +79,7 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
               </p>
             </div>
             <div className="mt-4 relative group">
-              <p className="font-bold text-primary-text">PRIZE</p>
+              <p className="font-bold text-primary-text">LOOT</p>
               <p className="text-accent-yellow text-2xl font-bold">
                 ${(Number(formatEther(game.pot > game.potHistory ? game.pot : game.potHistory)) * ethPrice).toFixed(2)}
                 <span className="absolute right-0 bottom-full mb-2 hidden group-hover:block bg-primary-bg text-accent-yellow text-xs py-1 px-2 border border-primary-border z-10">

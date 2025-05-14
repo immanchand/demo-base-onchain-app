@@ -688,7 +688,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                                 onClick={startGame}
                                 disabled={false /*startGameStatus === 'pending' || endGameStatus === 'pending' || endGameStatus === 'leader'*/}
                             >
-                                {/*startGameStatus === 'pending' ? 'starting...' :*/ 'PLAY AGAIN'}
+                                {/*startGameStatus === 'pending' ? 'starting...' :*/ 'TRY AGAIN'}
                             </Button>
                             {/*startGameStatus === 'error' && startGameError && (
                                 <p className="text-error-red mt-2">{startGameError}</p>

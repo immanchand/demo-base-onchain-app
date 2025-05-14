@@ -6,7 +6,6 @@ export const TELEMETRY_LIMIT = 20000; // Max telemetry data points
 export const TELEMETRY_SCORE_THRESHOLD = 2000; // Min score for telemetry data to be 20000 in prod
 // Scoring multipliers
 export const SCORE_DIVISOR_TIME = 10; // should be SCORE_MULTIPLIER/10
-export const SCORE_MULTIPLIER_SHOOT = 5; // Points per kill for Shoot
 // Difficulty parameters
 export const FLY_PARAMETERS = {
   SHIP_WIDTH: 40,
@@ -39,6 +38,10 @@ export const JUMP_PARAMETERS = {
 export const SHOOT_PARAMETERS = {
   SHIP_WIDTH: 30,
   SHIP_HEIGHT: 30 * (3/4),
+  BULLET_SIZE: 4,
+  OBSTACLE_SIZE: 40,
+  INITIAL_BULLET_COUNT: 10,
+  INITIAL_ENEMY_COUNT: 1,
   BASE_OBSTACLE_SPEED: 2, // Higher (e.g., 3) = faster enemies, harder; Lower (e.g., 1) = easier
   MAX_ENEMY_COUNT: 10, // Higher (e.g., 15) = more enemies, harder; Lower (e.g., 5) = easier
   MIN_SPAWN_INTERVAL: 1000, // Lower (e.g., 500) = faster spawns, harder; Higher (e.g., 1500) = easier

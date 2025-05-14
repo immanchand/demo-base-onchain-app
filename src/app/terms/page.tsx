@@ -43,12 +43,12 @@ export default function Terms() {
 
                         <h4 className="text-xl font-bold text-accent-yellow mt-6 mb-2">4. Age & Local Laws</h4>
                         <p className="text-primary-text">
-                            You gotta be 18+ to play, no exceptions. Stupid Games involves real ETH (tickets at 0.0001 ETH, ~$0.20), so it might count as gambling in some places. It’s on you to check your local laws before playing. We’re not lawyers, so don’t ask us for legal advice—just play smart!
+                            You gotta be 18+ to play, no exceptions. Stupid Games involves real ETH (chips at 0.0001 ETH, ~$0.20), so it might count as gambling in some places. It’s on you to check your local laws before playing. We’re not lawyers, so don’t ask us for legal advice—just play smart!
                         </p>
 
                         <h4 className="text-xl font-bold text-accent-yellow mt-6 mb-2">5. Crypto is Final, Fam</h4>
                         <p className="text-primary-text">
-                            Ticket purchases and prize payouts are done on Base’s blockchain, so all transactions are final—no refunds, no takebacks. Prize pools start with a bonus fund and grow with tickets, with 90% to the winner and 10% rolling over. Make sure your wallet’s ready, and double-check those transactions!
+                            Chip purchases and prize payouts are done on Base’s blockchain, so all transactions are final—no refunds, no takebacks. Prize pools start with a bonus fund and grow with chips, with 90% to the winner and 10% rolling over. Make sure your wallet’s ready, and double-check those transactions!
                         </p>
 
                         <h4 className="text-xl font-bold text-accent-yellow mt-6 mb-2">6. No Cheating, Plz</h4>
@@ -63,7 +63,7 @@ export default function Terms() {
 
                         <h4 className="text-xl font-bold text-accent-yellow mt-6 mb-2">8. Liability Cap</h4>
                         <p className="text-primary-text">
-                            We’re a small project, so we’re not responsible for big losses, regulatory fines, or crypto market crashes. If something goes wrong (hacks, bugs, or legal drama), our liability is capped at the ticket price you paid (0.0001 ETH). Play for fun, not for your rent money.
+                            We’re a small project, so we’re not responsible for big losses, regulatory fines, or crypto market crashes. If something goes wrong (hacks, bugs, or legal drama), our liability is capped at the chip price you paid (0.0001 ETH). Play for fun, not for your rent money.
                         </p>
 
                         <h4 className="text-xl font-bold text-accent-yellow mt-6 mb-2">9. Governing Law</h4>

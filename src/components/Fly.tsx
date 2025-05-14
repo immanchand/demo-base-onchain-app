@@ -463,7 +463,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             await startGameRef.current.startGame();
         } else if (ticketCount < 1) {
             setStartGameStatus('error');
-            setStartGameError('You need one ticket to play!');
+            setStartGameError('Stack 1 CHIP to join the degen GAME, fam!');
         }
     }, [ticketCount]);
 
@@ -513,10 +513,10 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             if (status === 'pending') {
                 setEndGameError('');
             } else if (status === 'leader') {
-                setEndGameMessage('CONGRATULATIONS! YOU SET A NEW HIGH SCORE!');
+                setEndGameMessage('WAGMI! You smashed a new TOP SCORE, degen legend!');
                 console.log('New leader score:', Math.floor(score));
             } else if (status === 'loser') {
-                setEndGameMessage(`YOU DID NOT BEAT THE HIGH SCORE: ${highScore}!`);
+                setEndGameMessage(`No moon yet! TOP SCORE still ${highScore}, keep grinding, degen!`);
                 console.log('Game ended, not the leader. Player Score:', Math.floor(score), 'High Score:', highScore);
             } else if (status === 'error') {
                 setEndGameError(errorMessage || 'Failed to end game');

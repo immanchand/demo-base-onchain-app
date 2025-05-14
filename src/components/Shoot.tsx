@@ -441,10 +441,9 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         };
 
         const handleShoot = () => {
-            //const currentTime = performance.now();
             const timeSinceLastShot = performance.now() - lastShotTimeRef.current;
             // Only allow shooting if max frequency has passed
-            if (timeSinceLastShot >= 500) {
+            if (timeSinceLastShot >= SHOOT_PARAMETERS.MAX_SHOOT_FREQUENCY) {
                 const inactiveBullet = bulletPool.find((b) => !b.active);
                 if (inactiveBullet) {
                     inactiveBullet.x = ship.x + Math.cos(ship.angle) * (SHOOT_PARAMETERS.SHIP_WIDTH / 2);

@@ -85,7 +85,7 @@ const GameCard = React.memo(
                             </div>
                         </div>
                         <div className="col-span-1 text-center relative">
-                            <p className="text-xl font-bold text-primary-text">HIGH SCORE {game.highScore.toString()}</p>
+                            <p className="text-xl font-bold text-primary-text">TOP SCORE {game.highScore.toString()}</p>
                             <div className="mt-4 flex justify-center items-center">
                                 {!isGameOver ? (
                                     <button
@@ -112,18 +112,18 @@ const GameCard = React.memo(
                                 ) : isGameOver && !isGameWithdrawn && isUserLeader ? (
                                     <WinnerWithdrawWrapper gameId={game.gameId} userAddress={userAddress} />
                                 ) : isGameOver && isGameWithdrawn && isUserLeader ? (
-                                    <p className="font-bold text-accent-yellow">PRIZE WITHDRAWN!</p>
+                                    <p className="font-bold text-accent-yellow">LOOT WITHDRAWN!</p>
                                 ) : (
                                     <Button onClick={refreshGame} disabled={isLoading}>
-                                        NEW GAME
+                                        NEXT GAME
                                     </Button>
                                 )}
-                            </div>
+                            </div>f
                         </div>
                         <div className="col-span-1 text-right">
                             <div className="relative group">
                                 <p className="text-primary-text">
-                                    <span className="font-bold">{isGameOver ? 'WINNER' : 'LEADER'}</span>{' '}
+                                    <span className="font-bold">{isGameOver ? 'CHAMP' : 'BOSS'}</span>{' '}
                                     <a
                                         href="#"
                                         onClick={(e) => {
@@ -135,7 +135,7 @@ const GameCard = React.memo(
                                         }}
                                         className={`${isUserLeader || isGMLeader ? 'text-success-green' : 'text-accent-yellow'} hover:underline cursor-pointer font-bold`}
                                     >
-                                        {isUserLeader ? 'YOU!' : isGMLeader ? 'NO ONE YET' : `${game.leader.slice(0, 5)}...${game.leader.slice(-3)}`}
+                                        {isUserLeader ? 'YOU!' : isGMLeader ? 'NOBODY YET' : `${game.leader.slice(0, 5)}...${game.leader.slice(-3)}`}
                                     </a>
                                     <span className="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-primary-bg text-accent-yellow text-xs py-1 px-2 border border-primary-border z-10">
                                         {game.leader}
@@ -148,7 +148,7 @@ const GameCard = React.memo(
                                 </p>
                             </div>
                             <div className="mt-4 relative group">
-                                <p className="font-bold text-primary-text">PRIZE</p>
+                                <p className="font-bold text-primary-text">LOOT</p>
                                 <p className="text-accent-yellow text-2xl font-bold">
                                     ${(Number(formatEther(game.pot > game.potHistory ? game.pot : game.potHistory)) * ethPrice).toFixed(2)}
                                     <span className="absolute right-0 bottom-full mb-2 hidden group-hover:block bg-primary-bg text-accent-yellow text-xs py-1 px-2 border border-primary-border z-10">

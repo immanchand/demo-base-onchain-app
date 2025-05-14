@@ -611,15 +611,15 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             {!gameStarted ? (
                 <div className="text-center text-primary-text font-mono">
                     <h1 className="text-3xl text-accent-yellow mb-4">SHOOT</h1>
-                    <p className="text-xl mb-2">INSTRUCTIONS:</p>
-                    <p className="mb-2">Move your mouse to steer the space rocket towards the pointer.</p>
-                    <p className="mb-2">Use the spacebar or mouse click to shoot aliens and score points!</p>
-                    <p className="mb-4">Avoid collisions with aliens or the game ends.</p>
-                    <p className="mb-2">CONTROLS:</p>
-                    <p className="mb-2">Mouse Move: Steer Space Rocket</p>
-                    <p className="mb-4">Spacebar or Mouse Click: Shoot</p>
+                    <p className="text-xl mb-2">DEGEN BRIEFING:</p>
+                    <p className="mb-2">Wiggle your mouse to pilot your rocket to the cursor, fam!</p>
+                    <p className="mb-2">Smash spacebar or click to blast crypto aliens and stack points!</p>
+                    <p className="mb-4">Dodge those aliens or it’s game over, no moon for you.</p>
+                    <p className="mb-2">CONTROLS, YO:</p>
+                    <p className="mb-2">Mouse Move: Steer Rocket</p>
+                    <p className="mb-4">Spacebar or Click: Fire Away</p>
                     <div className="mb-4 flex items-center justify-center">
-                        <p className="mr-2">CHOOSE SPACE ROCKET:</p>
+                        <p className="mr-2">PICK YOUR ROCKET:</p>
                         {imagesLoaded && shipImages[shipType] && (
                             <img src={shipImages[shipType].src} alt={shipType} className="w-15 h-10 mr-2" />
                         )}
@@ -628,13 +628,13 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                             onChange={(e) => setShipType(e.target.value as ShipType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="ship">SPACE ROCKET</option>
-                            <option value="eth">ETHEREUM</option>
-                            <option value="base">BASE</option>
+                            <option value="ship">DEGEN ROCKET</option>
+                            <option value="eth">ETHEREUM BLASTER</option>
+                            <option value="base">BASESHIP-SPACESHIP</option>
                         </select>
                     </div>
                     <div className="mb-4 flex items-center justify-center">
-                        <p className="mr-2">CHOOSE ALIEN:</p>
+                        <p className="mr-2">CHOOSE YOUR TARGET:</p>
                         {imagesLoaded && enemyImages[enemyType] && (
                             <img src={enemyImages[enemyType].src} alt={enemyType} className="w-10 h-10 mr-2" />
                         )}
@@ -643,16 +643,16 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                             onChange={(e) => setEnemyType(e.target.value as EnemyType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="alien">ALIEN</option>
-                            <option value="bitcoin">BITCOIN</option>
-                            <option value="xrp">XRP</option>
-                            <option value="solana">SOLANA</option>
-                            <option value="gensler">CLOWN GARY</option>
+                            <option value="alien">ALIEN FUD</option>
+                            <option value="bitcoin">BTC INVADER</option>
+                            <option value="xrp">XRP ZAPPER</option>
+                            <option value="solana">SOLANA SWARM</option>
+                            <option value="gensler">GARY THE CLOWN</option>
                         </select>
                     </div>
                     {address ? (
                         <Button onClick={startGame} disabled={/*startGameStatus === 'pending' ||*/ !imagesLoaded}>
-                            {/*startGameStatus === 'pending' ? 'starting...' :*/ !imagesLoaded ? 'Loading...' : 'START GAME'}
+                            {/*startGameStatus === 'pending' ? 'starting...' :*/ !imagesLoaded ? 'Loading...' : 'BLAST OFF'}
                         </Button>
                     ) : (
                         <div className="flex items-center justify-center">
@@ -664,23 +664,23 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                         <p className="text-error-red mt-2">{startGameError}</p>
                     )} */}
                     <p className="mt-2">
-                        COST: <span className="line-through">1 TICKET</span> - Work in Progress, Free for Now!
+                        COST: <span className="line-through">1 CHIP</span> - Degen Beta, Free for Now!
                     </p>
                     <p className="mt-2 text-sm text-accent-yellow">
-                        Note: Scores from this game do not count towards highscores or prize money.
+                    Heads-up: Scores don’t count for WINS or ETH yet. Just flex for fun!
                     </p>
                 </div>
             ) : (
                 <div ref={containerRef} className="w-full max-w-[1008px] h-[80vh] min-h-[400px] min-w-[300px] relative">
                     <div className="text-primary-text mb-1 text-center font-mono">
                         <span className="text-2xl text-accent-yellow">SCORE: {score}</span>
-                        <span className="text-2xl text-accent-yellow ml-8">HIGH SCORE: {existingHighScore}</span>
+                        <span className="text-2xl text-accent-yellow ml-8">TOP SCORE: {existingHighScore}</span>
                     </div>
                     {gameOver && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-primary-text text-2xl font-mono">
-                            <p>GAME OVER - YOUR SCORE: {score}</p>
+                            <p>CRASHED! YOUR SCORE: {score}</p>
                             <p className="text-sm text-accent-yellow mt-2">
-                                Note: Scores from this game do not count towards highscores or prize money.
+                                    Heads-up: Scores don’t count for WINS or ETH yet. Just flex for fun!
                             </p>
                             {/*gameOverMessages[endGameStatus]*/}
                             <Button

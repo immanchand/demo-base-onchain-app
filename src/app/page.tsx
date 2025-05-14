@@ -27,7 +27,7 @@ export default function Home() {
                 {/* How It Works */}
                 <div className="w-full mt-8">
                     <h3 className="text-2xl font-bold text-primary-text text-center mb-4">
-                        How It Works
+                        HOW IT WORKS
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="card-container p-4">
@@ -97,7 +97,7 @@ export default function Home() {
                             Built on Base for max degen vibes. High scores are recorded on a smart contract for transparency, and prizes can be withdrawn by the winner trustlessly. Scores are validated on our servers to catch hackers—keep it fair, fam! Oh, and it’s desktop-only for now—mobile’s coming soon.
                         </p>
                         <p className="text-primary-text">
-                            Keep you desktop or laptop at optimal performance and watch out for battery saving modes. Any changes to game parameters or browser performance could flag cheating.
+                            Keep your laptop at optimal performance and watch out for battery saving modes. Any changes to game parameters or browser performance could flag cheating.
                         </p>
                     </div>
                 </div>

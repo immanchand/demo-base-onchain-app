@@ -110,7 +110,13 @@ export default function Home() {
                         This is a fun side project and a work in progress. Got issues? DM me on X at <Link href="https://x.com/kantaloeth" className="text-accent-yellow hover:underline">@kantaloeth</Link>. Don’t take it too seriously—WAGMI!
                     </p>
                     <p className="text-sm text-primary-text mt-2">
-                        18+ only. Crypto transactions are final. We validate scores to try and keep it fair. Check your local laws before playing.
+                        18+ only. Crypto transactions are final. We validate scores to try and keep it fair. Validation isn’t perfect but I'm working on it. Check your local laws before playing.
+                    </p>
+                    <p className="text-sm text-primary-text mt-2">
+                        All characters are fictional or satirical. No intent to harm or misrepresent real persons.
+                    </p>
+                    <p className="text-sm text-primary-text mt-2">
+                        Please check the <Link href="/terms" className="text-accent-yellow hover:underline">Terms</Link> page for more information!
                     </p>
                 </div>
             </section>

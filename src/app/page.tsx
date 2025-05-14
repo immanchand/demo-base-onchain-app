@@ -64,19 +64,19 @@ export default function Home() {
                         <div className="card-container p-4">
                             <h4 className="text-xl font-bold text-accent-yellow">JUMP</h4>
                             <p className="text-primary-text">
-                                Dodge FUD boxes and Bitcoin traps in this jumping sprint. Keep your avatar hopping to the top score!
+                                Dodge crates of FUD or Bitcoin traps in this jumping time run. Keep your avatar hopping to the top score!
                             </p>
                         </div>
                         <div className="card-container p-4">
                             <h4 className="text-xl font-bold text-accent-yellow">SHOOT</h4>
                             <p className="text-primary-text">
-                                Blast Bitcoin and Solana aliens with your Ethereum Space Ship. Pew, pew, pew your way to a high score!
+                                Blast Bitcoin or Solana aliens with your Ethereum Space Ship. Pew, pew, pew your way to a high score!
                             </p>
                         </div>
                         <div className="card-container p-4">
                             <h4 className="text-xl font-bold text-accent-yellow">FLY</h4>
                             <p className="text-primary-text">
-                                Flap your Base Ship - Space Ship through a gauntlet of Gary Gensler clown faces. One wrong move, and you’re rekt!
+                                Fly your Base-Ship-Space-Ship through a gauntlet of Gary Gensler clown faces. One wrong move, and you’re a rekt Security!
                             </p>
                         </div>
                     </div>
@@ -88,7 +88,7 @@ export default function Home() {
                 <Button className="btn-primary text-lg">
                     <Link href="/active-game">PLAY NOW</Link>
                 </Button>
-                
+
                 {/* Tech Stuff */}
                 <div className="w-full mt-8 max-w-2xl">
                     <h3 className="text-2xl font-bold text-primary-text text-center mb-4">

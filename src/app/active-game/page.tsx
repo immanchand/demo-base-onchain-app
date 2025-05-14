@@ -283,7 +283,7 @@ export default function ActiveGame() {
                 <section className="flex w-full flex-grow flex-col items-center gap-4 bg-primary-bg px-2 py-4 border-4 border-primary-border">
                     <div className="flex items-center justify-center w-full h-64">
                         <div className="text-xl animate-pulse-slow">
-                            {gameState.flowStatus === 'loading' ? 'LOADING ACTIVE GAME...' : 'CREATING NEW GAME...'}
+                            {gameState.flowStatus === 'loading' ? 'FETCHING HOT GAME...' : 'SPAWNING NEXT GAME...'}
                         </div>
                     </div>
                     <CreateGameWrapper ref={createGameRef} onStatusChange={handleCreateGameStatusChange} />
@@ -317,6 +317,13 @@ export default function ActiveGame() {
                             <section className="flex w-full flex-col items-center gap-4 px-2 py-4">
                                 <div className="flex w-full justify-center gap-4 mb-4">
                                     <button
+                                        onClick={() => handleGameSelection('fly')}
+                                        className={`${selectedGame === 'fly' ? 'btn-menu-selected' : 'btn-menu-idle'} ${isTransitioning ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                        disabled={isTransitioning}
+                                    >
+                                        FLY
+                                    </button>
+                                    <button
                                         onClick={() => handleGameSelection('jump')}
                                         className={`${selectedGame === 'jump' ? 'btn-menu-selected' : 'btn-menu-idle'} ${isTransitioning ? 'opacity-60 cursor-not-allowed' : ''}`}
                                         disabled={isTransitioning}
@@ -330,15 +337,8 @@ export default function ActiveGame() {
                                     >
                                         SHOOT
                                     </button>
-                                    <button
-                                        onClick={() => handleGameSelection('fly')}
-                                        className={`${selectedGame === 'fly' ? 'btn-menu-selected' : 'btn-menu-idle'} ${isTransitioning ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                        disabled={isTransitioning}
-                                    >
-                                        FLY
-                                    </button>
                                 </div>
-                                {!selectedGame && <p className="text-primary-text">select a game to play!</p>}
+                                {!selectedGame && <p className="text-primary-text">pick a game to play, fam!</p>}
                                 {selectedGame === 'jump' && (
                                     <div className="w-full animate-fade-in">
                                         <Jump

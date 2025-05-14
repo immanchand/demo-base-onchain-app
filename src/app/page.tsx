@@ -83,11 +83,12 @@ export default function Home() {
                     <p className="text-center text-primary-text mt-4">
                         All games feed one prize pool—pick your vibe and go for the W!
                     </p>
-                    <Button className="btn-primary text-lg">
-                        <Link href="/active-game">PLAY NOW</Link>
-                    </Button>
                 </div>
 
+                <Button className="btn-primary text-lg">
+                    <Link href="/active-game">PLAY NOW</Link>
+                </Button>
+                
                 {/* Tech Stuff */}
                 <div className="w-full mt-8 max-w-2xl">
                     <h3 className="text-2xl font-bold text-primary-text text-center mb-4">

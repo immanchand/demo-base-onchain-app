@@ -42,7 +42,7 @@ export default function WinnerWithdrawWrapper({ gameId, onSuccess, userAddress }
           onError={(err) => console.error('Withdrawal error:', err)}
           onSuccess={(response) => { console.log('Withdrawal successful', response); if (onSuccess) onSuccess(); }}
         >
-          <TransactionButton className="btn-primary" text="WITHDRAW PRIZE" />
+          <TransactionButton className="btn-primary" text="WITHDRAW LOOT" />
           <TransactionStatus>
             <TransactionStatusLabel />
             <TransactionStatusAction />

@@ -28,7 +28,7 @@ export default function Tickets() {
               <p className="font-bold text-xl text-center">
                 <span className="text-2xl">YOU HAVE </span>
                 <span className="text-4xl text-accent-yellow">{address ? ticketCount : 0}</span>
-                <span className="text-2xl"> TICKETS</span>
+                <span className="text-2xl"> CHIPS</span>
               </p>
           </div>
           {address ? (

@@ -29,9 +29,9 @@ export default function Home() {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="card-container p-4">
-                            <h4 className="text-xl font-bold text-accent-yellow">1. Grab Tickets</h4>
+                            <h4 className="text-xl font-bold text-accent-yellow">1. Grab Chips</h4>
                             <p className="text-primary-text">
-                                Buy tickets for 0.0001 ETH (~$0.20) on the <Link href="/tickets" className="text-accent-yellow hover:underline">Tickets page</Link>. Cheap enough for any degen!
+                                Buy chips for 0.0001 ETH (~$0.20) on the <Link href="/tickets" className="text-accent-yellow hover:underline">Chips page</Link>. Cheap enough for any degen!
                             </p>
                         </div>
                         <div className="card-container p-4">
@@ -49,7 +49,7 @@ export default function Home() {
                         <div className="card-container p-4">
                             <h4 className="text-xl font-bold text-accent-yellow">4. Win Big Crypto</h4>
                             <p className="text-primary-text">
-                                Prize pools start with a bonus fund and grow with every degen’s ticket. Check the current pool on the <Link href="/active-game" className="text-accent-yellow hover:underline">Active Game</Link> page and moon that score!
+                                Prize pools start with a bonus fund and grow with every degen’s chip. Check the current pool on the <Link href="/active-game" className="text-accent-yellow hover:underline">Active Game</Link> page and moon that score!
                             </p>
                         </div>
                     </div>
@@ -86,7 +86,7 @@ export default function Home() {
                 </div>
 
                 <Button className="btn-primary text-lg">
-                    <Link href="/active-game">PLAY NOW</Link>
+                    <Link href="/active-game">GAME NOW</Link>
                 </Button>
 
                 {/* Tech Stuff */}

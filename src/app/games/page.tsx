@@ -179,13 +179,13 @@ export default function Games() {
               disabled={isLoading}
             />
             <Button onClick={handleFetchGame} disabled={isLoading}>
-              FETCH GAME
+              GRAB GAME
             </Button>
             <Button onClick={handleShowRecentGames} disabled={isLoading}>
-              RECENT GAMES
+              RECENT WINS
             </Button>
             <Link href="/active-game" className="btn-primary">
-              LATEST GAME
+              HOT GAME
             </Link>
           </div>
           {error ? (

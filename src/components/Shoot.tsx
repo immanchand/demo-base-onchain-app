@@ -1,10 +1,10 @@
 'use client';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useTicketContext } from 'src/context/TicketContext';
-import StartGameWrapper from 'src/components/StartGameWrapper';
-import EndGameWrapper from 'src/components/EndGameWrapper';
+//import { useTicketContext } from 'src/context/TicketContext';
+//import StartGameWrapper from 'src/components/StartGameWrapper';
+//import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
-import { GameStats, Entity, SCORE_MULTIPLIER_SHOOT, SHOOT_PARAMETERS } from 'src/constants';
+import { GameStats, Entity, SHOOT_PARAMETERS } from 'src/constants';
 import { useAccount } from 'wagmi';
 import LoginButton from './LoginButton';
 
@@ -29,26 +29,39 @@ interface Bullet extends Entity {
 }
 
 interface TelemetryEvent {
-    event: 'shot' | 'spawn' | 'kill' | 'collision'| 'frame';
+    event: 'shoot' | 'spawn' | 'kill' | 'collision' | 'frame' | 'fps';
     time: number;
-    data?: { x?: number; y?: number; speedMultiplier?: number };
+    frameId?: number;
+    data?: { 
+        deltaTime?: number;
+        difficulty?: number;
+        x?: number;
+        y?: number;
+        vy?: number;
+        speed?: number;
+        score?: number;
+        fps?: number;
+        width?: number;
+        height?: number;
+    };
+    obsData?: {
+        obstacles?: {
+            x: number;
+            y: number;
+            dx: number;
+            dodged: boolean;
+            width: number;
+            height: number;
+        }[];
+    };
+    parameters?: {
+    }
 }
 
 
 type EnemyType = 'alien' | 'bitcoin' | 'xrp' | 'solana' | 'gensler';
 type ShipType = 'ship' | 'eth' | 'base';
 
-// Constants
-const SHIP_WIDTH = 30;
-const SHIP_HEIGHT = SHIP_WIDTH * (3/4);
-const BULLET_SIZE = 4;
-const ENEMY_SIZE = 40;
-const INITIAL_BULLET_COUNT = 10;
-const INITIAL_ENEMY_COUNT = 1;
-const MAX_ENEMY_COUNT = 10; // Higher (e.g., 15) = more enemies, harder; Lower (e.g., 5) = easier
-const BULLET_SPEED = 5;
-const ENEMY_SPEED_BASE = 2; // Higher (e.g., 3) = faster enemies, harder; Lower (e.g., 1) = easier
-const SPAWN_INTERVAL = 1000; // Lower (e.g., 500) = faster spawns, harder; Higher (e.g., 1500) = easier
 
 const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -65,7 +78,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
     const startTimeRef = useRef<number>(0);
     const animationFrameIdRef = useRef<number>(0);
     const mousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-    const { ticketCount } = useTicketContext();
+    //const { ticketCount } = useTicketContext();
     const startGameRef = useRef<{ startGame: () => Promise<void> }>(null);
     const endGameRef = useRef<{ endGame: () => Promise<void> }>(null);
     const [startGameStatus, setStartGameStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
@@ -151,27 +164,27 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         switch (edge) {
             case 0:
                 x = Math.random() * canvas.width;
-                y = -ENEMY_SIZE;
-                dx = (Math.random() - 0.5) * ENEMY_SPEED_BASE * speedMultiplier;
-                dy = Math.random() * ENEMY_SPEED_BASE * speedMultiplier;
+                y = -SHOOT_PARAMETERS.OBSTACLE_SIZE;
+                dx = (Math.random() - 0.5) * SHOOT_PARAMETERS.BASE_OBSTACLE_SPEED * speedMultiplier;
+                dy = Math.random() * SHOOT_PARAMETERS.BASE_OBSTACLE_SPEED * speedMultiplier;
                 break;
             case 1:
-                x = canvas.width + ENEMY_SIZE;
+                x = canvas.width + SHOOT_PARAMETERS.OBSTACLE_SIZE;
                 y = Math.random() * canvas.height;
-                dx = -Math.random() * ENEMY_SPEED_BASE * speedMultiplier;
-                dy = (Math.random() - 0.5) * ENEMY_SPEED_BASE * speedMultiplier;
+                dx = -Math.random() * SHOOT_PARAMETERS.BASE_OBSTACLE_SPEED * speedMultiplier;
+                dy = (Math.random() - 0.5) * SHOOT_PARAMETERS.BASE_OBSTACLE_SPEED * speedMultiplier;
                 break;
             case 2:
                 x = Math.random() * canvas.width;
-                y = canvas.height + ENEMY_SIZE;
-                dx = (Math.random() - 0.5) * ENEMY_SPEED_BASE * speedMultiplier;
-                dy = -Math.random() * ENEMY_SPEED_BASE * speedMultiplier;
+                y = canvas.height + SHOOT_PARAMETERS.OBSTACLE_SIZE;
+                dx = (Math.random() - 0.5) * SHOOT_PARAMETERS.BASE_OBSTACLE_SPEED * speedMultiplier;
+                dy = -Math.random() * SHOOT_PARAMETERS.BASE_OBSTACLE_SPEED * speedMultiplier;
                 break;
             case 3:
-                x = -ENEMY_SIZE;
+                x = -SHOOT_PARAMETERS.OBSTACLE_SIZE;
                 y = Math.random() * canvas.height;
-                dx = Math.random() * ENEMY_SPEED_BASE * speedMultiplier;
-                dy = (Math.random() - 0.5) * ENEMY_SPEED_BASE * speedMultiplier;
+                dx = Math.random() * SHOOT_PARAMETERS.BASE_OBSTACLE_SPEED * speedMultiplier;
+                dy = (Math.random() - 0.5) * SHOOT_PARAMETERS.BASE_OBSTACLE_SPEED * speedMultiplier;
                 break;
             default:
                 x = 0;
@@ -188,8 +201,8 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         return {
             x,
             y,
-            width: ENEMY_SIZE,
-            height: ENEMY_SIZE,
+            width: SHOOT_PARAMETERS.OBSTACLE_SIZE,
+            height: SHOOT_PARAMETERS.OBSTACLE_SIZE,
             dx,
             dy,
             rotation: 0,
@@ -212,7 +225,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         ctx.translate(ship.x, ship.y);
         ctx.rotate(ship.angle);
         const image = shipImages[shipType] || shipImages.ship;
-        ctx.drawImage(image, -SHIP_WIDTH / 2, -SHIP_HEIGHT / 2, SHIP_WIDTH, SHIP_HEIGHT);
+        ctx.drawImage(image, -SHOOT_PARAMETERS.SHIP_WIDTH / 2, -SHOOT_PARAMETERS.SHIP_HEIGHT / 2, SHOOT_PARAMETERS.SHIP_WIDTH, SHOOT_PARAMETERS.SHIP_HEIGHT);
         ctx.restore();
     };
 
@@ -220,7 +233,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         ctx.fillStyle = '#FFFF00';
         bulletPool.forEach((bullet) => {
             if (bullet.active) {
-                ctx.fillRect(bullet.x - BULLET_SIZE / 2, bullet.y - BULLET_SIZE / 2, BULLET_SIZE, BULLET_SIZE);
+                ctx.fillRect(bullet.x - SHOOT_PARAMETERS.BULLET_SIZE / 2, bullet.y - SHOOT_PARAMETERS.BULLET_SIZE / 2, SHOOT_PARAMETERS.BULLET_SIZE, SHOOT_PARAMETERS.BULLET_SIZE);
             }
         });
     };
@@ -232,7 +245,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                 ctx.translate(enemy.x, enemy.y);
                 ctx.rotate(enemy.rotation);
                 const image = enemyImages[enemyType] || enemyImages.alien;
-                ctx.drawImage(image, -ENEMY_SIZE / 2, -ENEMY_SIZE / 2, ENEMY_SIZE, ENEMY_SIZE);
+                ctx.drawImage(image, -SHOOT_PARAMETERS.OBSTACLE_SIZE / 2, -SHOOT_PARAMETERS.OBSTACLE_SIZE / 2, SHOOT_PARAMETERS.OBSTACLE_SIZE, SHOOT_PARAMETERS.OBSTACLE_SIZE);
                 ctx.restore();
             }
         });
@@ -291,10 +304,10 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                 const dx = bullet.x - enemy.x;
                 const dy = bullet.y - enemy.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < ENEMY_SIZE / 2) {
+                if (distance < SHOOT_PARAMETERS.OBSTACLE_SIZE / 2) {
                     bullet.active = false;
                     enemy.active = false;
-                    setScore((prev) => prev + SCORE_MULTIPLIER_SHOOT);
+                    setScore((prev) => prev + SHOOT_PARAMETERS.SCORE_MULTIPLIER);
                     setTelemetry((prev) => {
                         if (prev.length >= 1000) return [...prev.slice(1), { event: 'kill', time: performance.now() }];
                         return [...prev, { event: 'kill', time: performance.now() }];
@@ -320,7 +333,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             const dx = ship.x - enemy.x;
             const dy = ship.y - enemy.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < (ENEMY_SIZE / 2 + SHIP_WIDTH / 2)) {
+            if (distance < (SHOOT_PARAMETERS.OBSTACLE_SIZE / 2 + SHOOT_PARAMETERS.SHIP_WIDTH / 2)) {
                 setGameOver(true);
                 setTelemetry((prev) => {
                     if (prev.length >= 1000) return [...prev.slice(1), { event: 'collision', time: performance.now() }];
@@ -350,22 +363,22 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         let ship = {
             x: canvas.width / 2,
             y: canvas.height / 2,
-            width: SHIP_WIDTH,
-            height: SHIP_HEIGHT,
+            width: SHOOT_PARAMETERS.SHIP_WIDTH,
+            height: SHOOT_PARAMETERS.SHIP_HEIGHT,
             angle: 0,
             dx: 0,
             dy: 0,
         };
-        let bulletPool: Bullet[] = Array(INITIAL_BULLET_COUNT).fill(null).map(() => ({
+        let bulletPool: Bullet[] = Array(SHOOT_PARAMETERS.INITIAL_BULLET_COUNT).fill(null).map(() => ({
             x: 0,
             y: 0,
-            width: BULLET_SIZE,
-            height: BULLET_SIZE,
+            width: SHOOT_PARAMETERS.BULLET_SIZE,
+            height: SHOOT_PARAMETERS.BULLET_SIZE,
             dx: 0,
             dy: 0,
             active: false,
         }));
-        let enemyPool: Enemy[] = Array(INITIAL_ENEMY_COUNT).fill(null).map(() => spawnEnemy(canvas, 1));
+        let enemyPool: Enemy[] = Array(SHOOT_PARAMETERS.INITIAL_ENEMY_COUNT).fill(null).map(() => spawnEnemy(canvas, 1));
         let enemySpeedMultiplier = 1;
         const stars: { x: number; y: number }[] = [];
         for (let i = 0; i < 100; i++) {
@@ -394,17 +407,15 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             updateBullets(bulletPool, deltaTime, canvas);
             updateEnemy(enemyPool, deltaTime, canvas);
             checkCollisions(bulletPool, enemyPool, ship, enemySpeedMultiplier, canvas);
-
-            setStats((prev) => ({
-                ...prev,
-                time: performance.now() - startTimeRef.current,
-                hitRate: prev.kills / (prev.shots || 1),
-            }));
-
+            // setStats((prev) => ({
+            //     ...prev,
+            //     time: performance.now() - startTimeRef.current,
+            //     hitRate: prev.kills / (prev.shots || 1),
+            // }));
             const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
             const targetEnemyCount = Math.min(
-                INITIAL_ENEMY_COUNT + Math.floor(elapsedTime / 15),
-                MAX_ENEMY_COUNT
+                SHOOT_PARAMETERS.INITIAL_ENEMY_COUNT + Math.floor(elapsedTime / 15),
+                SHOOT_PARAMETERS.MAX_ENEMY_COUNT
             );
             const activeEnemies = enemyPool.filter(e => e.active).length;
             if (activeEnemies < targetEnemyCount) {
@@ -431,16 +442,16 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         const handleShoot = () => {
             const inactiveBullet = bulletPool.find((b) => !b.active);
             if (inactiveBullet) {
-                inactiveBullet.x = ship.x + Math.cos(ship.angle) * (SHIP_WIDTH / 2);
-                inactiveBullet.y = ship.y + Math.sin(ship.angle) * (SHIP_HEIGHT / 2);
-                inactiveBullet.dx = Math.cos(ship.angle) * BULLET_SPEED;
-                inactiveBullet.dy = Math.sin(ship.angle) * BULLET_SPEED;
+                inactiveBullet.x = ship.x + Math.cos(ship.angle) * (SHOOT_PARAMETERS.SHIP_WIDTH / 2);
+                inactiveBullet.y = ship.y + Math.sin(ship.angle) * (SHOOT_PARAMETERS.SHIP_HEIGHT / 2);
+                inactiveBullet.dx = Math.cos(ship.angle) * SHOOT_PARAMETERS.BULLET_SPEED;
+                inactiveBullet.dy = Math.sin(ship.angle) * SHOOT_PARAMETERS.BULLET_SPEED;
                 inactiveBullet.active = true;
-                setTelemetry((prev) => {
-                    if (prev.length >= 1000) return [...prev.slice(1), { event: 'shot', time: performance.now() }];
-                    return [...prev, { event: 'shot', time: performance.now() }];
-                });
-                setStats((prev) => ({ ...prev, shots: prev.shots + 1 }));
+                // setTelemetry((prev) => {
+                //     if (prev.length >= 1000) return [...prev.slice(1), { event: 'shot', time: performance.now() }];
+                //     return [...prev, { event: 'shot', time: performance.now() }];
+                // });
+                // setStats((prev) => ({ ...prev, shots: prev.shots + 1 }));
             }
         };
 
@@ -463,7 +474,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
             ship.dy = 0;
             enemySpeedMultiplier = 1;
             bulletPool.forEach(b => b.active = false);
-            enemyPool = Array(INITIAL_ENEMY_COUNT).fill(null).map(() => spawnEnemy(canvas, enemySpeedMultiplier));
+            enemyPool = Array(SHOOT_PARAMETERS.INITIAL_ENEMY_COUNT).fill(null).map(() => spawnEnemy(canvas, enemySpeedMultiplier));
             startTimeRef.current = performance.now();
             setTelemetry([]);
             setStats({
@@ -502,63 +513,70 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         };
     }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnEnemy, updateShip, checkCollisions]);
 
-    const startGame = useCallback(async () => {
-        if (ticketCount > 0 && startGameRef.current) {
-            setStartGameStatus('pending');
-            await startGameRef.current.startGame();
-        } else if (ticketCount < 1) {
-            setStartGameStatus('error');
-            setStartGameError('You need one ticket to play!');
-        }
-    }, [ticketCount]);
+    // const startGame = useCallback(async () => {
+    //     if (ticketCount > 0 && startGameRef.current) {
+    //         setStartGameStatus('pending');
+    //         await startGameRef.current.startGame();
+    //     } else if (ticketCount < 1) {
+    //         setStartGameStatus('error');
+    //         setStartGameError('You need one ticket to play!');
+    //     }
+    // }, [ticketCount]);
+    const startGame = useCallback(() => {
+        setGameStarted(true);
+        setGameOver(false);
+        setScore(0);
+        containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        canvasRef.current?.focus();
+    }, []);
 
-    const endGame = useCallback(async () => {
-        if (endGameRef.current && gameStarted) {
-            setEndGameStatus('pending');
-            await endGameRef.current.endGame();
-        }
-    }, [gameStarted]);
+    // const endGame = useCallback(async () => {
+    //     if (endGameRef.current && gameStarted) {
+    //         setEndGameStatus('pending');
+    //         await endGameRef.current.endGame();
+    //     }
+    // }, [gameStarted]);
 
-    const handleStartGameStatusChange = useCallback((status: 'idle' | 'pending' | 'success' | 'error', errorMessage?: string) => {
-        setStartGameStatus(status);
-        if (status === 'pending') {
-            setStartGameError('');
-        } else if (status === 'success') {
-            updateTickets();
-            setGameStarted(true);
-            setGameOver(false);
-            setScore(0);
-            setEndGameStatus('idle');
-            setEndGameError('');
-            setEndGameMessage('');
-            containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            canvasRef.current?.focus();
-        } else if (status === 'error') {
-            setStartGameError(errorMessage || 'Failed to start game');
-            setGameStarted(false);
-        }
-    }, [updateTickets]);
+    // const handleStartGameStatusChange = useCallback((status: 'idle' | 'pending' | 'success' | 'error', errorMessage?: string) => {
+    //     setStartGameStatus(status);
+    //     if (status === 'pending') {
+    //         setStartGameError('');
+    //     } else if (status === 'success') {
+    //         updateTickets();
+    //         setGameStarted(true);
+    //         setGameOver(false);
+    //         setScore(0);
+    //         setEndGameStatus('idle');
+    //         setEndGameError('');
+    //         setEndGameMessage('');
+    //         containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    //         canvasRef.current?.focus();
+    //     } else if (status === 'error') {
+    //         setStartGameError(errorMessage || 'Failed to start game');
+    //         setGameStarted(false);
+    //     }
+    // }, [updateTickets]);
 
-    const handleEndGameStatusChange = useCallback((status: 'idle' | 'pending' | 'leader' | 'loser' | 'error', errorMessage?: string, highScore?: string) => {
-        setEndGameStatus(status);
-        if (status === 'pending') {
-            setEndGameError('');
-        } else if (status === 'leader') {
-            setEndGameMessage('CONGRATULATIONS! YOU SET A NEW HIGH SCORE!');
-            console.log('New leader score:', score);
-        } else if (status === 'loser') {
-            setEndGameMessage(`YOU DID NOT BEAT THE HIGH SCORE: ${highScore}!`);
-            console.log('Game ended, not the leader. Player Score:', score, 'High Score:', highScore);
-        } else if (status === 'error') {
-            setEndGameError(errorMessage || 'Failed to end game');
-        }
-    }, [score]);
+    // const handleEndGameStatusChange = useCallback((status: 'idle' | 'pending' | 'leader' | 'loser' | 'error', errorMessage?: string, highScore?: string) => {
+    //     setEndGameStatus(status);
+    //     if (status === 'pending') {
+    //         setEndGameError('');
+    //     } else if (status === 'leader') {
+    //         setEndGameMessage('CONGRATULATIONS! YOU SET A NEW HIGH SCORE!');
+    //         console.log('New leader score:', score);
+    //     } else if (status === 'loser') {
+    //         setEndGameMessage(`YOU DID NOT BEAT THE HIGH SCORE: ${highScore}!`);
+    //         console.log('Game ended, not the leader. Player Score:', score, 'High Score:', highScore);
+    //     } else if (status === 'error') {
+    //         setEndGameError(errorMessage || 'Failed to end game');
+    //     }
+    // }, [score]);
 
-    useEffect(() => {
-        if (gameOver && gameStarted && endGameStatus === 'idle') {
-            endGame();
-        }
-    }, [gameOver, gameStarted, endGameStatus, endGame]);
+    // useEffect(() => {
+    //     if (gameOver && gameStarted && endGameStatus === 'idle') {
+    //         endGame();
+    //     }
+    // }, [gameOver, gameStarted, endGameStatus, endGame]);
 
     const gameOverMessages: Record<string, JSX.Element> = {
         pending: <p>SUBMITTING SCORE...</p>,
@@ -570,7 +588,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-primary-bg p-4">
-            <StartGameWrapper
+            {/*<StartGameWrapper
                 ref={startGameRef}
                 gameId={gameId.toString()}
                 onStatusChange={handleStartGameStatusChange}
@@ -583,7 +601,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                 onStatusChange={handleEndGameStatusChange}
                 telemetry={score >= 2 ? telemetry : []}
                 stats={score >= 2 ? stats : null}
-            />
+            /> */}
             {!gameStarted ? (
                 <div className="text-center text-primary-text font-mono">
                     <h1 className="text-3xl text-accent-yellow mb-4">SHOOT</h1>
@@ -627,18 +645,24 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                         </select>
                     </div>
                     {address ? (
-                        <Button onClick={startGame} disabled={startGameStatus === 'pending' || !imagesLoaded}>
-                            {startGameStatus === 'pending' ? 'starting...' : !imagesLoaded ? 'Loading...' : 'START GAME'}
+                        <Button onClick={startGame} disabled={/*startGameStatus === 'pending' ||*/ !imagesLoaded}>
+                            {/*startGameStatus === 'pending' ? 'starting...' :*/ !imagesLoaded ? 'Loading...' : 'START GAME'}
                         </Button>
                     ) : (
                         <div className="flex items-center justify-center">
                             <LoginButton />
                         </div>
                     )}
-                    <p className="mt-2">COST: 1 TICKET</p>
+                    {/*<p className="mt-2">COST: 1 TICKET</p>
                     {startGameStatus === 'error' && startGameError && (
                         <p className="text-error-red mt-2">{startGameError}</p>
-                    )}
+                    )} */}
+                    <p className="mt-2">
+                        COST: <span className="line-through">1 TICKET</span> - Work in Progress, Free for Now!
+                    </p>
+                    <p className="mt-2 text-sm text-accent-yellow">
+                        Note: Scores from this game do not count towards highscores or prize money.
+                    </p>
                 </div>
             ) : (
                 <div ref={containerRef} className="w-full max-w-[1008px] h-[80vh] min-h-[400px] min-w-[300px] relative">
@@ -649,17 +673,20 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                     {gameOver && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-primary-text text-2xl font-mono">
                             <p>GAME OVER - YOUR SCORE: {score}</p>
-                            {gameOverMessages[endGameStatus]}
+                            <p className="text-sm text-accent-yellow mt-2">
+                                Note: Scores from this game do not count towards highscores or prize money.
+                            </p>
+                            {/*gameOverMessages[endGameStatus]*/}
                             <Button
                                 className="mt-6"
                                 onClick={startGame}
-                                disabled={startGameStatus === 'pending' || endGameStatus === 'pending' || endGameStatus === 'leader'}
+                                disabled={false /*startGameStatus === 'pending' || endGameStatus === 'pending' || endGameStatus === 'leader'*/}
                             >
-                                {startGameStatus === 'pending' ? 'starting...' : 'PLAY AGAIN'}
+                                {/*startGameStatus === 'pending' ? 'starting...' :*/ 'PLAY AGAIN'}
                             </Button>
-                            {startGameStatus === 'error' && startGameError && (
+                            {/*startGameStatus === 'error' && startGameError && (
                                 <p className="text-error-red mt-2">{startGameError}</p>
-                            )}
+                            )*/}
                         </div>
                     )}
                     <canvas ref={canvasRef} className="w-full h-full border-2 border-primary-border" tabIndex={0} />

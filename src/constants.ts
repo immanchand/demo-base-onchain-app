@@ -42,7 +42,7 @@ export const SHOOT_PARAMETERS = {
   OBSTACLE_SIZE: 50,
   INITIAL_BULLET_COUNT: 10,
   INITIAL_ENEMY_COUNT: 1,
-  MAX_SHOOT_FREQUENCY: 200, // ms 
+  MAX_SHOOT_FREQUENCY: 300, // ms 
   BASE_OBSTACLE_SPEED: 2, // Higher (e.g., 3) = faster enemies, harder; Lower (e.g., 1) = easier
   MAX_ENEMY_COUNT: 10, // Higher (e.g., 15) = more enemies, harder; Lower (e.g., 5) = easier
   MIN_SPAWN_INTERVAL: 1000, // Lower (e.g., 500) = faster spawns, harder; Higher (e.g., 1500) = easier

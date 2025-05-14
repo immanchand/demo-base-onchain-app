@@ -118,7 +118,7 @@ const GameCard = React.memo(
                                         NEXT GAME
                                     </Button>
                                 )}
-                            </div>f
+                            </div>
                         </div>
                         <div className="col-span-1 text-right">
                             <div className="relative group">

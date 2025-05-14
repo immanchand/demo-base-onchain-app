@@ -81,6 +81,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
     //const { ticketCount } = useTicketContext();
     const startGameRef = useRef<{ startGame: () => Promise<void> }>(null);
     const endGameRef = useRef<{ endGame: () => Promise<void> }>(null);
+    const lastShotTimeRef = useRef<number>(0);
     const [startGameStatus, setStartGameStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
     const [endGameStatus, setEndGameStatus] = useState<'idle' | 'pending' | 'leader' | 'loser' | 'error'>('idle');
     const [startGameError, setStartGameError] = useState<string>('');
@@ -440,18 +441,24 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         };
 
         const handleShoot = () => {
-            const inactiveBullet = bulletPool.find((b) => !b.active);
-            if (inactiveBullet) {
-                inactiveBullet.x = ship.x + Math.cos(ship.angle) * (SHOOT_PARAMETERS.SHIP_WIDTH / 2);
-                inactiveBullet.y = ship.y + Math.sin(ship.angle) * (SHOOT_PARAMETERS.SHIP_HEIGHT / 2);
-                inactiveBullet.dx = Math.cos(ship.angle) * SHOOT_PARAMETERS.BULLET_SPEED;
-                inactiveBullet.dy = Math.sin(ship.angle) * SHOOT_PARAMETERS.BULLET_SPEED;
-                inactiveBullet.active = true;
-                // setTelemetry((prev) => {
-                //     if (prev.length >= 1000) return [...prev.slice(1), { event: 'shot', time: performance.now() }];
-                //     return [...prev, { event: 'shot', time: performance.now() }];
-                // });
-                // setStats((prev) => ({ ...prev, shots: prev.shots + 1 }));
+            const currentTime = performance.now();
+            const timeSinceLastShot = currentTime - lastShotTimeRef.current;
+            // Only allow shooting if max frequency has passed
+            if (timeSinceLastShot >= SHOOT_PARAMETERS.MAX_SHOOT_FREQUENCY) {
+                const inactiveBullet = bulletPool.find((b) => !b.active);
+                if (inactiveBullet) {
+                    inactiveBullet.x = ship.x + Math.cos(ship.angle) * (SHOOT_PARAMETERS.SHIP_WIDTH / 2);
+                    inactiveBullet.y = ship.y + Math.sin(ship.angle) * (SHOOT_PARAMETERS.SHIP_HEIGHT / 2);
+                    inactiveBullet.dx = Math.cos(ship.angle) * SHOOT_PARAMETERS.BULLET_SPEED;
+                    inactiveBullet.dy = Math.sin(ship.angle) * SHOOT_PARAMETERS.BULLET_SPEED;
+                    inactiveBullet.active = true;
+                    lastShotTimeRef.current = currentTime; // Update last shot time
+                    // setTelemetry((prev) => {
+                    //     if (prev.length >= 1000) return [...prev.slice(1), { event: 'shot', time: performance.now() }];
+                    //     return [...prev, { event: 'shot', time: performance.now() }];
+                    // });
+                    // setStats((prev) => ({ ...prev, shots: prev.shots + 1 }));
+                }
             }
         };
 

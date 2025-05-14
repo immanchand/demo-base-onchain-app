@@ -51,7 +51,7 @@ export default function Home() {
                         <div className="card-container p-4">
                             <h4 className="text-xl font-bold text-accent-yellow">4. Win Big Crypto</h4>
                             <p className="text-primary-text">
-                                Prize pools start with a bonus fund and grow with every degen’s ticket. Check the current pool on the <Link href="/active-game" className="text-accent-yellow hover:underline">Active Games page</Link> and moon that score!
+                                Prize pools start with a bonus fund and grow with every degen’s ticket. Check the current pool on the <Link href="/active-game" className="text-accent-yellow hover:underline">Active Game</Link> page and moon that score!
                             </p>
                         </div>
                     </div>

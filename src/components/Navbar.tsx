@@ -22,15 +22,18 @@ const Navbar = React.memo(() => {
             </div>
             <div className="hidden sm:ml-6 sm:flex space-x-4">
               <Link href="/active-game" className="px-3 py-2 text-lg font-bold text-primary-text hover:text-accent-yellow transition-all duration-300 hover:-translate-y-0.5">
-                PLAY
+                GAME
               </Link>
               {address && (
                 <Link href="/tickets" className="px-3 py-2 text-lg font-bold text-primary-text hover:text-accent-yellow transition-all duration-300 hover:-translate-y-0.5">
-                  TICKETS
+                  CHIPS
                 </Link>
               )}
               <Link href="/games" className="px-3 py-2 text-lg font-bold text-primary-text hover:text-accent-yellow transition-all duration-300 hover:-translate-y-0.5">
-                HISTORY
+                WINS
+              </Link>
+              <Link href="/private" className="px-3 py-2 text-lg font-bold text-primary-text hover:text-accent-yellow transition-all duration-300 hover:-translate-y-0.5">
+                CREW
               </Link>
             </div>
           </div>

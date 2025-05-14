@@ -441,10 +441,10 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         };
 
         const handleShoot = () => {
-            const currentTime = performance.now();
-            const timeSinceLastShot = currentTime - lastShotTimeRef.current;
+            //const currentTime = performance.now();
+            const timeSinceLastShot = performance.now() - lastShotTimeRef.current;
             // Only allow shooting if max frequency has passed
-            if (timeSinceLastShot >= SHOOT_PARAMETERS.MAX_SHOOT_FREQUENCY) {
+            if (timeSinceLastShot >= 500) {
                 const inactiveBullet = bulletPool.find((b) => !b.active);
                 if (inactiveBullet) {
                     inactiveBullet.x = ship.x + Math.cos(ship.angle) * (SHOOT_PARAMETERS.SHIP_WIDTH / 2);
@@ -452,7 +452,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                     inactiveBullet.dx = Math.cos(ship.angle) * SHOOT_PARAMETERS.BULLET_SPEED;
                     inactiveBullet.dy = Math.sin(ship.angle) * SHOOT_PARAMETERS.BULLET_SPEED;
                     inactiveBullet.active = true;
-                    lastShotTimeRef.current = currentTime; // Update last shot time
+                    lastShotTimeRef.current = performance.now(); // Update last shot time
                     // setTelemetry((prev) => {
                     //     if (prev.length >= 1000) return [...prev.slice(1), { event: 'shot', time: performance.now() }];
                     //     return [...prev, { event: 'shot', time: performance.now() }];

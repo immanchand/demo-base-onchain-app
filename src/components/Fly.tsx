@@ -558,13 +558,13 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             {!gameStarted ? (
                 <div className="text-center text-primary-text font-mono">
                     <h1 className="text-3xl text-accent-yellow mb-4">FLY</h1>
-                    <p className="text-xl mb-2">INSTRUCTIONS:</p>
-                    <p className="mb-2">Use the spacebar or mouse click to fly upward.</p>
-                    <p className="mb-4">Avoid hitting obstacles and avoid hitting the ground or the top!</p>
-                    <p className="mb-2">CONTROLS:</p>
-                    <p className="mb-4">Spacebar or Mouse Click: Fly Upward</p>
+                    <p className="text-xl mb-2">DEGEN BRIEFING:</p>
+                    <p className="mb-2">Tap spacebar or click to flap your rocket through crypto FUD, fam!</p>
+                    <p className="mb-4">Dodge aliens and don’t crash into the ground or sky, or no moon for you!</p>
+                    <p className="mb-2">CONTROLS, YO:</p>
+                    <p className="mb-4">Spacebar or Click: Flap Up</p>
                     <div className="mb-4 flex items-center justify-center">
-                        <p className="mr-2">CHOOSE AIRCRAFT:</p>
+                        <p className="mr-2">PICK YOUR ROCKET:</p>
                         {imagesLoaded && shipImages[shipType] && (
                             <img src={shipImages[shipType].src} alt={shipType} className="w-15 h-10 mr-2" />
                         )}
@@ -573,13 +573,13 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                             onChange={(e) => setShipType(e.target.value as ShipType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="ship">SPACE ROCKET</option>
-                            <option value="eth">ETHEREUM</option>
-                            <option value="base">BASE</option>
+                            <option value="ship">DEGEN ROCKET</option>
+                            <option value="eth">ETH BLASTER</option>
+                            <option value="base">BASESHIP-SPACESHIP</option>
                         </select>
                     </div>
                     <div className="mb-4 flex items-center justify-center">
-                        <p className="mr-2">CHOOSE OBSTACLE:</p>
+                        <p className="mr-2">CHOOSE YOUR FUD:</p>
                         {imagesLoaded && enemyImages[enemyType] && (
                             <img src={enemyImages[enemyType].src} alt={enemyType} className="w-10 h-10 mr-2" />
                         )}
@@ -588,11 +588,11 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                             onChange={(e) => setEnemyType(e.target.value as EnemyType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="alien">ALIEN</option>
-                            <option value="bitcoin">BITCOIN</option>
-                            <option value="xrp">XRP</option>
-                            <option value="solana">SOLANA</option>
-                            <option value="gensler">CLOWN GARY</option>
+                            <option value="alien">ALIEN FUD</option>
+                            <option value="bitcoin">BITBLOCKER</option>
+                            <option value="xrp">XRP ZAPPER</option>
+                            <option value="solana">SOLANA SWARM</option>
+                            <option value="gensler">GARY THE CLOWN</option>
                         </select>
                     </div>
                     {address ? (
@@ -604,41 +604,39 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                                 ? 'starting...'
                                 : !imagesLoaded || !isRecaptchaReady
                                 ? 'Loading...'
-                                : 'START GAME'}
+                                : 'SOAR NOW'}
                         </Button>
                     ) : (
                         <div className="flex items-center justify-center">
                             <LoginButton />
                         </div>
                     )}
-                    <p className="mt-2">COST: 1 TICKET</p>
+                    <p className="mt-2">COST: 1 CHIPS</p>
                     {startGameStatus === 'error' && startGameError && (
                         <p className="text-error-red mt-2">
-                            {startGameError} Try selecting a ship or obstacle to start.
-                        </p>
+                            {startGameError}</p>
                     )}
                 </div>
             ) : (
                 <div ref={containerRef} className="w-full max-w-[1008px] h-[80vh] min-h-[400px] min-w-[300px] relative">
                     <div className="text-primary-text mb-1 text-center font-mono">
                         <span className="text-2xl text-accent-yellow">SCORE: {Math.floor(score)}</span>
-                        <span className="text-2xl text-accent-yellow ml-8">HIGH SCORE: {existingHighScore}</span>
+                        <span className="text-2xl text-accent-yellow ml-8">TOP SCORE: {existingHighScore}</span>
                     </div>
                     {gameOver && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-primary-text text-2xl font-mono">
-                            <p>GAME OVER - YOUR SCORE: {Math.floor(score)}</p>
+                            <p>SMASHED! YOUR SCORE: {Math.floor(score)}</p>
                             {gameOverMessages[endGameStatus]}
                             <Button
                                 className="mt-6"
                                 onClick={startGame}
                                 disabled={startGameStatus === 'pending' || endGameStatus === 'pending' || endGameStatus === 'leader' || !isRecaptchaReady}
                             >
-                                {startGameStatus === 'pending' ? 'starting...' : 'PLAY AGAIN'}
+                                {startGameStatus === 'pending' ? 'starting...' : 'TRY AGAIN'}
                             </Button>
                             {startGameStatus === 'error' && startGameError && (
                                 <p className="text-error-red mt-2">
-                                    {startGameError} or try selecting a ship or obstacle to start.
-                                </p>
+                                    {startGameError}</p>
                             )}
                         </div>
                     )}

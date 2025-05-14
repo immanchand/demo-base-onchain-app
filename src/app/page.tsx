@@ -12,7 +12,7 @@ export default function Home() {
             <section className="flex w-full flex-grow flex-col items-center gap-4 bg-primary-bg px-2 py-4 border-4 border-primary-border animate-fade-in">
                 {/* Hero Section */}
                 <h1 className="text-4xl md:text-5xl font-bold text-primary-text text-center">
-                    Stupid Games
+                    STUPID GAMES
                 </h1>
                 <h2 className="text-xl md:text-2xl font-bold text-accent-yellow text-center">
                     Play Stupid Games, Win Awesome Prizes!
@@ -21,7 +21,7 @@ export default function Home() {
                     Yo, degens! Smash arcade games, set high scores, and HODL the leaderboard for 24 hours to win big crypto prizes. It’s a silly side project, so don’t take it too seriously—just have fun!
                 </p>
                 <Button className="btn-primary text-lg">
-                    <Link href="/active-game">Play Now</Link>
+                    <Link href="/active-game">PLAY NOW</Link>
                 </Button>
 
                 {/* How It Works */}
@@ -49,9 +49,9 @@ export default function Home() {
                             </p>
                         </div>
                         <div className="card-container p-4">
-                            <h4 className="text-xl font-bold text-accent-yellow">4. Win Crypto</h4>
+                            <h4 className="text-xl font-bold text-accent-yellow">4. Withdraw the prize</h4>
                             <p className="text-primary-text">
-                                Prize pools start with a bonus fund and grow with player tickets. Check the current pool on the <Link href="/active-game" className="text-accent-yellow hover:underline">Active Games page</Link> and moon that score!
+                                Prize pools start with a bonus fund and grow with each and every players ticket. Check the current pool on the <Link href="/active-game" className="text-accent-yellow hover:underline">PLAY</Link> and moon that score!
                             </p>
                         </div>
                     </div>
@@ -60,25 +60,25 @@ export default function Home() {
                 {/* Games Section */}
                 <div className="w-full mt-8">
                     <h3 className="text-2xl font-bold text-primary-text text-center mb-4">
-                        The Games
+                        THE GAMES
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="card-container p-4">
-                            <h4 className="text-xl font-bold text-accent-yellow">Jump</h4>
+                            <h4 className="text-xl font-bold text-accent-yellow">JUMP</h4>
                             <p className="text-primary-text">
-                                Dodge Bitcoin boxes and Gary Gensler’s clown face in this Dino-inspired sprint. Keep your rocket ship hopping to the top!
+                                Dodge FUD boxes or XRP obstales in this jumping sprint. Keep your runner sprinting to the end to reach the top score!
                             </p>
                         </div>
                         <div className="card-container p-4">
-                            <h4 className="text-xl font-bold text-accent-yellow">Shoot</h4>
+                            <h4 className="text-xl font-bold text-accent-yellow">SHOOT</h4>
                             <p className="text-primary-text">
-                                Blast Solana asteroids and XRP aliens with your Ethereum-logo ship. Pew pew your way to a high score!
+                                Blast Bitcoin or Solana aliens with your Space Rocket or Ethereum Space Ship! Pew, pew, pew your way to a high score!
                             </p>
                         </div>
                         <div className="card-container p-4">
-                            <h4 className="text-xl font-bold text-accent-yellow">Fly</h4>
+                            <h4 className="text-xl font-bold text-accent-yellow">FLY</h4>
                             <p className="text-primary-text">
-                                Flap your Base-logo bird through a gauntlet of Bitcoin pipes. One wrong move, and you’re rekt!
+                                Fly your Space-Ship or better yet, your Base-Ship through a gauntlet of Gary Gensler Clowns. One wrong move, and you’re rekt!
                             </p>
                         </div>
                     </div>
@@ -90,11 +90,14 @@ export default function Home() {
                 {/* Tech Stuff */}
                 <div className="w-full mt-8 max-w-2xl">
                     <h3 className="text-2xl font-bold text-primary-text text-center mb-4">
-                        Tech Stuff for Nerds
+                        TECH STUFF FOR NERDS
                     </h3>
                     <div className="card-container p-4">
                         <p className="text-primary-text">
-                            Built on Base for max degen vibes. High scores are recorded on a smart contract for transparency, and prizes are paid out automatically. Scores are validated on our servers to catch hackers—keep it fair, fam! Oh, and it’s desktop-only for now—mobile’s coming soon.
+                            Built on Base for max degen vibes. High scores are recorded on a smart contract for transparency, and prizes can be withdrawn by the winner trustlessly. Scores are validated on our servers to catch hackers—keep it fair, fam! Oh, and it’s desktop-only for now—mobile’s coming soon.
+                        </p>
+                        <p className="text-primary-text">
+                            Keep you desktop or laptop at optimal performance and watch out for battery saving modes. Any changes to game parameters or browser performance could flag cheating.
                         </p>
                     </div>
                 </div>
@@ -102,10 +105,10 @@ export default function Home() {
                 {/* Disclaimer and Feedback */}
                 <div className="w-full mt-8 text-center">
                     <p className="text-sm text-primary-text">
-                        This is a fun side project and a work in progress. Got issues? DM us on X at <Link href="https://x.com/YourXHandle" className="text-accent-yellow hover:underline">@YourXHandle</Link>. Don’t take it too seriously—let’s just WAGMI!
+                        This is a fun side project and a work in progress. Got issues? DM me on X at <Link href="https://x.com/kantaloeth" className="text-accent-yellow hover:underline">@kantaloeth</Link>. Don’t take it too seriously—WAGMI!
                     </p>
                     <p className="text-sm text-primary-text mt-2">
-                        18+ only. Crypto transactions are final. We validate scores to keep it fair. Check your local laws before playing.
+                        18+ only. Crypto transactions are final. We validate scores to try and keep it fair. Check your local laws before playing.
                     </p>
                 </div>
             </section>

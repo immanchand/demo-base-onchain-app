@@ -49,9 +49,9 @@ export default function Home() {
                             </p>
                         </div>
                         <div className="card-container p-4">
-                            <h4 className="text-xl font-bold text-accent-yellow">4. Withdraw the prize</h4>
+                            <h4 className="text-xl font-bold text-accent-yellow">4. Win Big Crypto</h4>
                             <p className="text-primary-text">
-                                Prize pools start with a bonus fund and grow with each and every players ticket. Check the current pool on the <Link href="/active-game" className="text-accent-yellow hover:underline">PLAY</Link> and moon that score!
+                                Prize pools start with a bonus fund and grow with every degen’s ticket. Check the current pool on the <Link href="/active-game" className="text-accent-yellow hover:underline">Active Games page</Link> and moon that score!
                             </p>
                         </div>
                     </div>
@@ -66,19 +66,19 @@ export default function Home() {
                         <div className="card-container p-4">
                             <h4 className="text-xl font-bold text-accent-yellow">JUMP</h4>
                             <p className="text-primary-text">
-                                Dodge FUD boxes or XRP obstales in this jumping sprint. Keep your runner sprinting to the end to reach the top score!
+                                Dodge FUD boxes and Bitcoin traps in this jumping sprint. Keep your avatar hopping to the top score!
                             </p>
                         </div>
                         <div className="card-container p-4">
                             <h4 className="text-xl font-bold text-accent-yellow">SHOOT</h4>
                             <p className="text-primary-text">
-                                Blast Bitcoin or Solana aliens with your Space Rocket or Ethereum Space Ship! Pew, pew, pew your way to a high score!
+                                Blast Bitcoin and Solana aliens with your Ethereum Space Ship. Pew, pew, pew your way to a high score!
                             </p>
                         </div>
                         <div className="card-container p-4">
                             <h4 className="text-xl font-bold text-accent-yellow">FLY</h4>
                             <p className="text-primary-text">
-                                Fly your Space-Ship or better yet, your Base-Ship through a gauntlet of Gary Gensler Clowns. One wrong move, and you’re rekt!
+                                Flap your Base Ship - Space Ship through a gauntlet of Gary Gensler clown faces. One wrong move, and you’re rekt!
                             </p>
                         </div>
                     </div>
@@ -94,10 +94,10 @@ export default function Home() {
                     </h3>
                     <div className="card-container p-4">
                         <p className="text-primary-text">
-                            Built on Base for max degen vibes. High scores are recorded on a smart contract for transparency, and prizes can be withdrawn by the winner trustlessly. Scores are validated on our servers to catch hackers—keep it fair, fam! Oh, and it’s desktop-only for now—mobile’s coming soon.
+                            Built on Base for max degen vibes. High scores are recorded on a smart contract for transparency, and prizes can be withdrawn trustlessly. Scores are validated on our servers to catch hackers—keep it fair, fam! Don’t let your laptop snooze—battery-saving mode might flag you as a cheater. Desktop-only for now—mobile’s coming soon.
                         </p>
-                        <p className="text-primary-text">
-                            Keep your laptop at optimal performance and watch out for battery saving modes. Any changes to game parameters or browser performance could flag cheating.
+                        <p className="text-primary-text mt-2">
+                            Soon: Private games to flex with your frens only!
                         </p>
                     </div>
                 </div>

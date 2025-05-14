@@ -20,9 +20,7 @@ export default function Home() {
                 <p className="text-lg text-primary-text text-center max-w-2xl">
                     Yo, degens! Smash arcade games, set high scores, and HODL the leaderboard for 24 hours to win big crypto prizes. It’s a silly side project, so don’t take it too seriously—just have fun!
                 </p>
-                <Button className="btn-primary text-lg">
-                    <Link href="/active-game">PLAY NOW</Link>
-                </Button>
+                
 
                 {/* How It Works */}
                 <div className="w-full mt-8">
@@ -85,6 +83,9 @@ export default function Home() {
                     <p className="text-center text-primary-text mt-4">
                         All games feed one prize pool—pick your vibe and go for the W!
                     </p>
+                    <Button className="btn-primary text-lg">
+                        <Link href="/active-game">PLAY NOW</Link>
+                    </Button>
                 </div>
 
                 {/* Tech Stuff */}

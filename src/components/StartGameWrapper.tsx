@@ -163,12 +163,16 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                         chain: baseSepolia,
                         transport: custom(window.ethereum!),
                     });
+                    console.log('******after createWalletClient walletClient', walletClient);
                     const [account] = await walletClient.getAddresses();
+                    console.log('******after getAddresses account', account);
                     try {
+                        console.log('******inside try block in getSignature');
                         const signature = await walletClient.signMessage({
                             account,
                             message: message,
                         });
+                        console.log('******after signMessage signature', signature);
                         Cookies.set('gameSig', JSON.stringify({ message, signature }), {
                             expires: 1,
                             secure: true,

@@ -652,7 +652,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                     </div>
                     {address ? (
                         <Button onClick={startGame} disabled={/*startGameStatus === 'pending' ||*/ !imagesLoaded}>
-                            {/*startGameStatus === 'pending' ? 'starting...' :*/ !imagesLoaded ? 'Loading...' : 'BLAST OFF'}
+                            {/*startGameStatus === 'pending' ? 'firing up...' :*/ !imagesLoaded ? 'Loading...' : 'BLAST OFF'}
                         </Button>
                     ) : (
                         <div className="flex items-center justify-center">
@@ -688,7 +688,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                                 onClick={startGame}
                                 disabled={false /*startGameStatus === 'pending' || endGameStatus === 'pending' || endGameStatus === 'leader'*/}
                             >
-                                {/*startGameStatus === 'pending' ? 'starting...' :*/ 'TRY AGAIN'}
+                                {/*startGameStatus === 'pending' ? 'firing up...' :*/ 'TRY AGAIN'}
                             </Button>
                             {/*startGameStatus === 'error' && startGameError && (
                                 <p className="text-error-red mt-2">{startGameError}</p>

@@ -77,10 +77,14 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                 }
 
                 if (hasSigned) {
+                    console.log('******in if (hasSigned) block. hasSigned:', hasSigned);
                     gameSigRaw = decodeURIComponent(Cookies.get('gameSig') || '');
+                    console.log('******end if (hasSigned) block. gameSigRaw:', gameSigRaw);
                 }
                 if (!hasSigned) {
+                    console.log('******in if (!hasSigned) block. hasSigned:', hasSigned);
                     await getSignature();
+                    console.log('******after await getSignature(); ');
                 }
 
                 // Validate the cookie signature with logged in player account address
@@ -100,8 +104,7 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                     Cookies.remove('gameSig');
                     setHasSigned(false);
                     onStatusChange('error', 'Signature error. Please refresh and try again.');
-                }
-                
+                }    
                 if (!address) {
                     onStatusChange('error', 'Player address not detected');
                     return;
@@ -155,6 +158,7 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                 }
 
                 async function getSignature() {
+                    console.log('******inside getSignature function');
                     const walletClient = createWalletClient({
                         chain: baseSepolia,
                         transport: custom(window.ethereum!),

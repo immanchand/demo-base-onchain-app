@@ -601,7 +601,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                             disabled={startGameStatus === 'pending' || !imagesLoaded || !isRecaptchaReady}
                         >
                             {startGameStatus === 'pending'
-                                ? 'starting...'
+                                ? 'launching...'
                                 : !imagesLoaded || !isRecaptchaReady
                                 ? 'Loading...'
                                 : 'SOAR NOW'}
@@ -632,7 +632,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                                 onClick={startGame}
                                 disabled={startGameStatus === 'pending' || endGameStatus === 'pending' || endGameStatus === 'leader' || !isRecaptchaReady}
                             >
-                                {startGameStatus === 'pending' ? 'starting...' : 'TRY AGAIN'}
+                                {startGameStatus === 'pending' ? 'launching...' : 'TRY AGAIN'}
                             </Button>
                             {startGameStatus === 'error' && startGameError && (
                                 <p className="text-error-red mt-2">

@@ -638,7 +638,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     </div>
                     {address ? (
                         <Button onClick={startGame} disabled={startGameStatus === 'pending' || !imagesLoaded}>
-                            {startGameStatus === 'pending' ? 'starting...' : !imagesLoaded ? 'Loading...' : 'LEAP IN'}
+                            {startGameStatus === 'pending' ? 'jumping in 3,2,1...' : !imagesLoaded ? 'Loading...' : 'HOP IN'}
                         </Button>
                     ) : (
                         <div className="flex items-center justify-center">
@@ -665,7 +665,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                                 onClick={startGame}
                                 disabled={startGameStatus === 'pending' || endGameStatus === 'pending' || endGameStatus === 'leader'}
                             >
-                                {startGameStatus === 'pending' ? 'starting...' : 'TRY AGAIN'}
+                                {startGameStatus === 'pending' ? 'jumping in 3,2,1...' : 'TRY AGAIN'}
                             </Button>
                             {startGameStatus === 'error' && startGameError && (
                                 <p className="text-error-red mt-2">{startGameError}</p>

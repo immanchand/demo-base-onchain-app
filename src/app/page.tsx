@@ -3,6 +3,7 @@ import Navbar from 'src/components/Navbar';
 import Button from 'src/components/Button';
 import Link from 'next/link';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { CONTRACT_ADDRESS } from 'src/constants';
 
 export default function Home() {
     return (
@@ -70,13 +71,13 @@ export default function Home() {
                         <div className="card-container p-4">
                             <h4 className="text-xl font-bold text-accent-yellow">JUMP</h4>
                             <p className="text-primary-text">
-                                Dodge crates of FUD or Bitcoin Blocks in this jumping time run. Keep your avatar hopping to the top score!
+                                Dodge crates of FUD or Bitcoin Blockers in this jumping time run. Keep your runner hopping to the top score!
                             </p>
                         </div>
                         <div className="card-container p-4">
                             <h4 className="text-xl font-bold text-accent-yellow">SHOOT</h4>
                             <p className="text-primary-text">
-                                Blast Bitcoin or Solana invaders with your Ethereum Blaster. Pew, pew, pew your way to a high score!
+                                Blast Bitcoin, Solana or XRP invaders with your Ethereum Blaster. Pew, pew, pew your way to a high score!
                             </p>
                         </div>
                     </div>
@@ -97,6 +98,9 @@ export default function Home() {
                     <div className="card-container p-4">
                         <p className="text-primary-text">
                             Built on Base for max degen vibes. High scores are recorded on a smart contract for transparency, and prizes can be withdrawn trustlessly. Scores are validated on our servers to catch hackers—keep it fair, fam! Don’t let your laptop snooze—battery-saving mode might flag you as a cheater. Desktop-only for now—mobile’s coming soon.
+                        </p>
+                        <p className="text-primary-text mt-2">
+                            Contract address: ${CONTRACT_ADDRESS}
                         </p>
                         <p className="text-primary-text mt-2">
                             Soon: Private games to flex with your frens only!

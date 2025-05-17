@@ -908,170 +908,154 @@ export async function POST(request) {
               }
               //end JUMPING RELATED VALIDATIONS
 
-              //JUMP FULL GAME PHYSICS SIMULATION
-              let activeObstacles = []; // Track active obstacles
+              // JUMP FULL GAME PHYSICS SIMULATION
+              let activeObstacles = [];
               let lastFrame = telemetry.find(e => e.event === 'frame');
               let stopFrame = telemetry.reverse().find(e => e.event === 'frame');
               telemetry.reverse(); // Restore original order
-              const shipStartX = stats.canvasWidth * 0.15; // Initialize ship x
+              const shipStartX = stats.canvasWidth * 0.15;
               let currentY = lastFrame.data.y;
               let currentVy = lastFrame.data.vy;
-              let lastTime = lastFrame.time; // Start with first event's time
+              let lastTime = lastFrame.time;
               let lastFrameId = lastFrame.frameId;
               const perFrameDeltaTime = 1 / avgFps;
 
-              //check that stop frame is within range of stats.framesCount
+              // Check that stop frame is within range of stats.framesCount
               if (stopFrame.frameId >= stats.framesCount - 10 && stopFrame.frameId <= stats.framesCount) {
-                //positive case do nothing
+              // Positive case
               } else {
-                console.log('last frame  is out of range of stats.framesCount', {
-                  lastFrameId: stopFrame.frameId,
-                  statsFramesCount: stats.framesCount,
-                });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious last frame  is out of range of stats.framesCount' }), { status: 400 });
+              console.log('last frame is out of range of stats.framesCount', {
+                lastFrameId: stopFrame.frameId,
+                statsFramesCount: stats.framesCount,
+              });
+              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious last frame is out of range of stats.framesCount' }), { status: 400 });
               }
-              // Initialize obstacles from the first frame's obsData or spawn events
+
+              // Initialize obstacles
               if (lastFrame.obsData && lastFrame.obsData.obstacles) {
-                activeObstacles = lastFrame.obsData.obstacles.map(obs => ({ ...obs }));
+              activeObstacles = lastFrame.obsData.obstacles.map(obs => ({ ...obs }));
               }
 
               for (const event of telemetry) {
-                // Skip the initial frame used for initialization
-                if (event === lastFrame || event.frameId < 10 || event.event === 'fps') continue;
-                if (event.event === 'collision' || event === stopFrame) break;
-                
-                const framesElapsed = event.frameId - lastFrameId;
-                const expectedTime = framesElapsed * perFrameDeltaTime * 1000; // Convert to ms
-                const actualTime = event.time - lastTime;
-                if (Math.abs(actualTime - expectedTime) < 100) { // 100ms tolerance
-                  //positive case do nothing
-                } else {
-                  console.log('Time inconsistency', { event, lastFrameId, actualTime, expectedTime });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious event timing' }), { status: 400 });
-                }
+              if (event === lastFrame || event.frameId < 10 || event.event === 'fps') continue;
+              if (event.event === 'collision' || event === stopFrame) break;
 
-                // Simulate frame by frame physics and obstacle movement
-                for (let i = lastFrameId +1; i <= event.frameId; i++) {
-                  //if (event.frameId + i >= stats.framesCount) console.log('event.frameId + i', event.frameId + i);
-                  // Update ship physics
-                  currentVy += gameParams.GRAVITY;
-                  currentY += currentVy;
-                  // add logic to reset like front end code:
-                  // if (ship.y > canvas.height * JUMP_PARAMETERS.GROUND_HEIGHT_RATIO - JUMP_PARAMETERS.SHIP_HEIGHT) {
-                  //                     ship.y = canvas.height * JUMP_PARAMETERS.GROUND_HEIGHT_RATIO - JUMP_PARAMETERS.SHIP_HEIGHT;
-                  //                     ship.vy = 0;
-                  //                     jumpCountRef.current = 0;
-                  //                 }
-                  //like this:
-                  if (currentY > GROUND_Y) {
-                    currentY = GROUND_Y;
-                    currentVy = 0;
-                  }
-                  // Update obstacle positions
-                  activeObstacles.forEach(obs => {
-                    obs.x += obs.dx; // Interpolate x using dx
-                  });
-                  // Remove obstacles that have moved off-screen (x < 0)
-                  activeObstacles = activeObstacles.filter(obs => obs.x >= 0);
-                  // Check for collisions with obstacles
-                  const shipCenterX = shipStartX + gameParams.SHIP_WIDTH / 2;
-                  const shipCenterY = currentY + gameParams.SHIP_HEIGHT / 2;
-                  for (const obs of activeObstacles) {
-                    const obsCenterX = obs.x + gameParams.OBSTACLE_SIZE / 2;
-                    const obsCenterY = obs.y + gameParams.OBSTACLE_SIZE / 2;
-                    const distance = Math.sqrt(
-                      Math.pow(shipCenterX - obsCenterX, 2) + Math.pow(shipCenterY - obsCenterY, 2)
-                    );
-                    if (distance >= (gameParams.SHIP_WIDTH + gameParams.OBSTACLE_SIZE) / 2) {
-                      //positive case do nothing
-                    } else {
-                      console.log('Suspicious unreported obstacle collision', { frameId: event.frameId + i, shipX: shipStartX, shipY: currentY, obs });
-                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious unreported obstacle collision' }), { status: 400 });
-                    }
-                  }
-                }
-                // Handle event-specific logic
-                if (event.event === 'spawn') {
-                  // Add new obstacle from spawn event
-                  activeObstacles.push({
-                    x: stats.canvasWidth, // spawn at right edge
-                    y: event.data.y,
-                    dx: event.data.speed,
-                    width: gameParams.OBSTACLE_SIZE,
-                    height: gameParams.OBSTACLE_SIZE,
-                    dodged: false
-                  });
-                } else if (event.event === 'jump') {
-                  if (event.data.x === shipStartX) {
-                    //positive case do nothing
-                  } else {
-                    console.log('Ship out of start x position', { event, shipStartX });
-                      return new Response(JSON.stringify({ status: 'error', message: 'Ship out of start x position' }), { status: 400 });
-                  }
-                  // Apply jump velocity
-                  currentVy = gameParams.JUMP_VELOCITY;
-                  // Validate jump position and velocity
-                  if (Math.abs(event.data.y - currentY) < 0.001) {
-                    //positive case do nothing
-                  } else {
-                    console.log('Jump position check failed', { event, expectedY: currentY, actualY: event.data.y });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious jump position' }), { status: 400 });
-                  }
-                  if (Math.abs(event.data.vy - gameParams.JUMP_VELOCITY) < 0.001) {
-                    //positive case do nothing
-                  } else {
-                    console.log('Jump velocity check failed', { event, expectedVy: gameParams.JUMP_VELOCITY, actualVy: event.data.vy });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious jump velocity' }), { status: 400 });
-                  }
-
-                } else if (event.event === 'frame') {
-                  // Validate frame position and velocity
-                  if (Math.abs(event.data.y - currentY) < 0.001) {
-                    //positive case do nothing
-                  } else {
-                    console.log('Frame position check failed', { event, expectedY: currentY, actualY: event.data.y });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
-                  }
-                  if (Math.abs(event.data.vy - currentVy) < 0.001) {
-                    //positive case do nothing
-                  } else {
-                    console.log('Frame velocity check failed', { event, expectedVy: currentVy, actualVy: event.data.vy });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame velocity' }), { status: 400 });
-                  }
-
-                  // Validate that obstacles haven't disappeared prematurely
-                  const reportedObstacles = event.obsData.obstacles;
-                  // Check each active obstacle that should still be on-screen
-                  for (const activeObs of activeObstacles) {
-                    if (activeObs.x + gameParams.OBSTACLE_SIZE >= 0) { // Should be on-screen
-                      // Find a matching obstacle in reported obsData (based on y and proximity of x)
-                      const matchingObs = reportedObstacles.find(obs => 
-                        Math.abs(obs.y - activeObs.y) < 0.001 && 
-                        Math.abs(obs.x - activeObs.x) < Math.abs(activeObs.dx)*2 &&// Allow small x discrepancy
-                        Math.abs(obs.dx - activeObs.dx) < 0.001
-                      );
-                      if (matchingObs) {
-                        //positive case do nothing
-                      } else {
-                        console.log('Suspicious obstacle disappearance', {
-                          frameId: event.frameId,
-                          missingObs: activeObs,
-                          reportedObstacles,
-                          activeObstacles,
-                        });
-                        return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle disappearance' }), { status: 400 });
-                      }
-                    }
-                  }
-                  // Update active obstacles with reported ones
-                  currentVy = event.data.vy;
-                } 
-                // Update state
-                lastFrame = event;
-                lastFrameId = event.frameId;
-                lastTime = event.time;
+              const framesElapsed = event.frameId - lastFrameId;
+              const expectedTime = framesElapsed * perFrameDeltaTime * 1000;
+              const actualTime = event.time - lastTime;
+              if (Math.abs(actualTime - expectedTime) < 100) {
+                // Positive case
+              } else {
+                console.log('Time inconsistency', { event, lastFrameId, actualTime, expectedTime });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious event timing' }), { status: 400 });
               }
-              //end JUMP FULL GAME PHYSICS SIMULATION
+
+              // Simulate frame by frame physics
+              for (let i = lastFrameId + 1; i <= event.frameId; i++) {
+                // Update ship physics
+                // Check ground collision *before* applying gravity
+                if (currentY >= GROUND_Y) {
+                  currentY = GROUND_Y;
+                  currentVy = 0;
+                } else {
+                  currentVy += gameParams.GRAVITY * perFrameDeltaTime; // Scale gravity by delta time
+                  currentY += currentVy * perFrameDeltaTime; // Scale position update by delta time
+                }
+                // Update obstacle positions
+                activeObstacles.forEach(obs => {
+                  obs.x += obs.dx * perFrameDeltaTime; // Scale obstacle movement by delta time
+                });
+                // Remove off-screen obstacles
+                activeObstacles = activeObstacles.filter(obs => obs.x >= 0);
+                // Check for collisions
+                const shipCenterX = shipStartX + gameParams.SHIP_WIDTH / 2;
+                const shipCenterY = currentY + gameParams.SHIP_HEIGHT / 2;
+                for (const obs of activeObstacles) {
+                  const obsCenterX = obs.x + gameParams.OBSTACLE_SIZE / 2;
+                  const obsCenterY = obs.y + gameParams.OBSTACLE_SIZE / 2;
+                  const distance = Math.sqrt(
+                    Math.pow(shipCenterX - obsCenterX, 2) + Math.pow(shipCenterY - obsCenterY, 2)
+                  );
+                  if (distance >= (gameParams.SHIP_WIDTH + gameParams.OBSTACLE_SIZE) / 2) {
+                    // Positive case
+                  } else {
+                    console.log('Suspicious unreported obstacle collision', { frameId: event.frameId + i, shipX: shipStartX, shipY: currentY, obs });
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious unreported obstacle collision' }), { status: 400 });
+                  }
+                }
+              }
+
+              // Handle event-specific logic
+              if (event.event === 'spawn') {
+                activeObstacles.push({
+                  x: stats.canvasWidth,
+                  y: event.data.y,
+                  dx: event.data.speed,
+                  width: gameParams.OBSTACLE_SIZE,
+                  height: gameParams.OBSTACLE_SIZE,
+                  dodged: false
+                });
+              } else if (event.event === 'jump') {
+                if (event.data.x === shipStartX) {
+                  // Positive case
+                } else {
+                  console.log('Ship out of start x position', { event, shipStartX });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Ship out of start x position' }), { status: 400 });
+                }
+                currentVy = gameParams.JUMP_VELOCITY;
+                if (Math.abs(event.data.y - currentY) < 0.001) {
+                  // Positive case
+                } else {
+                  console.log('Jump position check failed', { event, expectedY: currentY, actualY: event.data.y });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious jump position' }), { status: 400 });
+                }
+                if (Math.abs(event.data.vy - gameParams.JUMP_VELOCITY) < 0.001) {
+                  // Positive case
+                } else {
+                  console.log('Jump velocity check failed', { event, expectedVy: gameParams.JUMP_VELOCITY, actualVy: event.data.vy });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious jump velocity' }), { status: 400 });
+                }
+              } else if (event.event === 'frame') {
+                if (Math.abs(event.data.y - currentY) < 0.001) {
+                  // Positive case
+                } else {
+                  console.log('Frame position check failed', { event, expectedY: currentY, actualY: event.data.y });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
+                }
+                if (Math.abs(event.data.vy - currentVy) < 0.001) {
+                  // Positive case
+                } else {
+                  console.log('Frame velocity check failed', { event, expectedVy: currentVy, actualVy: event.data.vy });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame velocity' }), { status: 400 });
+                }
+                const reportedObstacles = event.obsData.obstacles;
+                for (const activeObs of activeObstacles) {
+                  if (activeObs.x + gameParams.OBSTACLE_SIZE >= 0) {
+                    const matchingObs = reportedObstacles.find(obs =>
+                      Math.abs(obs.y - activeObs.y) < 0.001 &&
+                      Math.abs(obs.x - activeObs.x) < Math.abs(activeObs.dx) * 2 &&
+                      Math.abs(obs.dx - activeObs.dx) < 0.001
+                    );
+                    if (matchingObs) {
+                      // Positive case
+                    } else {
+                      console.log('Suspicious obstacle disappearance', {
+                        frameId: event.frameId,
+                        missingObs: activeObs,
+                        reportedObstacles,
+                        activeObstacles,
+                      });
+                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle disappearance' }), { status: 400 });
+                    }
+                  }
+                }
+                currentVy = event.data.vy;
+              }
+              lastFrame = event;
+              lastFrameId = event.frameId;
+              lastTime = event.time;
+              }
+              // End JUMP FULL GAME PHYSICS SIMULATION
 
               //end JUMP GAME
 

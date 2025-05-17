@@ -28,7 +28,7 @@ export const JUMP_PARAMETERS = {
   MIN_SPAWN_INTERVAL: 300, // px Lower (e.g., 200) = tighter gaps, harder; Higher (e.g., 400) = easier
   MAX_SPAWN_INTERVAL: 1000, // px starting frequency of obstacles in ms
   GRAVITY: 0.4, // Higher (e.g., 0.5) = faster fall, harder; Lower (e.g., 0.3) = easier
-  JUMP_VELOCITY: -8, // Higher (e.g., -14) = higher jumps, easier; Lower (e.g., -10) = harder
+  JUMP_VELOCITY: -10, // Higher (e.g., -14) = higher jumps, easier; Lower (e.g., -10) = harder
   SCORE_MULTIPLIER: 100,
   DIFFICULTY_FACTOR_TIME: 90, //seonds till max difficulty
   DOUBLE_PRESS_THRESHOLD: 400, // ms for double jump

@@ -1,7 +1,8 @@
 // src/app/api/server/route.js
 import { ethers } from 'ethers';
 import { getCsrfTokens } from 'src/lib/csrfStore';
-import {  contractABI,
+import {  message,
+          contractABI,
           CONTRACT_ADDRESS,
           TELEMETRY_SCORE_THRESHOLD,
           TELEMETRY_LIMIT,
@@ -1609,7 +1610,13 @@ export async function POST(request) {
         console.log('gameSigRaw',gameSigRaw);
         if (gameSigRaw) {
           try {
-            const { message, signature } = JSON.parse(gameSigRaw);
+            const { message: signedMessage, signature } = JSON.parse(gameSigRaw);
+            if (signedMessage !== message) { // Verify the message matches the expected constant
+              return new Response(JSON.stringify({ status: 'error', message: 'Invalid signed message' }), {
+                status: 403,
+                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } },
+              );
+            }
             playerAddress = ethers.verifyMessage(message, signature);
             if (playerAddress.toLowerCase() !== address.toLowerCase()) {
               return new Response(JSON.stringify({ status: 'error', message: 'Cookie Signature does not match player address' }), {

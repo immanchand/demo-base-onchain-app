@@ -69,7 +69,6 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                                 });
                         });
                     });
-                    console.log('******end of catch block in Get reCAPTCHA tokenca',);
                 } catch (error) {
                     console.error('reCAPTCHA initialization error:', error);
                     onStatusChange('error', 'reCAPTCHA failed. Please move your mouse around and try again.');
@@ -77,19 +76,14 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                 }
 
                 if (hasSigned) {
-                    console.log('******in if (hasSigned) block. hasSigned:', hasSigned);
                     gameSigRaw = decodeURIComponent(Cookies.get('gameSig') || '');
-                    console.log('******end if (hasSigned) block. gameSigRaw:', gameSigRaw);
                 }
                 if (!hasSigned) {
-                    console.log('******in if (!hasSigned) block. hasSigned:', hasSigned);
                     await getSignature();
-                    console.log('******after await getSignature(); ');
                 }
 
                 // Validate the cookie signature with logged in player account address
                 try {
-                    console.log('******start of try block in Validate the cookie signature');
                     const { message, signature } = JSON.parse(gameSigRaw);
                     const playerAddress = ethers.verifyMessage(message, signature);
                     if (!address || playerAddress.toLowerCase() !== address.toLowerCase()) {
@@ -98,7 +92,6 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                         setHasSigned(false);
                         await getSignature();
                     }
-                    console.log('******end of try block in Validate the cookie signature');
                 } catch (error) {
                     console.log('Signature error. Clearing cookies.');
                     Cookies.remove('gameSig');
@@ -121,9 +114,7 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                     onStatusChange('error', 'Invalid game signature. Sign then refresh or try again.');
                     return;
                 }
-                console.log('******after all if cookie signature checks');
                 try {
-                    console.log('******inside try block in Start game');
                     onStatusChange('pending');
                     const response = await fetch('/api/server', {
                         method: 'POST',
@@ -136,7 +127,6 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                         body: JSON.stringify({ action: 'start-game', gameId, address, recaptchaTokenStart }),
                     });
                     const data = await response.json();
-                    console.log('******inside try block after wait response in Start game');
                     if (data.status === 'success') {
                         console.log('Game started successfully, hash:', data.txHash);
                         onStatusChange('success', `Transaction hash: ${data.txHash}`);
@@ -158,26 +148,21 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                 }
 
                 async function getSignature() {
-                    console.log('******inside getSignature function');
                     const walletClient = createWalletClient({
                         chain: baseSepolia,
                         transport: custom(window.ethereum!),
                     });
-                    console.log('******after createWalletClient walletClient', walletClient);
                     const [account] = await walletClient.getAddresses();
-                    console.log('******after getAddresses account', account);
                     try {
-                        console.log('******inside try block in getSignature');
                         const signature = await walletClient.signMessage({
                             account,
                             message: message,
                         });
-                        console.log('******after signMessage signature', signature);
                         Cookies.set('gameSig', JSON.stringify({ message, signature }), {
                             expires: 1,
                             secure: true,
                             sameSite: 'strict',
-                            httpOnly: false,
+                            httpOnly: true,
                         });
                         console.log('Signature set in cookies');
                         setHasSigned(true);

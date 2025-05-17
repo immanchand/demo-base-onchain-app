@@ -638,7 +638,7 @@ export async function POST(request) {
               const elapsedTimeSec = ((event.time - gameStartTime) / 1000);
               const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
               const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-              if (Math.abs(event.data.speed - expectedSpeed) <= 0.001) {
+              if (Math.abs(event.data.speed - expectedSpeed) <= 0.002) {
                 //positive case do nothing
               } else {
                   console.log('Obstacle speed check failed', { 

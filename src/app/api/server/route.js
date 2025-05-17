@@ -726,35 +726,6 @@ export async function POST(request) {
               // Validate each spawn group
               for (const frameId in spawnGroups) {
                 const events = spawnGroups[frameId];
-
-                // Size and speed checks for each event
-                // for (const event of events) {
-                //   // Size check
-                //   if (event.data.width !== gameParams.OBSTACLE_SIZE || event.data.height !== gameParams.OBSTACLE_SIZE) {
-                //     console.log('Invalid obstacle size', { frameId, actualWidth: event.data.width, actualHeight: event.data.height });
-                //     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
-                //   }
-
-                //   // Speed check
-                //   const elapsedTimeSec = (event.time - gameStartTime) / 1000;
-                //   const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
-                //   const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-                //   console.log('event.frameId',event.frameId, 'Math.abs(event.data.speed - expectedSpeed)',Math.abs(event.data.speed - expectedSpeed));
-                //   if (Math.abs(event.data.speed - expectedSpeed) <= 0.001) {
-                //     //positive case do nothing
-                //   } else {
-                //     console.log('Obstacle speed check failed', {
-                //       address,
-                //       gameId,
-                //       gameName: stats.game,
-                //       event,
-                //       expectedSpeed,
-                //       actualSpeed: event.data.speed,
-                //       difficultyFactor
-                //     });
-                //     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle speed' }), { status: 400 });
-                //   }
-                // }
                 // Cluster validation
                 const uniqueX = [...new Set(events.map(e => e.data.x))];
                 const uniqueY = [...new Set(events.map(e => e.data.y))];
@@ -782,7 +753,49 @@ export async function POST(request) {
             if (stats.game === 'jump') {
 
               //JUMP SPAWN RELATED VALIDATIONS
-
+              //check spawn events for speed and size
+              let lastSpawnTime = null;
+              let lastSpawnFrameId = null;
+              for (const event of telemetry) {
+                if (event.event === 'spawn') {
+                  if (lastSpawnTime && lastSpawnFrameId) {
+                    const timeSinceLastSpawn = event.time - lastSpawnTime;
+                    const framesSinceLastSpawn = event.frameId - lastSpawnFrameId;
+                    const minGap = gameParams.MAX_SPAWN_INTERVAL * (1 - event.data.difficulty || 0) + gameParams.MIN_SPAWN_INTERVAL;
+                    const minTime = (minGap / Math.abs(event.data.speed)) * 1000; // Convert to ms
+                    console.log('timeSinceLastSpawn < minTime * 0.9', timeSinceLastSpawn,' <', minTime * 0.9);
+                    if (timeSinceLastSpawn < minTime * 0.9) { // 10% tolerance
+                      console.log('Suspiciously fast spawn', { event, timeSinceLastSpawn, minTime });
+                      //enable after more testing
+                      //return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously fast obstacle spawn' }), { status: 400 });
+                    }
+                  }
+                  lastSpawnTime = event.time;
+                  lastSpawnFrameId = event.frameId;
+                }
+              }
+              //check y position of obstacles
+              const validYPositions = [
+                GROUND_Y,
+                GROUND_Y - gameParams.OBSTACLE_SIZE,
+                GROUND_Y - 2 * gameParams.OBSTACLE_SIZE,
+                GROUND_Y - 3 * gameParams.OBSTACLE_SIZE,
+              ]; // Based on heightCount up to 4
+              for (const event of telemetry) {
+                if (event.event === 'spawn') {
+                  if (!validYPositions.includes(event.data.y)) {
+                    console.log('Invalid obstacle y position', { event, validYPositions });
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle y position' }), { status: 400 });
+                  }
+                } else if (event.event === 'frame' && event.obsData.obstacles) {
+                  for (const obs of event.obsData.obstacles) {
+                    if (!validYPositions.includes(obs.y)) {
+                      console.log('Invalid obstacle y position in frame', { event, obs, validYPositions });
+                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle y position in frame' }), { status: 400 });
+                    }
+                  }
+                }
+              }
               //end JUMP SPAWN RELATED VALIDATIONS
 
               //JUMPING RELATED VALIDATIONS
@@ -841,6 +854,10 @@ export async function POST(request) {
                 } else if (event.time - prevTime <= gameParams.DOUBLE_PRESS_THRESHOLD) {
                   //less time so second of double jump
                   timeDoubleJumpCount++;
+                }
+                if (event.time - prevTime < 150) { // 150ms minimum human reaction time
+                  console.log('Suspiciously fast jump', { event, lastJumpTime });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously fast jump timing' }), { status: 400 });
                 }
                 //set previous time before closing the loop
                 prevTime = event.time;
@@ -1016,7 +1033,7 @@ export async function POST(request) {
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious jump velocity' }), { status: 400 });
                 }
               } else if (event.event === 'frame') {
-                if (Math.abs(event.data.y - currentY) < 0.001) {
+                if (Math.abs(event.data.y - currentY) < 0.01) {
                   // Positive case
                 } else {
                   console.log('Frame position check failed', { event, expectedY: currentY, actualY: event.data.y });

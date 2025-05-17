@@ -402,24 +402,29 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 const timeSinceLastPress = now - lastKeyPressRef.current;
                 const currentTime = performance.now();
                 const deltaTime = (currentTime - lastFrameTimeRef.current) / 1000;
-                if (timeSinceLastPress < JUMP_PARAMETERS.DOUBLE_PRESS_THRESHOLD && lastKeyPressRef.current !== 0 && jumpCountRef.current === 1) {
+        
+                if (jumpCountRef.current === 0) {
+                    // First jump
                     ship.vy = JUMP_PARAMETERS.JUMP_VELOCITY;
                     jumpCountRef.current += 1;
+                    lastKeyPressRef.current = now; // Update timestamp
                     const newEvent = { event: 'jump' as const, time: currentTime, frameId: frameCount, data: { x: ship.x, y: ship.y, vy: ship.vy, deltaTime } };
                     telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
                         ? [...telemetryRef.current.slice(1), newEvent]
                         : [...telemetryRef.current, newEvent];
                     pendingStatsUpdate = { ...pendingStatsUpdate, jumps: pendingStatsUpdate.jumps + 1 };
-                } else if (jumpCountRef.current === 0) {
+                } else if (jumpCountRef.current === 1 && timeSinceLastPress < JUMP_PARAMETERS.DOUBLE_PRESS_THRESHOLD && lastKeyPressRef.current !== 0) {
+                    // Valid double jump
                     ship.vy = JUMP_PARAMETERS.JUMP_VELOCITY;
                     jumpCountRef.current += 1;
+                    lastKeyPressRef.current = now; // Update timestamp
                     const newEvent = { event: 'jump' as const, time: currentTime, frameId: frameCount, data: { x: ship.x, y: ship.y, vy: ship.vy, deltaTime } };
                     telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
                         ? [...telemetryRef.current.slice(1), newEvent]
                         : [...telemetryRef.current, newEvent];
                     pendingStatsUpdate = { ...pendingStatsUpdate, jumps: pendingStatsUpdate.jumps + 1 };
                 }
-                lastKeyPressRef.current = now;
+                // If neither condition is met, do not update lastKeyPressRef.current
             }
         };
 

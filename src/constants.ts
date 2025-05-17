@@ -31,7 +31,7 @@ export const JUMP_PARAMETERS = {
   JUMP_VELOCITY: -12, // Higher (e.g., -14) = higher jumps, easier; Lower (e.g., -10) = harder
   SCORE_MULTIPLIER: 100,
   DIFFICULTY_FACTOR_TIME: 90, //seonds till max difficulty
-  DOUBLE_PRESS_THRESHOLD: 300, // ms for double jump
+  DOUBLE_PRESS_THRESHOLD: 400, // ms for double jump
   GROUND_HEIGHT_RATIO: 0.8,
   CLUSTER_CHANCE: 0.8,
 };

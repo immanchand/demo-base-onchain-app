@@ -943,7 +943,7 @@ export async function POST(request) {
               if (stopFrame.frameId >= stats.framesCount - 10 && stopFrame.frameId <= stats.framesCount) {
               // Positive case
               } else {
-              console.log('last frame is out of range of stats.framesCount', {
+                console.log('last frame is out of range of stats.framesCount', {
                 lastFrameId: stopFrame.frameId,
                 statsFramesCount: stats.framesCount,
               });
@@ -952,9 +952,9 @@ export async function POST(request) {
 
               // Initialize obstacles
               if (lastFrame.obsData && lastFrame.obsData.obstacles) {
-              activeObstacles = lastFrame.obsData.obstacles.map(obs => ({ ...obs }));
+                activeObstacles = lastFrame.obsData.obstacles.map(obs => ({ ...obs }));
               }
-              console.log('first activeObstacles', activeObstacles);
+              //console.log('first activeObstacles', activeObstacles);
 
               for (const event of telemetry) {
                 if (event === lastFrame || event.frameId < 10 || event.event === 'fps') continue;
@@ -973,13 +973,11 @@ export async function POST(request) {
                 // Simulate frame by frame physics
                 for (let i = lastFrameId + 1; i <= event.frameId; i++) {
                   // Update ship physics
-                  // Check ground collision *before* applying gravity
-                  if (currentY >= GROUND_Y && event.event !== 'jump') {
-                    //console.log('Ship on ground', { i, currentY, GROUND_Y });
+                  // Check ground position *before* applying gravity
+                  if (currentY >= GROUND_Y && lastFrame.event !== 'jump') {
                     currentY = GROUND_Y;
                     currentVy = 0;
                   } else {
-                    //console.log('Ship in air', { i, currentY, GROUND_Y });
                     currentVy += gameParams.GRAVITY;// * perFrameDeltaTime; // Scale gravity by delta time
                     currentY += currentVy;// * perFrameDeltaTime; // Scale position update by delta time
                   }
@@ -988,7 +986,6 @@ export async function POST(request) {
                   activeObstacles.forEach(obs => {
                     obs.x += obs.dx;// * perFrameDeltaTime; // Scale obstacle movement by delta time
                   });
-                  //console.log('activeObstacles at frame ',i, 'is:', activeObstacles);
                   // Remove off-screen obstacles
                   activeObstacles = activeObstacles.filter(obs => obs.x >= 0);
                   // Check for collisions

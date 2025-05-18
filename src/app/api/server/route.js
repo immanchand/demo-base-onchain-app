@@ -988,7 +988,7 @@ export async function POST(request) {
                   activeObstacles.forEach(obs => {
                     obs.x += obs.dx * perFrameDeltaTime; // Scale obstacle movement by delta time
                   });
-                  console.log('activeObstacles at frame ',frameId, 'is:', activeObstacles);
+                  console.log('activeObstacles at frame ',lastFrameId, 'is:', activeObstacles);
                   // Remove off-screen obstacles
                   activeObstacles = activeObstacles.filter(obs => obs.x >= 0);
                   // Check for collisions

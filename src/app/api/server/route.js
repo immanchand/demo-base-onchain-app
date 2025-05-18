@@ -977,7 +977,7 @@ export async function POST(request) {
                 for (let i = lastFrameId + 1; i <= event.frameId; i++) {
                   // Update ship physics
                   // Check ground collision *before* applying gravity
-                  if (parseFloat(currentY.toFixed(2)) >= GROUND_Y) {
+                  if (currentY >= GROUND_Y) {
                     console.log('Ship on ground', { i, currentY, GROUND_Y });
                     currentY = GROUND_Y;
                     currentVy = 0;

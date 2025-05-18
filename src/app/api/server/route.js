@@ -557,7 +557,7 @@ export async function POST(request) {
             const avgFrameDeltaTime = totalFrameDeltaTime / frameDeltaTimes.length;
             const frameDeltaTimieVariance = frameDeltaTimes.reduce((a, b) => a + Math.pow(b - avgFrameDeltaTime, 2), 0) / frameDeltaTimes.length;
             console.log('frameDeltaTimieVariance',frameDeltaTimieVariance);
-            if (frameDeltaTimieVariance > 0.0000001 && frameDeltaTimieVariance < 0.0001) { // 0.0000001 to 0.0001 s²
+            if (frameDeltaTimieVariance > 0.0000001 && frameDeltaTimieVariance < 0.001) { // 0.0000001 to 0.001 s²
               //positive case do nothing
             } else {
               console.log('Delta time variance check failed for',{ 
@@ -842,10 +842,10 @@ export async function POST(request) {
                   continue;
                 }
                 //for all other jump events, check ground position
-                if (Math.abs(event.data.y - GROUND_Y) < 0.1) {
+                if (Math.abs(event.data.y - GROUND_Y) < 1) {
                   //on the ground first of double jump or only jump
                   posSingleJumpCount++;
-                } else if (event.data.y <= GROUND_Y - 0.1) {
+                } else if (event.data.y <= GROUND_Y - 1) {
                   //in the air second of double jump
                   posDoubleJumpCount++;
                 }

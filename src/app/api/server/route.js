@@ -1052,13 +1052,16 @@ export async function POST(request) {
                       const closest = distances.reduce((min, curr) =>
                         curr.distance < min.distance ? curr : min
                       );
-                      jumpObstacleDistances.push(closest.normalizedDistance);
-                      console.log('Jump obstacle distance', {
+                      // only relevant jump distance
+                      if (closest.normalizedDistance < 50) {
+                        jumpObstacleDistances.push(closest.normalizedDistance);
+                        console.log('Jump obstacle distance', {
                         frameId: event.frameId,
                         distance: closest.distance,
                         normalizedDistance: closest.normalizedDistance,
                         obstacleX: closest.distance + shipStartX
                       });
+                      }
                     }
                   }
                 } else if (event.event === 'frame') {

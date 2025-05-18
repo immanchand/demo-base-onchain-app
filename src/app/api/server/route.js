@@ -840,10 +840,10 @@ export async function POST(request) {
                   continue;
                 }
                 //for all other jump events, check ground position
-                if (Math.abs(event.data.y - GROUND_Y) < 1) {
+                if (Math.abs(event.data.y - GROUND_Y) < 2) {
                   //on the ground first of double jump or only jump
                   posSingleJumpCount++;
-                } else if (event.data.y <= GROUND_Y - 1) {
+                } else if (event.data.y <= GROUND_Y - 2) {
                   //in the air second of double jump
                   posDoubleJumpCount++;
                 }
@@ -928,6 +928,10 @@ export async function POST(request) {
               //end JUMPING RELATED VALIDATIONS
 
               // JUMP FULL GAME PHYSICS SIMULATION
+              // This block simulates the entire game physics for the "jump" game mode.
+              // It validates the ship's position, velocity, and interactions with obstacles frame by frame.
+              // The simulation ensures that the reported telemetry matches expected physics behavior,
+              // including gravity, jump mechanics, obstacle movements, and collision detection.
               let activeObstacles = [];
               let lastFrame = telemetry.find(e => e.event === 'frame');
               let stopFrame = telemetry.reverse().find(e => e.event === 'frame');

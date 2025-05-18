@@ -350,7 +350,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             }
 
             obstaclePool.forEach((obstacle) => {
-                obstacle.dx = obstacleSpeed;
+                //obstacle.dx = obstacleSpeed;
                 obstacle.x += obstacle.dx;
                 if (obstacle.x + obstacleSize < ship.x && !obstacle.dodged) {
                     pendingStatsUpdate = { ...pendingStatsUpdate, obstaclesCleared: pendingStatsUpdate.obstaclesCleared + 1 };
@@ -633,11 +633,11 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                             onChange={(e) => setEnemyType(e.target.value as EnemyType)}
                             className="bg-primary-bg text-primary-text border border-primary-border p-1"
                         >
-                            <option value="obstacle">FUD CRATE</option>
-                            <option value="barrel">FUD BARREL</option>
-                            <option value="bitcoin">BTC BLOCK</option>
-                            <option value="xrp">XRP TRAP</option>
-                            <option value="solana">SOLANA SPIKE</option>
+                            <option value="obstacle">FUD CRATES</option>
+                            <option value="barrel">FUD BARRELS</option>
+                            <option value="bitcoin">BITCOIN BLOCKERS</option>
+                            <option value="xrp">XRP TRAPZ</option>
+                            <option value="solana">SOLANA SPIKES</option>
                             <option value="gensler">GARY THE CLOWN</option>
                         </select>
                     </div>

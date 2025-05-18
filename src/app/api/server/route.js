@@ -957,6 +957,7 @@ export async function POST(request) {
               if (lastFrame.obsData && lastFrame.obsData.obstacles) {
               activeObstacles = lastFrame.obsData.obstacles.map(obs => ({ ...obs }));
               }
+              console.log('first activeObstacles', activeObstacles);
 
               for (const event of telemetry) {
                 if (event === lastFrame || event.frameId < 10 || event.event === 'fps') continue;

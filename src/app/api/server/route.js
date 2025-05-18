@@ -943,6 +943,8 @@ export async function POST(request) {
               let lastTime = lastFrame.time;
               let lastFrameId = lastFrame.frameId;
               const perFrameDeltaTime = 1 / avgFps;
+              // Array to store normalized distances (in seconds) at jump events
+              const jumpObstacleDistances = [];
 
               // Check that stop frame is within range of stats.framesCount
               if (stopFrame.frameId >= stats.framesCount - 10 && stopFrame.frameId <= stats.framesCount) {
@@ -959,7 +961,6 @@ export async function POST(request) {
               if (lastFrame.obsData && lastFrame.obsData.obstacles) {
                 activeObstacles = lastFrame.obsData.obstacles.map(obs => ({ ...obs }));
               }
-              //console.log('first activeObstacles', activeObstacles);
 
               for (const event of telemetry) {
                 if (event === lastFrame || event.frameId < 10 || event.event === 'fps') continue;
@@ -978,19 +979,16 @@ export async function POST(request) {
                 // Simulate frame by frame physics
                 for (let i = lastFrameId + 1; i <= event.frameId; i++) {
                   // Update ship physics
-                  // Update ship physics
                   currentVy += gameParams.GRAVITY; // Apply gravity
                   currentY += currentVy; // Update position
-                  // Check ground position *before* applying gravity
                   //if (currentY >= GROUND_Y && lastFrame.event !== 'jump') {
                   if (currentY > GROUND_Y) {
                     currentY = GROUND_Y;
                     currentVy = 0;
                   }
-                  // console.log('frame',i, 'currentVy', currentVy, 'currentY', currentY);
                   // Update obstacle positions
                   activeObstacles.forEach(obs => {
-                    obs.x += obs.dx;// * perFrameDeltaTime; // Scale obstacle movement by delta time
+                    obs.x += obs.dx; // Scale obstacle movement by delta time
                   });
                   // Remove off-screen obstacles
                   activeObstacles = activeObstacles.filter(obs => obs.x >= 0);
@@ -1042,6 +1040,27 @@ export async function POST(request) {
                     console.log('Jump velocity check failed', { event, expectedVy: gameParams.JUMP_VELOCITY, actualVy: event.data.vy });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious jump velocity' }), { status: 400 });
                   }
+                  // Calculate distance to closest obstacle
+                  if (activeObstacles.length > 0) {
+                    const distances = activeObstacles
+                      .filter(obs => obs.x > shipStartX) // Consider only obstacles ahead
+                      .map(obs => ({
+                        distance: obs.x - shipStartX,
+                        normalizedDistance: (obs.x - shipStartX) / Math.abs(obs.dx) // Time to reach ship
+                      }));
+                    if (distances.length > 0) {
+                      const closest = distances.reduce((min, curr) =>
+                        curr.distance < min.distance ? curr : min
+                      );
+                      jumpObstacleDistances.push(closest.normalizedDistance);
+                      console.log('Jump obstacle distance', {
+                        frameId: event.frameId,
+                        distance: closest.distance,
+                        normalizedDistance: closest.normalizedDistance,
+                        obstacleX: closest.distance + shipStartX
+                      });
+                    }
+                  }
                 } else if (event.event === 'frame') {
                   if (Math.abs(event.data.y - currentY) < 0.001) {
                     // Positive case
@@ -1083,7 +1102,20 @@ export async function POST(request) {
                 lastTime = event.time;
               }
               // End JUMP FULL GAME PHYSICS SIMULATION
-
+              // Check variance of jump distances for suspicious values
+              const mean = jumpObstacleDistances.reduce((sum, d) => sum + d, 0) / jumpObstacleDistances.length;
+              const variance = jumpObstacleDistances.reduce((sum, d) => sum + Math.pow(d - mean, 2), 0) / jumpObstacleDistances.length;
+              const varianceThreshold = 0.01; // Adjust based on playtest data (in seconds²)
+              console.log('Jump distance variance', { variance, jumpObstacleDistances, mean });
+              if (variance < varianceThreshold) {
+                console.log('Suspiciously consistent jump distances', {
+                  variance,
+                  jumpObstacleDistances,
+                  mean
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously consistent jump distances' }), { status: 400 });
+              }
+              
               //end JUMP GAME
 
 

@@ -854,6 +854,7 @@ export async function POST(request) {
                 } else if (event.time - prevTime <= gameParams.DOUBLE_PRESS_THRESHOLD) {
                   //less time so second of double jump
                   timeDoubleJumpCount++;
+                  // Store double jump interval
                   doubleJumpIntervals.push(event.time - prevTime);
                   console.log('Double jump interval recorded', {
                     frameId: event.frameId,
@@ -899,6 +900,26 @@ export async function POST(request) {
               }
               // Validate double jump intervals variance
               console.log('doubleJumpIntervals', doubleJumpIntervals);
+              // Check variance of double jump intervals
+              const dJmean = doubleJumpIntervals.reduce((sum, d) => sum + d, 0) / doubleJumpIntervals.length;
+              const dJvariance = doubleJumpIntervals.reduce((sum, d) => sum + Math.pow(d - dJmean, 2), 0) / doubleJumpIntervals.length;
+              const dJvarianceThreshold = 250; // ms², to be adjusted with playtest data
+              console.log('dJvariance', dJvariance);
+              if (dJvariance < dJvarianceThreshold) {
+                console.log('Suspiciously consistent double jump timing', {
+                  variance: dJvariance,
+                  varianceThreshold: dJvarianceThreshold,
+                  doubleJumpIntervals,
+                  mean: dJmean,
+                });
+                return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously consistent double jump timing' }), { status: 400 });
+              }
+              console.log('Double jump interval variance check', {
+                variance,
+                doubleJumpIntervals,
+                mean
+              });
+              
               // Validate Jump Frequency
               const jumpCount = jumpEvents.length;
               const expectedJumpsPerSec = jumpCount / gameTimeSec;
@@ -1064,12 +1085,6 @@ export async function POST(request) {
                       // only relevant jump distance
                       if (closest.normalizedDistance < 40) {
                         jumpObstacleDistances.push(closest.normalizedDistance);
-                        console.log('Jump obstacle distance', {
-                        frameId: event.frameId,
-                        distance: closest.distance,
-                        normalizedDistance: closest.normalizedDistance,
-                        obstacleX: closest.distance + shipStartX
-                      });
                       }
                     }
                   }

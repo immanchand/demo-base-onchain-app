@@ -1053,7 +1053,7 @@ export async function POST(request) {
                         curr.distance < min.distance ? curr : min
                       );
                       // only relevant jump distance
-                      if (closest.normalizedDistance < 50) {
+                      if (closest.normalizedDistance < 40) {
                         jumpObstacleDistances.push(closest.normalizedDistance);
                         console.log('Jump obstacle distance', {
                         frameId: event.frameId,
@@ -1108,7 +1108,7 @@ export async function POST(request) {
               // Check variance of jump distances for suspicious values
               const mean = jumpObstacleDistances.reduce((sum, d) => sum + d, 0) / jumpObstacleDistances.length;
               const variance = jumpObstacleDistances.reduce((sum, d) => sum + Math.pow(d - mean, 2), 0) / jumpObstacleDistances.length;
-              const varianceThreshold = 0.01; // Adjust based on playtest data (in seconds²)
+              const varianceThreshold = 3; // adjust based on test data
               console.log('Jump distance variance', { variance, jumpObstacleDistances, mean });
               if (variance < varianceThreshold) {
                 console.log('Suspiciously consistent jump distances', {

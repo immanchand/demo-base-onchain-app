@@ -858,7 +858,7 @@ export async function POST(request) {
                   timeDoubleJumpCount++;
                 }
                 if (event.time - prevTime < 150) { // 150ms minimum human reaction time
-                  console.log('Suspiciously fast jump', { event, lastJumpTime });
+                  console.log('Suspiciously fast jump', { event, prevTime });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously fast jump timing' }), { status: 400 });
                 }
                 //set previous time before closing the loop

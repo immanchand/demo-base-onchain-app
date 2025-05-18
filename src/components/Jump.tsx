@@ -413,7 +413,10 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                         ? [...telemetryRef.current.slice(1), newEvent]
                         : [...telemetryRef.current, newEvent];
                     pendingStatsUpdate = { ...pendingStatsUpdate, jumps: pendingStatsUpdate.jumps + 1 };
-                } else if (jumpCountRef.current === 1 && timeSinceLastPress < JUMP_PARAMETERS.DOUBLE_PRESS_THRESHOLD && lastKeyPressRef.current !== 0) {
+                } else if (jumpCountRef.current === 1 && 
+                            timeSinceLastPress < JUMP_PARAMETERS.DOUBLE_PRESS_THRESHOLD &&
+                            timeSinceLastPress > 50 &&
+                            lastKeyPressRef.current !== 0) {
                     // Valid double jump
                     ship.vy = JUMP_PARAMETERS.JUMP_VELOCITY;
                     jumpCountRef.current += 1;
@@ -643,7 +646,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     </div>
                     {address ? (
                         <Button onClick={startGame} disabled={startGameStatus === 'pending' || !imagesLoaded}>
-                            {startGameStatus === 'pending' ? 'jumping in 3,2,1...' : !imagesLoaded ? 'Loading...' : 'HOP IN'}
+                            {startGameStatus === 'pending' ? '5,4,3,2,1...' : !imagesLoaded ? 'Loading...' : 'HOP IN'}
                         </Button>
                     ) : (
                         <div className="flex items-center justify-center">

@@ -776,27 +776,27 @@ export async function POST(request) {
               }
               console.log('*******1');
               //check y position of obstacles
-              const validYPositions = [
-                GROUND_Y,
-                GROUND_Y - gameParams.OBSTACLE_SIZE,
-                GROUND_Y - 2 * gameParams.OBSTACLE_SIZE,
-                GROUND_Y - 3 * gameParams.OBSTACLE_SIZE,
-              ]; // Based on heightCount up to 4
-              for (const event of telemetry) {
-                if (event.event === 'spawn') {
-                  if (!validYPositions.includes(event.data.y)) {
-                    console.log('Invalid obstacle y position', { event, validYPositions });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle y position' }), { status: 400 });
-                  }
-                } else if (event.event === 'frame' && event.obsData.obstacles) {
-                  for (const obs of event.obsData.obstacles) {
-                    if (!validYPositions.includes(obs.y)) {
-                      console.log('Invalid obstacle y position in frame', { event, obs, validYPositions });
-                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle y position in frame' }), { status: 400 });
-                    }
-                  }
-                }
-              }
+              // const validYPositions = [
+              //   GROUND_Y,
+              //   GROUND_Y - gameParams.OBSTACLE_SIZE,
+              //   GROUND_Y - 2 * gameParams.OBSTACLE_SIZE,
+              //   GROUND_Y - 3 * gameParams.OBSTACLE_SIZE,
+              // ]; // Based on heightCount up to 4
+              // for (const event of telemetry) {
+              //   if (event.event === 'spawn') {
+              //     if (!validYPositions.includes(event.data.y)) {
+              //       console.log('Invalid obstacle y position', { event, validYPositions });
+              //       return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle y position' }), { status: 400 });
+              //     }
+              //   } else if (event.event === 'frame' && event.obsData.obstacles) {
+              //     for (const obs of event.obsData.obstacles) {
+              //       if (!validYPositions.includes(obs.y)) {
+              //         console.log('Invalid obstacle y position in frame', { event, obs, validYPositions });
+              //         return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle y position in frame' }), { status: 400 });
+              //       }
+              //     }
+              //   }
+              // }
               console.log('*******2');
               //end JUMP SPAWN RELATED VALIDATIONS
 

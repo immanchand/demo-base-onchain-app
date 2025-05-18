@@ -985,7 +985,7 @@ export async function POST(request) {
                     currentVy += gameParams.GRAVITY;// * perFrameDeltaTime; // Scale gravity by delta time
                     currentY += currentVy;// * perFrameDeltaTime; // Scale position update by delta time
                   }
-                  console.log('frame',i, 'currentVy', currentVy, 'currentY', currentY);
+                  // console.log('frame',i, 'currentVy', currentVy, 'currentY', currentY);
                   // Update obstacle positions
                   activeObstacles.forEach(obs => {
                     obs.x += obs.dx;// * perFrameDeltaTime; // Scale obstacle movement by delta time
@@ -1041,7 +1041,7 @@ export async function POST(request) {
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious jump velocity' }), { status: 400 });
                   }
                 } else if (event.event === 'frame') {
-                  if (Math.abs(event.data.y - currentY) < 0.01) {
+                  if (Math.abs(event.data.y - currentY) < 0.001) {
                     // Positive case
                   } else {
                     console.log('Frame position check failed', { event, expectedY: currentY, actualY: event.data.y });

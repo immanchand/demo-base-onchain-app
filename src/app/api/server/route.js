@@ -981,7 +981,7 @@ export async function POST(request) {
                     currentVy += gameParams.GRAVITY;// * perFrameDeltaTime; // Scale gravity by delta time
                     currentY += currentVy;// * perFrameDeltaTime; // Scale position update by delta time
                   }
-                  console.log('currentVy at frame ',i, 'is:', currentVy);
+                  console.log('frame',i, 'currentVy', currentVy, 'currentY', currentY);
                   // Update obstacle positions
                   activeObstacles.forEach(obs => {
                     obs.x += obs.dx;// * perFrameDeltaTime; // Scale obstacle movement by delta time

@@ -828,7 +828,7 @@ export async function POST(request) {
               for (const event of jumpEvents) {
                 //handle differently for first jump event
                 if (event == lastJumpEvent) {
-                  if (Math.abs(event.data.y - GROUND_Y) <= 1) {
+                  if (Math.abs(event.data.y - GROUND_Y) <= 0.01) {
                     //positive case do nothing
                   } else {
                     console.log('Suspicious first jump vs ground', {
@@ -842,10 +842,10 @@ export async function POST(request) {
                   continue;
                 }
                 //for all other jump events, check ground position
-                if (Math.abs(event.data.y - GROUND_Y) < 1) {
+                if (Math.abs(event.data.y - GROUND_Y) < 0.01) {
                   //on the ground first of double jump or only jump
                   posSingleJumpCount++;
-                } else if (event.data.y <= GROUND_Y - 1) {
+                } else if (event.data.y <= GROUND_Y - 0.01) {
                   //in the air second of double jump
                   posDoubleJumpCount++;
                 }
@@ -973,7 +973,7 @@ export async function POST(request) {
                 for (let i = lastFrameId + 1; i <= event.frameId; i++) {
                   // Update ship physics
                   // Check ground collision *before* applying gravity
-                  if (currentY >= GROUND_Y) {
+                  if (parseFloat(currentY.toFixed(2)) >= GROUND_Y) {
                     currentY = GROUND_Y;
                     currentVy = 0;
                   } else {

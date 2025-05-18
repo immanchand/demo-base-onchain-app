@@ -974,14 +974,14 @@ export async function POST(request) {
                 for (let i = lastFrameId + 1; i <= event.frameId; i++) {
                   // Update ship physics
                   // Check ground collision *before* applying gravity
-                  if (currentY >= GROUND_Y) {
+                  if (currentY >= GROUND_Y && event.event !== 'jump') {
                     //console.log('Ship on ground', { i, currentY, GROUND_Y });
                     currentY = GROUND_Y;
                     currentVy = 0;
                   } else {
                     //console.log('Ship in air', { i, currentY, GROUND_Y });
-                    currentVy += gameParams.GRAVITY * perFrameDeltaTime; // Scale gravity by delta time
-                    currentY += currentVy * perFrameDeltaTime; // Scale position update by delta time
+                    currentVy += gameParams.GRAVITY;// * perFrameDeltaTime; // Scale gravity by delta time
+                    currentY += currentVy;// * perFrameDeltaTime; // Scale position update by delta time
                   }
                   console.log('currentVy at frame ',i, 'is:', currentVy);
                   // Update obstacle positions

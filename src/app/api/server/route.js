@@ -816,7 +816,8 @@ export async function POST(request) {
               }
               console.log('*******3');
               // Count jumps using both methods
-              const GROUND_Y = stats.canvasHeight * gameParams.GROUND_HEIGHT_RATIO - gameParams.SHIP_HEIGHT;
+              const GROUND_Y = avgCanvH * gameParams.GROUND_HEIGHT_RATIO - gameParams.SHIP_HEIGHT;
+              console.log('GROUND_Y', GROUND_Y);
               let posSingleJumpCount = 0;
               let posDoubleJumpCount = 0;
               let timeSingleJumpCount = 0;
@@ -1140,7 +1141,7 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'uniqueYPositions and spawns mismatch' }), { status: 400 });
               }
               // Perform chi-squared test for uniform distribution
-              const playableHeight = stats.canvasHeight - gameParams.OBSTACLE_SIZE;
+              const playableHeight = avgCanvH - gameParams.OBSTACLE_SIZE;
               const numBins =  Math.floor(playableHeight/gameParams.OBSTACLE_SIZE); // Divide playable height into OBSTACLE_SIZE bins
               console.log('numBins', numBins);
               const binSize = playableHeight / numBins;
@@ -1148,7 +1149,7 @@ export async function POST(request) {
               // Assign y positions to bins
               let isInvalidYPosition = false;
               uniqueYPositionsSpawn.forEach(y => {
-                if (y >= 0 && y <= stats.canvasHeight - gameParams.OBSTACLE_SIZE) {
+                if (y >= 0 && y <= avgCanvH - gameParams.OBSTACLE_SIZE) {
                   const binIndex = Math.min(Math.floor(y / binSize), numBins - 1);
                   observedFrequencies[binIndex]++;
                 }
@@ -1410,7 +1411,7 @@ export async function POST(request) {
                   currentVy += gameParams.GRAVITY;
                   currentY += currentVy;
                   //check ground and top collisions
-                  if (currentY <= stats.canvasHeight - gameParams.SHIP_HEIGHT && currentY > 0) {
+                  if (currentY <= avgCanvH - gameParams.SHIP_HEIGHT && currentY > 0) {
                     //positive case do nothing
                   } else {
                     console.log('Suspicious ship no collision with ground or top', {

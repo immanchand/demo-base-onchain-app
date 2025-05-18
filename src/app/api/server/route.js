@@ -812,7 +812,6 @@ export async function POST(request) {
                 });
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious stats jumpEvents vs stats.jumps' }), { status: 400 });
               }
-              console.log('*******3');
               // Count jumps using both methods
               const GROUND_Y = avgCanvH * gameParams.GROUND_HEIGHT_RATIO - gameParams.SHIP_HEIGHT;
               console.log('GROUND_Y', GROUND_Y);
@@ -822,6 +821,7 @@ export async function POST(request) {
               let timeDoubleJumpCount = 0;
               let lastJumpEvent = jumpEvents[0];
               let prevTime = lastJumpEvent.time;
+              const doubleJumpIntervals = [];
               // Process remaining jumps
               for (const event of jumpEvents) {
                 //handle differently for first jump event
@@ -854,12 +854,19 @@ export async function POST(request) {
                 } else if (event.time - prevTime <= gameParams.DOUBLE_PRESS_THRESHOLD) {
                   //less time so second of double jump
                   timeDoubleJumpCount++;
+                  doubleJumpIntervals.push(event.time - prevTime);
+                  console.log('Double jump interval recorded', {
+                    frameId: event.frameId,
+                    interval: event.time - prevTime
+                  });
                 }
-                if (event.time - prevTime < 100) { // 150ms minimum human reaction time
-                  console.log('Suspiciously fast jump',  event.time - prevTime );
-                  console.log('Suspiciously fast jump event', event );
-                  console.log('Suspiciously fast jump lastJumpEvent', lastJumpEvent );
-                  //return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously fast jump timing' }), { status: 400 });
+                if (event.time - prevTime < 50) { // 50ms minimum human reaction time
+                  console.log('Suspiciously fast jump', {
+                    event,
+                    timeDiff: event.time - prevTime,
+                    lastJumpEvent,
+                  });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously fast jump timing' }), { status: 400 });
                 }
                 //set previous time before closing the loop
                 prevTime = event.time;
@@ -890,6 +897,8 @@ export async function POST(request) {
                 });
                 return new Response(JSON.stringify({ status: 'error', message: 'Total jump count mismatch' }), { status: 400 });
               }
+              // Validate double jump intervals variance
+              console.log('doubleJumpIntervals', doubleJumpIntervals);
               // Validate Jump Frequency
               const jumpCount = jumpEvents.length;
               const expectedJumpsPerSec = jumpCount / gameTimeSec;

@@ -822,9 +822,8 @@ export async function POST(request) {
               let posDoubleJumpCount = 0;
               let timeSingleJumpCount = 0;
               let timeDoubleJumpCount = 0;
-              let prevTime = jumpEvents[0].time;
               let lastJumpEvent = jumpEvents[0];
-              console.log('*******4');
+              let prevTime = lastJumpEvent.time;
               // Process remaining jumps
               for (const event of jumpEvents) {
                 //handle differently for first jump event
@@ -843,10 +842,10 @@ export async function POST(request) {
                   continue;
                 }
                 //for all other jump events, check ground position
-                if (Math.abs(event.data.y - GROUND_Y) < 0.01) {
+                if (Math.abs(event.data.y - GROUND_Y) < 0.1) {
                   //on the ground first of double jump or only jump
                   posSingleJumpCount++;
-                } else if (event.data.y <= GROUND_Y - 0.01) {
+                } else if (event.data.y <= GROUND_Y - 0.1) {
                   //in the air second of double jump
                   posDoubleJumpCount++;
                 }
@@ -860,12 +859,15 @@ export async function POST(request) {
                 }
                 if (event.time - prevTime < 100) { // 150ms minimum human reaction time
                   console.log('Suspiciously fast jump',  event.time - prevTime );
+                  console.log('Suspiciously fast jump event', event );
+                  console.log('Suspiciously fast jump lastJumpEvent', lastJumpEvent );
                   //return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously fast jump timing' }), { status: 400 });
                 }
                 //set previous time before closing the loop
                 prevTime = event.time;
+                lastJumpEvent = event;
               }
-              console.log('*******5');
+              
               // Validate single and double jump counts
               if (posSingleJumpCount === timeSingleJumpCount && posDoubleJumpCount === timeDoubleJumpCount) {
                 // positive case do nothing

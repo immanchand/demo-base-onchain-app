@@ -932,6 +932,7 @@ export async function POST(request) {
               // It validates the ship's position, velocity, and interactions with obstacles frame by frame.
               // The simulation ensures that the reported telemetry matches expected physics behavior,
               // including gravity, jump mechanics, obstacle movements, and collision detection.
+              // JUMP FULL GAME PHYSICS SIMULATION
               let activeObstacles = [];
               let lastFrame = telemetry.find(e => e.event === 'frame');
               let stopFrame = telemetry.reverse().find(e => e.event === 'frame');
@@ -984,6 +985,10 @@ export async function POST(request) {
                   } else {
                     currentVy += gameParams.GRAVITY;// * perFrameDeltaTime; // Scale gravity by delta time
                     currentY += currentVy;// * perFrameDeltaTime; // Scale position update by delta time
+                    if (currentY >= GROUND_Y) {
+                      currentY = GROUND_Y;
+                      currentVy = 0;
+                    }
                   }
                   // console.log('frame',i, 'currentVy', currentVy, 'currentY', currentY);
                   // Update obstacle positions

@@ -774,7 +774,7 @@ export async function POST(request) {
                   lastSpawnFrameId = event.frameId;
                 }
               }
-              console.log('*******1');
+              
               //check y position of obstacles
               // const validYPositions = [
               //   GROUND_Y,
@@ -797,9 +797,7 @@ export async function POST(request) {
               //     }
               //   }
               // }
-              console.log('*******2');
               //end JUMP SPAWN RELATED VALIDATIONS
-
               //JUMPING RELATED VALIDATIONS
               const jumpEvents = telemetry.filter(e => e.event === 'jump');
               console.log('jumpEvents.length',jumpEvents.length);
@@ -892,7 +890,6 @@ export async function POST(request) {
                 });
                 return new Response(JSON.stringify({ status: 'error', message: 'Total jump count mismatch' }), { status: 400 });
               }
-              console.log('*******6');
               // Validate Jump Frequency
               const jumpCount = jumpEvents.length;
               const expectedJumpsPerSec = jumpCount / gameTimeSec;
@@ -989,7 +986,7 @@ export async function POST(request) {
                   console.log('currentVy at frame ',i, 'is:', currentVy);
                   // Update obstacle positions
                   activeObstacles.forEach(obs => {
-                    obs.x += obs.dx * perFrameDeltaTime; // Scale obstacle movement by delta time
+                    obs.x += obs.dx;// * perFrameDeltaTime; // Scale obstacle movement by delta time
                   });
                   console.log('activeObstacles at frame ',i, 'is:', activeObstacles);
                   // Remove off-screen obstacles

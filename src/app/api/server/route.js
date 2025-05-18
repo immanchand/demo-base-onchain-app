@@ -903,8 +903,12 @@ export async function POST(request) {
               // Check variance of double jump intervals
               const dJmean = doubleJumpIntervals.reduce((sum, d) => sum + d, 0) / doubleJumpIntervals.length;
               const dJvariance = doubleJumpIntervals.reduce((sum, d) => sum + Math.pow(d - dJmean, 2), 0) / doubleJumpIntervals.length;
-              const dJvarianceThreshold = 250; // ms², to be adjusted with playtest data
-              console.log('dJvariance', dJvariance);
+              const dJvarianceThreshold = 70; // ms², to be adjusted with playtest data
+              console.log('Double jump interval variance check', {
+                dJvariance,
+                doubleJumpIntervals,
+                dJmean
+              });
               if (dJvariance < dJvarianceThreshold) {
                 console.log('Suspiciously consistent double jump timing', {
                   variance: dJvariance,
@@ -914,11 +918,7 @@ export async function POST(request) {
                 });
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously consistent double jump timing' }), { status: 400 });
               }
-              console.log('Double jump interval variance check', {
-                variance,
-                doubleJumpIntervals,
-                mean
-              });
+              
               
               // Validate Jump Frequency
               const jumpCount = jumpEvents.length;

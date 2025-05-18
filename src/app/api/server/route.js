@@ -975,11 +975,11 @@ export async function POST(request) {
                   // Update ship physics
                   // Check ground collision *before* applying gravity
                   if (currentY >= GROUND_Y) {
-                    console.log('Ship on ground', { i, currentY, GROUND_Y });
+                    //console.log('Ship on ground', { i, currentY, GROUND_Y });
                     currentY = GROUND_Y;
                     currentVy = 0;
                   } else {
-                    console.log('Ship in air', { i, currentY, GROUND_Y });
+                    //console.log('Ship in air', { i, currentY, GROUND_Y });
                     currentVy += gameParams.GRAVITY * perFrameDeltaTime; // Scale gravity by delta time
                     currentY += currentVy * perFrameDeltaTime; // Scale position update by delta time
                   }
@@ -988,7 +988,7 @@ export async function POST(request) {
                   activeObstacles.forEach(obs => {
                     obs.x += obs.dx;// * perFrameDeltaTime; // Scale obstacle movement by delta time
                   });
-                  console.log('activeObstacles at frame ',i, 'is:', activeObstacles);
+                  //console.log('activeObstacles at frame ',i, 'is:', activeObstacles);
                   // Remove off-screen obstacles
                   activeObstacles = activeObstacles.filter(obs => obs.x >= 0);
                   // Check for collisions

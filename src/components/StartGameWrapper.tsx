@@ -162,7 +162,7 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                             expires: 1,
                             secure: true,
                             sameSite: 'strict',
-                            httpOnly: true,
+                            httpOnly: false,
                         });
                         console.log('Signature set in cookies');
                         setHasSigned(true);

@@ -795,29 +795,46 @@ export async function POST(request) {
                 //return new Response(JSON.stringify({ status: 'error', message: 'Sus for cheating! Or maybe you got waaay to lucky with that one! Sorry!' }), { status: 400 });
               }
 
-              
-              
-              //check y position of obstacles
-              const validYPositions = [
-                GROUND_Y,
-                GROUND_Y - gameParams.OBSTACLE_SIZE,
-                GROUND_Y - 2 * gameParams.OBSTACLE_SIZE,
-                GROUND_Y - 3 * gameParams.OBSTACLE_SIZE,
-              ]; // Based on heightCount up to 4
-              for (const event of telemetry) {
-                if (event.event === 'spawn') {
-                  if (!validYPositions.includes(event.data.y)) {
-                    console.log('Invalid obstacle y position', { event, validYPositions });
+              // Check y-position of obstacles and count clusters (Jump only)
+              const yPosA = GROUND_Y;
+              const yPosB = GROUND_Y - gameParams.OBSTACLE_SIZE;
+              const yPosC = GROUND_Y - 2 * gameParams.OBSTACLE_SIZE;
+              const yPosD = GROUND_Y - 3 * gameParams.OBSTACLE_SIZE;
+              let yCountA = 0; // GROUND_Y
+              let yCountB = 0; // GROUND_Y - OBSTACLE_SIZE
+              let yCountC = 0; // GROUND_Y - 2 * OBSTACLE_SIZE
+              let yCountD = 0; // GROUND_Y - 3 * OBSTACLE_SIZE
+              // for clusterCounts measurement
+              let yCountAA = clusterCounts['1x1'] + clusterCounts['1x2'] + clusterCounts['2x2'] * 2 + clusterCounts['2x3'] * 2 + clusterCounts['2x4'] * 2; // GROUND_Y
+              let yCountBB = clusterCounts['1x2'] + clusterCounts['2x2'] * 2 + clusterCounts['2x3'] * 2 + clusterCounts['2x4'] * 2; // GROUND_Y - OBSTACLE_SIZE
+              let yCountCC = clusterCounts['2x3'] * 2 + clusterCounts['2x4'] * 2; // GROUND_Y - 2 * OBSTACLE_SIZE
+              let yCountDD = clusterCounts['2x4'] * 2; // GROUND_Y - 3 * OBSTACLE_SIZE
+              const yTolerance = 1e-3; // For floating-point comparison
+              for (const event of spawnEvents) {
+                // Validate y-position
+                const y = event.data.y;
+                if (Math.abs(y - yPosA) < yTolerance) {
+                    yCountA++;
+                } else if (Math.abs(y - yPosB) < yTolerance) {
+                    yCountB++;
+                } else if (Math.abs(y - yPosC) < yTolerance) {
+                    yCountC++;
+                } else if (Math.abs(y - yPosD) < yTolerance) {
+                    yCountD++;
+                } else {
+                    console.log('Invalid obstacle y position', { frameId: event.frameId, y, validYPositions: [yPosA, yPosB, yPosC, yPosD] });
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle y position' }), { status: 400 });
-                  }
-                } else if (event.event === 'frame' && event.obsData.obstacles) {
-                  for (const obs of event.obsData.obstacles) {
-                    if (!validYPositions.includes(obs.y)) {
-                      console.log('Invalid obstacle y position in frame', { event, obs, validYPositions });
-                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle y position in frame' }), { status: 400 });
-                    }
-                  }
                 }
+              }
+              // Compare positional counts
+              if (yCountA === yCountAA &&
+                  yCountB === yCountBB &&
+                  yCountC === yCountCC &&
+                  yCountD === yCountDD) {
+                //positive case do nothing
+              } else {
+                console.log('Invalid y-position counts', {yCountA, yCountAA, yCountB, yCountBB, yCountC, yCountCC, yCountD, yCountDD});
+                return new Response(JSON.stringify({ status: 'error', message: 'Invalid y-position counts' }), { status: 400 });
               }
               //end JUMP SPAWN RELATED VALIDATIONS
               //JUMPING RELATED VALIDATIONS

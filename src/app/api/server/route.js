@@ -638,7 +638,7 @@ export async function POST(request) {
               const elapsedTimeSec = ((event.time - gameStartTime) / 1000);
               const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
               const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-              if (Math.abs(event.data.speed - expectedSpeed) <= 0.002) {
+              if (event.data.speed >= expectedSpeed - 0.002) {
                 //positive case do nothing
               } else {
                   console.log('Obstacle speed check failed', { 
@@ -711,7 +711,7 @@ export async function POST(request) {
               }
 
               //check and count clusters
-              // check later if this works for shoot. cluster is not important, only size and speed checks
+              // check later if this works for shoot. cluster is not important in shoot
               const clusterConfig = clusterConfigs[stats.game];
               // Cluster counts
               //const clusterCounts = { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
@@ -753,9 +753,37 @@ export async function POST(request) {
             if (stats.game === 'jump') {
 
               //JUMP SPAWN RELATED VALIDATIONS
-              //check spawn events for speed and size
-              let lastSpawnTime = null;
-              let lastSpawnFrameId = null;
+              // validate that all types of cluster sizes are present at least once
+              const clusterCounts = { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
+              if (clusterCounts['1x1'] > 0 &&
+                  clusterCounts['1x2'] > 0 &&
+                  clusterCounts['2x2'] > 0 &&
+                  clusterCounts['2x3'] > 0 &&
+                  clusterCounts['2x4'] > 0 ) {
+                //positive case do nothing
+              } else {
+                console.log('All cluster types are not present', {
+                  gameId,
+                  address,
+                  clusterCounts,
+                });
+                // endable in prod after testing ***************
+                //return new Response(JSON.stringify({ status: 'error', message: 'Sus for cheating! Or maybe you got waaay to lucky with that one! Sorry!' }), { status: 400 });
+              }
+
+              //check spawn events for time between spawns
+              let lastSpawnFrame = spawnEvents[0];
+              let lastSpawnTime = lastSpawnFrame.time;
+              let lastSpawnFrameId = lastSpawnFrame.frameId;
+              for (const event of spawnEvents) {
+                //skip first spawn event since no time difference available
+                if (event === lastSpawnFrame) continue;
+
+                const timeSinceLastSpawn = event.time - lastSpawnTime;
+                const minGap = gameParams.MAX_SPAWN_INTERVAL * (1 - event.data.difficulty || 0) + gameParams.MIN_SPAWN_INTERVAL;
+              }
+
+              
               for (const event of telemetry) {
                 if (event.event === 'spawn') {
                   if (lastSpawnTime && lastSpawnFrameId) {

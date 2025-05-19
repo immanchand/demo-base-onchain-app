@@ -659,7 +659,7 @@ export async function POST(request) {
                 const expectedMinGap = gameParams.MAX_SPAWN_INTERVAL * (1 - difficultyFactor) + gameParams.MIN_SPAWN_INTERVAL;
                 const tolerance = 10; // ms, for timing jitter
                 console.log('Math.abs(timeGap - expectedMinGap)', Math.abs(timeGap - expectedMinGap));
-                if (Math.abs(timeGap - expectedMinGap) <= 10) {
+                if (Math.abs(timeGap - expectedMinGap) <= 10 || timeGap < 10) {
                   //positive case do nothing
                 } else {
                   console.log('Invalid spawn gap', { 

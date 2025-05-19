@@ -610,7 +610,8 @@ export async function POST(request) {
             for (const event of frameEvents) {
               maxObstaclesInPool = Math.max(maxObstaclesInPool, event.obsData.obstacles.length);
             }
-            if (Math.abs(maxObstaclesInPool - stats.maxObstacles) <= 2) {
+            let maxObstaclesTolerance = stats.game === 'jump' ? 8 : 2;
+            if (Math.abs(maxObstaclesInPool - stats.maxObstacles) <= maxObstaclesTolerance) {
               //positive case do nothing
             } else {
               console.log('Invalid maxObstaclesInPool vs stats.maxObstacles', {
@@ -659,7 +660,7 @@ export async function POST(request) {
                 const expectedMinGap = gameParams.MAX_SPAWN_INTERVAL * (1 - difficultyFactor) + gameParams.MIN_SPAWN_INTERVAL;
                 const tolerance = 10; // ms, for timing jitter
                 console.log('Math.abs(timeGap - expectedMinGap)', Math.abs(timeGap - expectedMinGap));
-                if (Math.abs(timeGap - expectedMinGap) <= 10 || timeGap < 10) {
+                if (Math.abs(timeGap - expectedMinGap) <= 50 || timeGap < 50) {
                   //positive case do nothing
                 } else {
                   console.log('Invalid spawn gap', { 

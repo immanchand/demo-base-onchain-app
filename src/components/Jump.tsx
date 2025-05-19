@@ -78,6 +78,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const [groundImage, setGroundImage] = useState<HTMLImageElement | null>(null);
     const lastFrameTimeRef = useRef<number>(performance.now());
     const animationFrameIdRef = useRef<number>(0);
+    const lastSpawnTimeRef = useRef<number>(0);
     const lastKeyPressRef = useRef<number>(0);
     const jumpCountRef = useRef<number>(0);
     const startTimeRef = useRef<number>(0);
@@ -359,8 +360,10 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             });
             obstaclePool = obstaclePool.filter((obstacle) => obstacle.x + obstacleSize > 0);
 
-            const rightmostObstacle = obstaclePool.reduce((max, obs) => Math.max(max, obs.x), -minGap);
-            if (canvas.width - rightmostObstacle >= minGap && !gameOver) {
+            //const rightmostObstacle = obstaclePool.reduce((max, obs) => Math.max(max, obs.x), -minGap);
+            const currentTime = performance.now();
+            if (currentTime - lastSpawnTimeRef.current >= minGap && !gameOver) {
+            //if (canvas.width - rightmostObstacle >= minGap && !gameOver) {
                 const randNumber = Math.random();
                 const widthCount = randNumber < clusterChance ? 2 : 1;
                 const heightCount = randNumber < clusterChance/6 ? 4 :
@@ -369,6 +372,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
                 obstaclePool.push(...spawnObstacles(canvas, obstacleSpeed, frameCount, widthCount, heightCount));
                 //lastObstacleSpawnX = canvas.width; ??
+                lastSpawnTimeRef.current = currentTime; // Update spawn time
             }
 
             if (!gameOver) {
@@ -489,6 +493,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             jumpCountRef.current = 0;
             obstaclePool = spawnObstacles(canvas, JUMP_PARAMETERS.BASE_OBSTACLE_SPEED, 0, 0, 0);
             //lastObstacleSpawnX = canvas.width; ??
+            lastSpawnTimeRef.current = performance.now();
             startTimeRef.current = performance.now();
             backgroundOffset = 0;
             cloudOffset = 0;

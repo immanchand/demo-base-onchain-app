@@ -625,8 +625,8 @@ export async function POST(request) {
             console.log('maxObstaclesInPool',maxObstaclesInPool);
 
             // ALL Games Combined loop for size and speed checks
-            for (let i = 0; i < spawnEvents.length; i++) {
-              const event = spawnEvents[i];
+            for (const event of spawnEvents) {
+              //const event = spawnEvents[i];
               // Size check
               if (event.data.width === gameParams.OBSTACLE_SIZE && event.data.height === gameParams.OBSTACLE_SIZE) {
                 //positive case do nothing
@@ -638,7 +638,8 @@ export async function POST(request) {
               const elapsedTimeSec = ((event.time - gameStartTime) / 1000);
               const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
               const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-              if (event.data.speed >= expectedSpeed - 0.002) {
+              console.log('expectedSpeed',expectedSpeed, 'actualSpeed', event.data.speed, 'difference', Math.abs(event.data.speed - expectedSpeed));
+              if (event.data.speed <= expectedSpeed + 0.002) {
                 //positive case do nothing
               } else {
                   console.log('Obstacle speed check failed', { 

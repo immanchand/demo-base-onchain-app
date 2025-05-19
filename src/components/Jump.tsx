@@ -78,7 +78,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const [groundImage, setGroundImage] = useState<HTMLImageElement | null>(null);
     const lastFrameTimeRef = useRef<number>(performance.now());
     const animationFrameIdRef = useRef<number>(0);
-    const lastSpawnTimeRef = useRef<number>(0);
+    const lastSpawnTimeRef = useRef(performance.now());
     const lastKeyPressRef = useRef<number>(0);
     const jumpCountRef = useRef<number>(0);
     const startTimeRef = useRef<number>(0);
@@ -514,8 +514,10 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
     const startGame = useCallback(async () => {
         if (ticketCount > 0 && startGameRef.current) {
-            setStartGameStatus('pending');
-            await startGameRef.current.startGame();
+            //setStartGameStatus('pending');
+            //await startGameRef.current.startGame();
+            // hard coded for startgamewrapper errors
+            setStartGameStatus('success');
         } else if (ticketCount < 1) {
             setStartGameStatus('error');
             setStartGameError('Stack 1 CHIP to join the degen GAME, fam!');

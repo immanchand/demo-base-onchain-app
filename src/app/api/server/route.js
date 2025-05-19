@@ -556,7 +556,7 @@ export async function POST(request) {
             const totalFrameDeltaTime = frameDeltaTimes.reduce((a, b) => a + b, 0)
             const avgFrameDeltaTime = totalFrameDeltaTime / frameDeltaTimes.length;
             const frameDeltaTimieVariance = frameDeltaTimes.reduce((a, b) => a + Math.pow(b - avgFrameDeltaTime, 2), 0) / frameDeltaTimes.length;
-            console.log('frameDeltaTimieVariance',frameDeltaTimieVariance);
+            console.log('frameDeltaTimieVariance',frameDeltaTimieVariance.toString());
             if (frameDeltaTimieVariance > 0.0000001 && frameDeltaTimieVariance < 0.001) { // 0.0000001 to 0.001 s²
               //positive case do nothing
             } else {
@@ -658,9 +658,8 @@ export async function POST(request) {
               if (prevSpawnEvent) {
                 const timeGap = event.time - prevSpawnEvent.time; // ms
                 const expectedMinGap = gameParams.MAX_SPAWN_INTERVAL * (1 - difficultyFactor) + gameParams.MIN_SPAWN_INTERVAL;
-                const tolerance = 10; // ms, for timing jitter
-                console.log('Math.abs(timeGap - expectedMinGap)', Math.abs(timeGap - expectedMinGap));
-                if (Math.abs(timeGap - expectedMinGap) <= 50 || timeGap < 50) {
+                const tolerance = 50; // ms, for timing jitter
+                if (Math.abs(timeGap - expectedMinGap) <= tolerance || timeGap < tolerance) {
                   //positive case do nothing
                 } else {
                   console.log('Invalid spawn gap', { 
@@ -671,7 +670,7 @@ export async function POST(request) {
                       timeGap,
                       expectedMinGap,
                       tolerance,
-                      difficultyFactor
+                      difficultyFactor,
                   });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn gap timing' }), { status: 400 });
                 }

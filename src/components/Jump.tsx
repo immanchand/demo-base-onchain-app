@@ -514,10 +514,8 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
     const startGame = useCallback(async () => {
         if (ticketCount > 0 && startGameRef.current) {
-            //setStartGameStatus('pending');
-            //await startGameRef.current.startGame();
-            // hard coded for startgamewrapper errors
-            setStartGameStatus('success');
+            setStartGameStatus('pending');
+            await startGameRef.current.startGame();
         } else if (ticketCount < 1) {
             setStartGameStatus('error');
             setStartGameError('Stack 1 CHIP to join the degen GAME, fam!');

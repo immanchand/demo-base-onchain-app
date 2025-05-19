@@ -795,60 +795,30 @@ export async function POST(request) {
                 //return new Response(JSON.stringify({ status: 'error', message: 'Sus for cheating! Or maybe you got waaay to lucky with that one! Sorry!' }), { status: 400 });
               }
 
-              // //check spawn events for time between spawns
-              // let lastSpawnFrame = spawnEvents[0];
-              // let lastSpawnTime = lastSpawnFrame.time;
-              // let lastSpawnFrameId = lastSpawnFrame.frameId;
-              // for (const event of spawnEvents) {
-              //   //skip first spawn event since no time difference available
-              //   if (event === lastSpawnFrame) continue;
-
-              //   const timeSinceLastSpawn = event.time - lastSpawnTime;
-              //   const minGap = gameParams.MAX_SPAWN_INTERVAL * (1 - event.data.difficulty || 0) + gameParams.MIN_SPAWN_INTERVAL;
-              // }
-
               
-              // for (const event of telemetry) {
-              //   if (event.event === 'spawn') {
-              //     if (lastSpawnTime && lastSpawnFrameId) {
-              //       const timeSinceLastSpawn = event.time - lastSpawnTime;
-              //       const framesSinceLastSpawn = event.frameId - lastSpawnFrameId;
-              //       const minGap = gameParams.MAX_SPAWN_INTERVAL * (1 - event.data.difficulty || 0) + gameParams.MIN_SPAWN_INTERVAL;
-              //       const minTime = (minGap / Math.abs(event.data.speed)) * 1000; // Convert to ms
-              //       console.log('timeSinceLastSpawn < minTime * 0.9', timeSinceLastSpawn,' <', minTime * 0.9);
-              //       if (timeSinceLastSpawn < minTime * 0.9) { // 10% tolerance
-              //         console.log('Suspiciously fast spawn', { event, timeSinceLastSpawn, minTime });
-              //         //enable after more testing
-              //         //return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously fast obstacle spawn' }), { status: 400 });
-              //       }
-              //     }
-              //     lastSpawnTime = event.time;
-              //     lastSpawnFrameId = event.frameId;
-              //   }
-              // }
               
               //check y position of obstacles
-              // const validYPositions = [
-              //   GROUND_Y,
-              //   GROUND_Y - gameParams.OBSTACLE_SIZE,
-              //   GROUND_Y - 2 * gameParams.OBSTACLE_SIZE,
-              //   GROUND_Y - 3 * gameParams.OBSTACLE_SIZE,
-              // ]; // Based on heightCount up to 4
-              // for (const event of telemetry) {
-              //   if (event.event === 'spawn') {
-              //     if (!validYPositions.includes(event.data.y)) {
-              //       console.log('Invalid obstacle y position', { event, validYPositions });
-              //       return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle y position' }), { status: 400 });
-              //     }
-              //   } else if (event.event === 'frame' && event.obsData.obstacles) {
-              //     for (const obs of event.obsData.obstacles) {
-              //       if (!validYPositions.includes(obs.y)) {
-              //         console.log('Invalid obstacle y position in frame', { event, obs, validYPositions });
-              //         return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle y position in frame' }), { status: 400 });
-              //       }
-              //     }
-              //   }
-              // }
+              const validYPositions = [
+                GROUND_Y,
+                GROUND_Y - gameParams.OBSTACLE_SIZE,
+                GROUND_Y - 2 * gameParams.OBSTACLE_SIZE,
+                GROUND_Y - 3 * gameParams.OBSTACLE_SIZE,
+              ]; // Based on heightCount up to 4
+              for (const event of telemetry) {
+                if (event.event === 'spawn') {
+                  if (!validYPositions.includes(event.data.y)) {
+                    console.log('Invalid obstacle y position', { event, validYPositions });
+                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle y position' }), { status: 400 });
+                  }
+                } else if (event.event === 'frame' && event.obsData.obstacles) {
+                  for (const obs of event.obsData.obstacles) {
+                    if (!validYPositions.includes(obs.y)) {
+                      console.log('Invalid obstacle y position in frame', { event, obs, validYPositions });
+                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle y position in frame' }), { status: 400 });
+                    }
+                  }
+                }
+              }
               //end JUMP SPAWN RELATED VALIDATIONS
               //JUMPING RELATED VALIDATIONS
               const jumpEvents = telemetry.filter(e => e.event === 'jump');
@@ -950,13 +920,15 @@ export async function POST(request) {
               // Check variance of double jump intervals
               const dJmean = doubleJumpIntervals.reduce((sum, d) => sum + d, 0) / doubleJumpIntervals.length;
               const dJvariance = doubleJumpIntervals.reduce((sum, d) => sum + Math.pow(d - dJmean, 2), 0) / doubleJumpIntervals.length;
-              const dJvarianceThreshold = 100; // ms², to be adjusted with playtest data
+              const dJvarianceThreshold = 1000; // ms², to be adjusted with playtest data
               console.log('Double jump interval variance check', {
                 dJvariance,
                 doubleJumpIntervals,
                 dJmean
               });
-              if (dJvariance < dJvarianceThreshold) {
+              if (dJvariance > dJvarianceThreshold) {
+                //positive case do nothing 
+              } else {
                 console.log('Suspiciously consistent double jump timing', {
                   variance: dJvariance,
                   varianceThreshold: dJvarianceThreshold,

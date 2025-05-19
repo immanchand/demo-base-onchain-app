@@ -780,7 +780,6 @@ export async function POST(request) {
 
               //JUMP SPAWN RELATED VALIDATIONS
               // validate that all types of cluster sizes are present at least once
-              const clusterCounts = { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
               if (clusterCounts['1x1'] > 0 &&
                   clusterCounts['1x2'] > 0 &&
                   clusterCounts['2x2'] > 0 &&
@@ -910,10 +909,6 @@ export async function POST(request) {
                   timeDoubleJumpCount++;
                   // Store double jump interval
                   doubleJumpIntervals.push(event.time - prevTime);
-                  console.log('Double jump interval recorded', {
-                    frameId: event.frameId,
-                    interval: event.time - prevTime
-                  });
                 }
                 if (event.time - prevTime < 50) { // 50ms minimum human reaction time
                   console.log('Suspiciously fast jump', {
@@ -953,11 +948,10 @@ export async function POST(request) {
                 return new Response(JSON.stringify({ status: 'error', message: 'Total jump count mismatch' }), { status: 400 });
               }
               // Validate double jump intervals variance
-              console.log('doubleJumpIntervals', doubleJumpIntervals);
               // Check variance of double jump intervals
               const dJmean = doubleJumpIntervals.reduce((sum, d) => sum + d, 0) / doubleJumpIntervals.length;
               const dJvariance = doubleJumpIntervals.reduce((sum, d) => sum + Math.pow(d - dJmean, 2), 0) / doubleJumpIntervals.length;
-              const dJvarianceThreshold = 70; // ms², to be adjusted with playtest data
+              const dJvarianceThreshold = 100; // ms², to be adjusted with playtest data
               console.log('Double jump interval variance check', {
                 dJvariance,
                 doubleJumpIntervals,
@@ -1186,7 +1180,7 @@ export async function POST(request) {
               // Check variance of jump distances for suspicious values
               const mean = jumpObstacleDistances.reduce((sum, d) => sum + d, 0) / jumpObstacleDistances.length;
               const variance = jumpObstacleDistances.reduce((sum, d) => sum + Math.pow(d - mean, 2), 0) / jumpObstacleDistances.length;
-              const varianceThreshold = 3; // adjust based on test data
+              const varianceThreshold = 10; // adjust based on test data
               console.log('Jump distance variance', { variance, jumpObstacleDistances, mean });
               if (variance < varianceThreshold) {
                 console.log('Suspiciously consistent jump distances', {

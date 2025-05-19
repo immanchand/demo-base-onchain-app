@@ -625,8 +625,8 @@ export async function POST(request) {
             console.log('maxObstaclesInPool',maxObstaclesInPool);
 
             // ALL Games Combined loop for size and speed checks
+            let prevSpawnEvent = null;
             for (const event of spawnEvents) {
-              //const event = spawnEvents[i];
               // Size check
               if (event.data.width === gameParams.OBSTACLE_SIZE && event.data.height === gameParams.OBSTACLE_SIZE) {
                 //positive case do nothing
@@ -638,7 +638,7 @@ export async function POST(request) {
               const elapsedTimeSec = ((event.time - gameStartTime) / 1000);
               const difficultyFactor = Math.min(elapsedTimeSec / gameParams.DIFFICULTY_FACTOR_TIME, 1);
               const expectedSpeed = gameParams.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-              console.log('expectedSpeed',expectedSpeed, 'actualSpeed', event.data.speed, 'difference', Math.abs(event.data.speed - expectedSpeed));
+              // if actual speed is faster (more -ve, i.e. lower) than the expected speed with 0.002 tolerance
               if (event.data.speed <= expectedSpeed + 0.002) {
                 //positive case do nothing
               } else {
@@ -653,6 +653,30 @@ export async function POST(request) {
                   });
                   return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle speed' }), { status: 400 });
               }
+              // Check for spawn event gap time consitency with difficulty factor
+              if (prevSpawnEvent) {
+                const timeGap = event.time - prevSpawnEvent.time; // ms
+                const expectedMinGap = gameParams.MAX_SPAWN_INTERVAL * (1 - difficultyFactor) + gameParams.MIN_SPAWN_INTERVAL;
+                const tolerance = 10; // ms, for timing jitter
+                console.log('Math.abs(timeGap - expectedMinGap)', Math.abs(timeGap - expectedMinGap));
+                if (Math.abs(timeGap - expectedMinGap) <= 10) {
+                  //positive case do nothing
+                } else {
+                  console.log('Invalid spawn gap', { 
+                      address,
+                      gameId,
+                      gameName: stats.game,
+                      event,
+                      timeGap,
+                      expectedMinGap,
+                      tolerance,
+                      difficultyFactor
+                  });
+                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn gap timing' }), { status: 400 });
+                }
+              }
+              prevSpawnEvent = event;
+
             }
             
 
@@ -772,37 +796,37 @@ export async function POST(request) {
                 //return new Response(JSON.stringify({ status: 'error', message: 'Sus for cheating! Or maybe you got waaay to lucky with that one! Sorry!' }), { status: 400 });
               }
 
-              //check spawn events for time between spawns
-              let lastSpawnFrame = spawnEvents[0];
-              let lastSpawnTime = lastSpawnFrame.time;
-              let lastSpawnFrameId = lastSpawnFrame.frameId;
-              for (const event of spawnEvents) {
-                //skip first spawn event since no time difference available
-                if (event === lastSpawnFrame) continue;
+              // //check spawn events for time between spawns
+              // let lastSpawnFrame = spawnEvents[0];
+              // let lastSpawnTime = lastSpawnFrame.time;
+              // let lastSpawnFrameId = lastSpawnFrame.frameId;
+              // for (const event of spawnEvents) {
+              //   //skip first spawn event since no time difference available
+              //   if (event === lastSpawnFrame) continue;
 
-                const timeSinceLastSpawn = event.time - lastSpawnTime;
-                const minGap = gameParams.MAX_SPAWN_INTERVAL * (1 - event.data.difficulty || 0) + gameParams.MIN_SPAWN_INTERVAL;
-              }
+              //   const timeSinceLastSpawn = event.time - lastSpawnTime;
+              //   const minGap = gameParams.MAX_SPAWN_INTERVAL * (1 - event.data.difficulty || 0) + gameParams.MIN_SPAWN_INTERVAL;
+              // }
 
               
-              for (const event of telemetry) {
-                if (event.event === 'spawn') {
-                  if (lastSpawnTime && lastSpawnFrameId) {
-                    const timeSinceLastSpawn = event.time - lastSpawnTime;
-                    const framesSinceLastSpawn = event.frameId - lastSpawnFrameId;
-                    const minGap = gameParams.MAX_SPAWN_INTERVAL * (1 - event.data.difficulty || 0) + gameParams.MIN_SPAWN_INTERVAL;
-                    const minTime = (minGap / Math.abs(event.data.speed)) * 1000; // Convert to ms
-                    console.log('timeSinceLastSpawn < minTime * 0.9', timeSinceLastSpawn,' <', minTime * 0.9);
-                    if (timeSinceLastSpawn < minTime * 0.9) { // 10% tolerance
-                      console.log('Suspiciously fast spawn', { event, timeSinceLastSpawn, minTime });
-                      //enable after more testing
-                      //return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously fast obstacle spawn' }), { status: 400 });
-                    }
-                  }
-                  lastSpawnTime = event.time;
-                  lastSpawnFrameId = event.frameId;
-                }
-              }
+              // for (const event of telemetry) {
+              //   if (event.event === 'spawn') {
+              //     if (lastSpawnTime && lastSpawnFrameId) {
+              //       const timeSinceLastSpawn = event.time - lastSpawnTime;
+              //       const framesSinceLastSpawn = event.frameId - lastSpawnFrameId;
+              //       const minGap = gameParams.MAX_SPAWN_INTERVAL * (1 - event.data.difficulty || 0) + gameParams.MIN_SPAWN_INTERVAL;
+              //       const minTime = (minGap / Math.abs(event.data.speed)) * 1000; // Convert to ms
+              //       console.log('timeSinceLastSpawn < minTime * 0.9', timeSinceLastSpawn,' <', minTime * 0.9);
+              //       if (timeSinceLastSpawn < minTime * 0.9) { // 10% tolerance
+              //         console.log('Suspiciously fast spawn', { event, timeSinceLastSpawn, minTime });
+              //         //enable after more testing
+              //         //return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously fast obstacle spawn' }), { status: 400 });
+              //       }
+              //     }
+              //     lastSpawnTime = event.time;
+              //     lastSpawnFrameId = event.frameId;
+              //   }
+              // }
               
               //check y position of obstacles
               // const validYPositions = [

@@ -810,6 +810,8 @@ export async function POST(request) {
               //check and count clusters
               // check later if this works for shoot. cluster is not important in shoot
               const clusterConfig = clusterConfigs[stats.game];
+              let clusterW = 0;
+              let clusterH = 0;
               // Cluster counts
               //const clusterCounts = { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
               // Group spawn events by frameId
@@ -822,21 +824,41 @@ export async function POST(request) {
               }
               // Validate each spawn group
               for (const frameId in spawnGroups) {
-                const events = spawnGroups[frameId];
+                //const events = spawnGroups[frameId];
                 // Cluster validation
-                const uniqueX = [...new Set(events.map(e => e.data.x))];
-                const uniqueY = [...new Set(events.map(e => e.data.y))];
-                const obstacleCount = events.length;
-                //quick check that the cluster array found is valid
-                const cluster = clusterConfig.validClusters.find(
-                  c => c.xCount === uniqueX.length && c.yCount === uniqueY.length && c.obstacleCount === obstacleCount
-                );
-                if (!cluster) {
-                  console.log('Invalid cluster configuration', { frameId, xCount: uniqueX.length, yCount: uniqueY.length, obstacleCount });
+                //const uniqueX = [...new Set(events.map(e => e.data.x))];
+                //const uniqueY = [...new Set(events.map(e => e.data.y))];
+                const obstacleCount = spawnGroups[frameId].length;
+                if (obstacleCount === 1) {
+                  clusterW = 1;
+                  clusterH = 1;
+                } else if (obstacleCount === 2) {
+                  clusterW = 1;
+                  clusterH = 2;
+                } else if (obstacleCount === 4) {
+                  clusterW = 2;
+                  clusterH = 2;
+                } else if (obstacleCount === 6) {
+                  clusterW = 2;
+                  clusterH = 3;
+                } else if (obstacleCount === 8) {
+                  clusterW = 2;
+                  clusterH = 4;
+                } else {
+                  console.log('Invalid cluster configuration', { frameId, obstacleCount, spawnGroups: spawnGroups[frameId] });
                   return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                 }
+
+                // //quick check that the cluster array found is valid
+                // const cluster = clusterConfig.validClusters.find(
+                //   c => c.xCount === uniqueX.length && c.yCount === uniqueY.length && c.obstacleCount === obstacleCount
+                // );
+                // if (!cluster) {
+                //   console.log('Invalid cluster configuration', { frameId, xCount: uniqueX.length, yCount: uniqueY.length, obstacleCount });
+                //   return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
+                // }
                 // Increment cluster count
-                const clusterKey = `${uniqueX.length}x${uniqueY.length}`;
+                const clusterKey = `${clusterW}x${clusterH}`;
                 clusterCounts[clusterKey]++;
               }
               // Log cluster counts for debugging

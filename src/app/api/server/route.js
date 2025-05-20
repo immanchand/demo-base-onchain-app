@@ -811,7 +811,7 @@ export async function POST(request) {
               let yCountCC = clusterCounts['2x3'] * 2 + clusterCounts['2x4'] * 2; // GROUND_Y - 2 * OBSTACLE_SIZE
               let yCountDD = clusterCounts['2x4'] * 2; // GROUND_Y - 3 * OBSTACLE_SIZE
               const yTolerance = 0.01; // For floating-point comparison
-
+              console.log('spawnEvents.length', spawnEvents.length);
               const spawnEventY = [];
               for (const event of spawnEvents) {
                 // Validate y-position

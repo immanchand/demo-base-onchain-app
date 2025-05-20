@@ -794,27 +794,23 @@ export async function POST(request) {
                 // endable in prod after testing ***************
                 //return new Response(JSON.stringify({ status: 'error', message: 'Sus for cheating! Or maybe you got waaay to lucky with that one! Sorry!' }), { status: 400 });
               }
-              console.log('*****************1');
               // Check y-position of obstacles and count clusters (Jump only)
               const GROUND_Y = avgCanvH * gameParams.GROUND_HEIGHT_RATIO - gameParams.SHIP_HEIGHT;
+              console.log('GROUND_Y', GROUND_Y);
               const yPosA = GROUND_Y;
               const yPosB = GROUND_Y - gameParams.OBSTACLE_SIZE;
               const yPosC = GROUND_Y - 2 * gameParams.OBSTACLE_SIZE;
               const yPosD = GROUND_Y - 3 * gameParams.OBSTACLE_SIZE;
-              console.log('*****************2');
               let yCountA = 0; // GROUND_Y
               let yCountB = 0; // GROUND_Y - OBSTACLE_SIZE
               let yCountC = 0; // GROUND_Y - 2 * OBSTACLE_SIZE
               let yCountD = 0; // GROUND_Y - 3 * OBSTACLE_SIZE
               // for clusterCounts measurement
-              console.log('*****************3');
               let yCountAA = clusterCounts['1x1'] + clusterCounts['1x2'] + clusterCounts['2x2'] * 2 + clusterCounts['2x3'] * 2 + clusterCounts['2x4'] * 2; // GROUND_Y
               let yCountBB = clusterCounts['1x2'] + clusterCounts['2x2'] * 2 + clusterCounts['2x3'] * 2 + clusterCounts['2x4'] * 2; // GROUND_Y - OBSTACLE_SIZE
               let yCountCC = clusterCounts['2x3'] * 2 + clusterCounts['2x4'] * 2; // GROUND_Y - 2 * OBSTACLE_SIZE
               let yCountDD = clusterCounts['2x4'] * 2; // GROUND_Y - 3 * OBSTACLE_SIZE
-              console.log('*****************4');
-              const yTolerance = 1e-3; // For floating-point comparison
-              console.log('*****************5');
+              const yTolerance = 0.01; // For floating-point comparison
               for (const event of spawnEvents) {
                 // Validate y-position
                 const y = event.data.y;
@@ -831,7 +827,6 @@ export async function POST(request) {
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle y position' }), { status: 400 });
                 }
               }
-              console.log('*****************3');
               // Compare positional counts
               if (yCountA === yCountAA &&
                   yCountB === yCountBB &&
@@ -842,7 +837,6 @@ export async function POST(request) {
                 console.log('Invalid y-position counts', {yCountA, yCountAA, yCountB, yCountBB, yCountC, yCountCC, yCountD, yCountDD});
                 return new Response(JSON.stringify({ status: 'error', message: 'Invalid y-position counts' }), { status: 400 });
               }
-              console.log('*****************4');
               //end JUMP SPAWN RELATED VALIDATIONS
               //JUMPING RELATED VALIDATIONS
               const jumpEvents = telemetry.filter(e => e.event === 'jump');
@@ -858,9 +852,7 @@ export async function POST(request) {
                 });
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious stats jumpEvents vs stats.jumps' }), { status: 400 });
               }
-              console.log('*****************5');
               // Count jumps using both methods
-              console.log('GROUND_Y', GROUND_Y);
               let posSingleJumpCount = 0;
               let posDoubleJumpCount = 0;
               let timeSingleJumpCount = 0;
@@ -868,7 +860,6 @@ export async function POST(request) {
               let lastJumpEvent = jumpEvents[0];
               let prevTime = lastJumpEvent.time;
               const doubleJumpIntervals = [];
-              console.log('*****************6');
               // Process remaining jumps
               for (const event of jumpEvents) {
                 //handle differently for first jump event
@@ -886,7 +877,6 @@ export async function POST(request) {
                   timeSingleJumpCount++;
                   continue;
                 }
-                console.log('*****************7');
                 //for all other jump events, check ground position
                 if (Math.abs(event.data.y - GROUND_Y) < 2) {
                   //on the ground first of double jump or only jump
@@ -946,7 +936,7 @@ export async function POST(request) {
               // Check variance of double jump intervals
               const dJmean = doubleJumpIntervals.reduce((sum, d) => sum + d, 0) / doubleJumpIntervals.length;
               const dJvariance = doubleJumpIntervals.reduce((sum, d) => sum + Math.pow(d - dJmean, 2), 0) / doubleJumpIntervals.length;
-              const dJvarianceThreshold = 1000; // ms², to be adjusted with playtest data
+              const dJvarianceThreshold = 300; // ms², to be adjusted with playtest data
               console.log('Double jump interval variance check', {
                 dJvariance,
                 doubleJumpIntervals,

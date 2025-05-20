@@ -1043,11 +1043,7 @@ export async function POST(request) {
               const dJmean = doubleJumpIntervals.reduce((sum, d) => sum + d, 0) / doubleJumpIntervals.length;
               const dJvariance = doubleJumpIntervals.reduce((sum, d) => sum + Math.pow(d - dJmean, 2), 0) / doubleJumpIntervals.length;
               const dJvarianceThreshold = 300; // ms², to be adjusted with playtest data
-              console.log('Double jump interval variance check', {
-                dJvariance,
-                doubleJumpIntervals,
-                dJmean
-              });
+              console.log('Double jump interval variance check', { dJvariance, dJvarianceThreshold });
               if (dJvariance > dJvarianceThreshold) {
                 //positive case do nothing 
               } else {
@@ -1274,7 +1270,7 @@ export async function POST(request) {
               const mean = jumpObstacleDistances.reduce((sum, d) => sum + d, 0) / jumpObstacleDistances.length;
               const variance = jumpObstacleDistances.reduce((sum, d) => sum + Math.pow(d - mean, 2), 0) / jumpObstacleDistances.length;
               const varianceThreshold = 10; // adjust based on test data
-              console.log('Jump distance variance', { variance, jumpObstacleDistances, mean });
+              console.log('Jump distance variance', { variance, varianceThreshold});
               if (variance > varianceThreshold) {
                 //positive case do nothing
               } else {

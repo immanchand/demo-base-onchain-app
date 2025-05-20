@@ -841,6 +841,15 @@ export async function POST(request) {
                 console.log('Invalid y-position counts', {yCountA, yCountAA, yCountB, yCountBB, yCountC, yCountCC, yCountD, yCountDD});
                 return new Response(JSON.stringify({ status: 'error', message: 'Invalid y-position counts' }), { status: 400 });
               }
+
+              //validate that spawn events and y position counts are equal
+              if (spawnEvents.length === yCountA + yCountB + yCountC + yCountD) {
+                //positive case do nothing
+              } else {
+                console.log('Invalid spawn events and y position counts', 
+                  { spawnEventsLength: spawnEvents.length,
+                    yPosCounts: yCountA + yCountB + yCountC + yCountD});
+                return new Response(JSON.stringify({ status: 'error', message: 'Invalid spawn events and y position counts' }), { status: 400 });
               //end JUMP SPAWN RELATED VALIDATIONS
               //JUMPING RELATED VALIDATIONS
               const jumpEvents = telemetry.filter(e => e.event === 'jump');

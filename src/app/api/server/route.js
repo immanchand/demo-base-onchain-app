@@ -1092,7 +1092,7 @@ export async function POST(request) {
                 // Handle event-specific logic
                 if (event.event === 'spawn') {
                   activeObstacles.push({
-                    x: stats.canvasWidth,
+                    x: event.data.w*gameParams.OBSTACLE_SIZE + stats.canvasWidth,
                     y: event.data.y,
                     dx: event.data.speed,
                     width: gameParams.OBSTACLE_SIZE,

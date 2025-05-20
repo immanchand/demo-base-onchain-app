@@ -195,7 +195,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         for (let w = 0; w < widthCount; w++) {
             for (let h = 0; h < heightCount; h++) {
                 const newEvent = { event: 'spawn' as const, time: performance.now(), frameId: frameCount, 
-                    data: {x: baseX + w * JUMP_PARAMETERS.OBSTACLE_SIZE, y: baseY - h * JUMP_PARAMETERS.OBSTACLE_SIZE, speed, width: JUMP_PARAMETERS.OBSTACLE_SIZE, height: JUMP_PARAMETERS.OBSTACLE_SIZE } };
+                    data: {x: baseX + w * JUMP_PARAMETERS.OBSTACLE_SIZE, y: baseY - h * JUMP_PARAMETERS.OBSTACLE_SIZE, speed, width: JUMP_PARAMETERS.OBSTACLE_SIZE, height: JUMP_PARAMETERS.OBSTACLE_SIZE, w } };
                         telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
                             ? [...telemetryRef.current.slice(1), newEvent]
                             : [...telemetryRef.current, newEvent];

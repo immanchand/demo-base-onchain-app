@@ -371,7 +371,6 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                                     randNumber < clusterChance*2 ? 2 : 1;
 
                 obstaclePool.push(...spawnObstacles(canvas, obstacleSpeed, frameCount, widthCount, heightCount));
-                //lastObstacleSpawnX = canvas.width; ??
                 lastSpawnTimeRef.current = currentTime; // Update spawn time
             }
 
@@ -492,7 +491,6 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             ship.vy = 0;
             jumpCountRef.current = 0;
             obstaclePool = spawnObstacles(canvas, JUMP_PARAMETERS.BASE_OBSTACLE_SPEED, 0, 0, 0);
-            //lastObstacleSpawnX = canvas.width; ??
             lastSpawnTimeRef.current = performance.now()- 4000;
             startTimeRef.current = performance.now();
             backgroundOffset = 0;
@@ -528,7 +526,6 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             setTelemetry(telemetryRef.current); // Update telemetry state
             setIsTelemetrySyncing(true); // Indicate that syncing is in progress
             setEndGameStatus('pending');
-            //await endGameRef.current.endGame(); ??
         }
     }, [gameStarted]);
 

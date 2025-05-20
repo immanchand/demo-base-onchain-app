@@ -1131,7 +1131,6 @@ export async function POST(request) {
                       const closest = distances.reduce((min, curr) =>
                         curr.distance < min.distance ? curr : min
                       );
-                      console.log('Closest obstacle distance', { closest });
                       // only relevant jump distance
                       if (closest.normalizedDistance < 40) {
                         jumpObstacleDistances.push(closest.normalizedDistance);

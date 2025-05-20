@@ -30,24 +30,6 @@ const GAME_RECAPTCHA_END_THRESHOLD = {
   shoot: process.env.SHOOT_RECAPTCHA_END_THRESHOLD,
   jump: process.env.JUMP_RECAPTCHA_END_THRESHOLD,
 };
-// Game-specific cluster configurations
-const clusterConfigs = {
-  fly: {
-    validClusters: [
-      { xCount: 1, yCount: 1, obstacleCount: 1 }, // Single spawn
-      { xCount: 1, yCount: 2, obstacleCount: 2 }  // Double spawn
-    ]
-  },
-  jump: {
-    validClusters: [
-      { xCount: 1, yCount: 1, obstacleCount: 1 }, // 1x1
-      { xCount: 1, yCount: 2, obstacleCount: 2 }, // 1x2
-      { xCount: 2, yCount: 2, obstacleCount: 4 }, // 2x2
-      { xCount: 2, yCount: 3, obstacleCount: 6 }, // 2x3
-      { xCount: 2, yCount: 4, obstacleCount: 8 }  // 4x2
-    ]
-  }
-};
 // Cluster counts
 const clusterCounts = { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
 
@@ -809,11 +791,9 @@ export async function POST(request) {
 
               //check and count clusters
               // check later if this works for shoot. cluster is not important in shoot
-              const clusterConfig = clusterConfigs[stats.game];
               let clusterW = 0;
               let clusterH = 0;
-              // Cluster counts
-              //const clusterCounts = { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
+              // clusterCounts = { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
               // Group spawn events by frameId
               const spawnGroups = {};
               for (const event of spawnEvents) {
@@ -824,39 +804,33 @@ export async function POST(request) {
               }
               // Validate each spawn group
               for (const frameId in spawnGroups) {
-                //const events = spawnGroups[frameId];
-                // Cluster validation
-                //const uniqueX = [...new Set(events.map(e => e.data.x))];
-                //const uniqueY = [...new Set(events.map(e => e.data.y))];
+                //group length is the number of obstacles in this cluster
                 const obstacleCount = spawnGroups[frameId].length;
                 if (obstacleCount === 1) {
+                  // 1x1 cluster
                   clusterW = 1;
                   clusterH = 1;
                 } else if (obstacleCount === 2) {
+                  // 1x2 cluster
                   clusterW = 1;
                   clusterH = 2;
                 } else if (obstacleCount === 4) {
+                  // 2x2 cluster
                   clusterW = 2;
                   clusterH = 2;
                 } else if (obstacleCount === 6) {
+                  // 2x3 cluster
                   clusterW = 2;
                   clusterH = 3;
                 } else if (obstacleCount === 8) {
+                  // 2x4 cluster
                   clusterW = 2;
                   clusterH = 4;
                 } else {
+                  // no valid cluster size
                   console.log('Invalid cluster configuration', { frameId, obstacleCount, spawnGroups: spawnGroups[frameId] });
                   return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                 }
-
-                // //quick check that the cluster array found is valid
-                // const cluster = clusterConfig.validClusters.find(
-                //   c => c.xCount === uniqueX.length && c.yCount === uniqueY.length && c.obstacleCount === obstacleCount
-                // );
-                // if (!cluster) {
-                //   console.log('Invalid cluster configuration', { frameId, xCount: uniqueX.length, yCount: uniqueY.length, obstacleCount });
-                //   return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
-                // }
                 // Increment cluster count
                 const clusterKey = `${clusterW}x${clusterH}`;
                 clusterCounts[clusterKey]++;

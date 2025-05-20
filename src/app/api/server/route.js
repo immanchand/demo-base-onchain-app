@@ -1131,6 +1131,7 @@ export async function POST(request) {
                       const closest = distances.reduce((min, curr) =>
                         curr.distance < min.distance ? curr : min
                       );
+                      console.log('Closest obstacle distance', { closest });
                       // only relevant jump distance
                       if (closest.normalizedDistance < 40) {
                         jumpObstacleDistances.push(closest.normalizedDistance);
@@ -1183,7 +1184,9 @@ export async function POST(request) {
               const variance = jumpObstacleDistances.reduce((sum, d) => sum + Math.pow(d - mean, 2), 0) / jumpObstacleDistances.length;
               const varianceThreshold = 10; // adjust based on test data
               console.log('Jump distance variance', { variance, jumpObstacleDistances, mean });
-              if (variance < varianceThreshold) {
+              if (variance > varianceThreshold) {
+                //positive case do nothing
+              } else {
                 console.log('Suspiciously consistent jump distances', {
                   variance,
                   jumpObstacleDistances,

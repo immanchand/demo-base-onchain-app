@@ -9,8 +9,11 @@ import {  message,
           SCORE_DIVISOR_TIME,
           FLY_PARAMETERS,
           SHOOT_PARAMETERS, 
-          JUMP_PARAMETERS} from '../../../constants';
+          JUMP_PARAMETERS,   } from '../../../constants';
 
+const banMessage = "Yo, not cool! We sniffed out some sus moves. Keep it legit to avoid the banhammer. Play fair and HODL the leaderboard!";
+const tooLuckyMessage = "Whoa! Either you're the luckiest player in the crypto-verse or something's fishy. Give it another shot, but keep it real, fam!";
+const browserPerfMessage = "Hold up, yo! Looks like either sneaky tricks or a laggy browser. Pump up your rig’s performance and play fair to moon that score!";
 const rateLimitStore = new Map();
 const gameDurationStore = new Map();
 const GAME_MASTER_PRIVATE_KEY = process.env.GAME_MASTER_PRIVATE_KEY;
@@ -166,7 +169,7 @@ export async function POST(request) {
 
   if (!csrfToken || !sessionId || csrfTokens.get(sessionId) !== csrfToken) {
     console.log('!csrfToken || !sessionId || csrfTokens.get(sessionId) !== csrfToken', !csrfToken,'||',!sessionId,' ||', csrfTokens.get(sessionId),'!==', csrfToken);
-    return new Response(JSON.stringify({ status: 'error', message: 'Invalid or missing CSRF token. Press f5 to refresh' }), {
+    return new Response(JSON.stringify({ status: 'error', message: "CSRF token's gone AWOL or acting sus. Hit F5 to refresh and get back to dominating the leaderboard!" }), {
       status: 403,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
     });
@@ -207,6 +210,75 @@ export async function POST(request) {
           { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
         );
       
+      case 'start-game':
+        if (!gameId || !address) {
+          return new Response(
+            JSON.stringify({ status: 'error', message: 'Missing gameId or address' }),
+            { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
+          );
+        }
+        
+        try {
+          const recaptchaResponse = await fetch(
+            `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaTokenStart}`
+          );
+          const recaptchaData = await recaptchaResponse.json();
+          console.log('reCAPTCHA START data:', recaptchaData);
+          if (!recaptchaData.success || recaptchaData.score < RECAPTCHA_START_THRESHOLD) {
+            return new Response(JSON.stringify({ status: 'error', message: "CAPTCHA's not vibing with your moves. Wiggle that mouse like you're dodging FUD and try again to HODL the score!" }), {
+              status: 403,
+            });
+          }
+        } catch (error) {
+          console.error('reCAPTCHA error:', error);
+          return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA verification error' }), {
+            status: 500,
+          });
+        }
+        // Verify signature and recover address
+        let playerAddress;
+        console.log('gameSigRaw',gameSigRaw);
+        if (gameSigRaw) {
+          try {
+            const { message: signedMessage, signature } = JSON.parse(gameSigRaw);
+            if (signedMessage !== message) { // Verify the message matches the expected constant
+              return new Response(JSON.stringify({ status: 'error', message: "Your signature is out of sync! Sus!" }), {
+                status: 403,
+                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } },
+              );
+            }
+            playerAddress = ethers.verifyMessage(message, signature);
+            if (playerAddress.toLowerCase() !== address.toLowerCase()) {
+              return new Response(JSON.stringify({ status: 'error', message: "Your signature is out of sync. Refresh the page and make sure you're logged in with the right wallet to keep the vibes legit!" }), {
+                status: 403,
+                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
+              });
+            }
+          } catch (error) {
+            console.error('Signature verification failed:', error);
+            return new Response(JSON.stringify({ status: 'error', message: 'Invalid signature' }), {
+              status: 403,
+              headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
+            });
+          }
+        } else {
+          return new Response(JSON.stringify({ status: 'error', message: 'Missing or invalid signature' }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
+          });
+        }
+
+        console.log('playerAddress',playerAddress);
+        result = await sendTransaction(async (txOptions) => {
+          return await contract.startGame(BigInt(gameId), playerAddress, txOptions);
+        });
+        gameDurationStore.set(address, Date.now());
+        console.log('Start game successful:', result.tx.hash);
+        return new Response(
+          JSON.stringify({ status: 'success', txHash: result.tx.hash }),
+          { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
+        );
+
       case 'end-game':
         //verify that required input fields are present
         if (gameId && address && score) {
@@ -247,7 +319,7 @@ export async function POST(request) {
                 // early check and return if game is already over
                 if (gameEndTime <= Date.now()/1000) {
                   console.log('gameEndTime <= Date.now()/1000', gameEndTime, '<=', Date.now()/1000);
-                  return new Response(JSON.stringify({ status: 'error', message: 'This game is already over' }), {
+                  return new Response(JSON.stringify({ status: 'error', message: "Yo, degen! Your score's fire, but this game's already wrapped. Jump into the next round and moon that leaderboard!" }), {
                     status: 400,
                   });
                 }
@@ -275,7 +347,7 @@ export async function POST(request) {
               //positive case do nothing
             } else {
               console.log('stats', stats, 'telemetry', telemetry, 'or telemetry.length', telemetry.length, 'is invalid');
-              return new Response(JSON.stringify({ status: 'error', message: 'Missing telemetry or stats for high score validation' }), {
+              return new Response(JSON.stringify({ status: 'error', message: banMessage }), {
                 status: 400,
               });
             }
@@ -283,7 +355,7 @@ export async function POST(request) {
               //positive case do nothing
             } else {
               console.log('telemetry.length',telemetry.length, 'is more than limit', TELEMETRY_LIMIT);
-              return new Response(JSON.stringify({ status: 'error', message: 'Telemetry data is invalid. Suspected cheating.' }), {
+              return new Response(JSON.stringify({ status: 'error', message: tooLuckyMessage }), {
                 status: 400,
               });
             }
@@ -314,7 +386,7 @@ export async function POST(request) {
                 //positive case do nothing
               } else {
                 console.log('recaptchaData.success', recaptchaData.success, 'or recaptchaData.score',recaptchaData.score, 'is invalid');
-                return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA failed. You behaved like a bot' }), {
+                return new Response(JSON.stringify({ status: 'error', message: "Our CAPTCHA's calling you out—acting a bit too bot-like." }), {
                   status: 403,
                 });
               }
@@ -333,7 +405,7 @@ export async function POST(request) {
                 gameId,
                 gameName: stats.game,
             });
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score in stats' }), { status: 400 });
+              return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
             }
             //ALL games check GAME_PARAMETERS
             const fpsEvents = telemetry.filter(e => e.event === 'fps');
@@ -350,7 +422,7 @@ export async function POST(request) {
                     received: event.parameters[key],
                     expected: expectedValue,
                   });
-                  return new Response(JSON.stringify({ status: 'error', message: `Invalid parameter: ${key}` }), { status: 400 });
+                  return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                 }
               }
             }
@@ -372,7 +444,7 @@ export async function POST(request) {
                   eventShipHeight: event.data.height,
                   eventShipWidth: event.data.width,
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship size' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
               if(event.data.score === 0) {
                 //positve case do nothing
@@ -382,7 +454,7 @@ export async function POST(request) {
                   gameId,
                   gameName: stats.game,
               });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious event score' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
             }
 
@@ -401,7 +473,7 @@ export async function POST(request) {
                   eventTime: event.time,
                   lastTime
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Invalid telemetry order: time not chronological' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
               lastTime = event.time;
 
@@ -416,7 +488,7 @@ export async function POST(request) {
                     currentFrameId,
                     lastFrameId
                   });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Invalid telemetry order: frameId not in order' }), { status: 400 });
+                  return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                 }
                 lastFrameId = currentFrameId;
               }
@@ -432,7 +504,7 @@ export async function POST(request) {
                 gameName: stats.game,
                 numberEvents: collisionEvents.length,
               });
-              return new Response(JSON.stringify({ status: 'error', message: 'Incorrect collision event telemetry count' }), {
+              return new Response(JSON.stringify({ status: 'error', message: banMessage }), {
                 status: 400,
               });
             }
@@ -443,7 +515,7 @@ export async function POST(request) {
               //positve case do nothing
             } else {
               console.log('lastEvent.event', lastEvent.event, 'or secondLastEvent.event', secondLastEvent.event, '!== collision');
-              return new Response(JSON.stringify({ status: 'error', message: 'Last event must be collision' }), { status: 400 });
+              return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
             }
             // All gamess Check if server game duration is more than client game duration. With network latency, it can never be less.
             // if client game time is more, or too less by 2 seconds difference, indicates cheating attempts
@@ -459,7 +531,7 @@ export async function POST(request) {
                     nowEnd,
                     serverDuration,
                     statsTime: stats.time});
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: game duration is more than expected' }), {
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), {
                     status: 400,
                 });
             }
@@ -478,7 +550,7 @@ export async function POST(request) {
                 nowEnd,
                 serverDuration,
                 telemetryDuration});  
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious telemetry duration vs server duration' }), { status: 400 });
+              return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
             }
 
             // all games common telemetry check for average fps (frames per second)
@@ -486,7 +558,7 @@ export async function POST(request) {
               //positive case do nothing
             } else {
               console.log('fpsEvents.length < (frameEvents.length/10 - 11)',fpsEvents.length, '<', frameEvents.length,'/10 - 11');
-              return new Response(JSON.stringify({ status: 'error', message: 'Missing FPS events in telemetry' }), { status: 400 });
+              return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
             }
             const fpsValues = fpsEvents.map(e => e.data.fps);
             const canvasHeightValues = fpsEvents.map(e => e.data.height);
@@ -514,20 +586,20 @@ export async function POST(request) {
               //positive case do nothing
             } else {
               console.log('minFps',minFps, 'is invalid');
-              return new Response(JSON.stringify({ status: 'error', message: 'FPS out of acceptable range' }), { status: 400 });
+              return new Response(JSON.stringify({ status: 'error', message: browserPerfMessage }), { status: 400 });
             }
             // Check for suspicious FPS variance (e.g., >10 FPS change)
             if (maxFps - minFps <= 7) {
               //positive case do nothing
             } else {
               console.log('maxFps - minFps > 7',maxFps,' -', minFps, '>',' 7');
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious FPS variance during game' }), { status: 400 });
+              return new Response(JSON.stringify({ status: 'error', message: browserPerfMessage }), { status: 400 });
             }
             if (maxCanvH - minCanvH < 1 && avgCanvH - stats.canvasHeight < 1 ) {
               //positive case do nothing
             } else {
               console.log('maxCanvH - minCanvH > 1 || avgCanvH - stats.canvasHeight > 1 ',maxCanvH - minCanvH,' > 1 || ',avgCanvH - stats.canvasHeight,' > 1 ');
-              return new Response(JSON.stringify({ status: 'error', message: 'Canvas size changed during game' }), { status: 400 });                
+              return new Response(JSON.stringify({ status: 'error', message: browserPerfMessage }), { status: 400 });                
             }
             
             // All games check that difficultyFactor progresses correctly.
@@ -547,7 +619,7 @@ export async function POST(request) {
                     difficultyFactor,
                     eventDifficulty: event.data.difficulty,
                   });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious difficulty factor progression' }), { status: 400 });
+                    return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                 }
             }
 
@@ -566,7 +638,7 @@ export async function POST(request) {
                 gameName: stats.game,
                 frameDeltaTimieVariance,
               });
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious deltaTime variance' }), { status: 400 });
+              return new Response(JSON.stringify({ status: 'error', message: browserPerfMessage }), { status: 400 });
             }
             //all games check total telemetry frame delta time against stats.time/1000=gameTimeSec
             if (totalFrameDeltaTime < gameTimeSec  * 1.01 && totalFrameDeltaTime > gameTimeSec * 0.99) { //1% variance allowed
@@ -579,7 +651,7 @@ export async function POST(request) {
                 totalFrameDeltaTime,
                 gameTimeSec,
               })
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious time: delta time and total game Time dont match' }), {
+              return new Response(JSON.stringify({ status: 'error', message: browserPerfMessage }), {
                 status: 400,
               });
             }
@@ -601,7 +673,7 @@ export async function POST(request) {
                   maxObstacles: stats.maxObstacles,
                   spawnEventsCount: spawnEvents.length
               });
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle count in stats and telemetry' }), { status: 400 });
+              return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
             }
 
             // obsData validation for maxObstaclesInPool vs stats.maxObstacles
@@ -621,7 +693,7 @@ export async function POST(request) {
                 maxObstaclesInPool,
                 maxObstaclesStats: stats.maxObstacles,
               });
-              return new Response(JSON.stringify({ status: 'error', message: 'Invalid maxObstaclesInPool vs stats.maxObstacles' }), { status: 400 });
+              return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
             }
             console.log('maxObstaclesInPool',maxObstaclesInPool);
 
@@ -633,7 +705,7 @@ export async function POST(request) {
                 //positive case do nothing
               } else {
                 console.log('Invalid obstacle size', { actualWidth: event.data.width, actualHeight: event.data.height });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle size' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
               // Speed check
               const elapsedTimeSec = ((event.time - gameStartTime) / 1000);
@@ -652,7 +724,7 @@ export async function POST(request) {
                       actualSpeed: event.data.speed,
                       difficultyFactor
                   });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle speed' }), { status: 400 });
+                  return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
               // Check for spawn event gap time consitency with difficulty factor
               if (prevSpawnEvent) {
@@ -672,7 +744,7 @@ export async function POST(request) {
                       tolerance,
                       difficultyFactor,
                   });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn gap timing' }), { status: 400 });
+                  return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                 }
               }
               prevSpawnEvent = event;
@@ -693,7 +765,7 @@ export async function POST(request) {
                   gameName: stats.game,
                   score,
                   scoreVariance: (stats.time + 1000)/SCORE_DIVISOR_TIME});
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious Score: score and game duration dont match' }), {
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), {
                   status: 400,
                 });
               }
@@ -704,7 +776,7 @@ export async function POST(request) {
                 //positive case do nothing
               } else {
                 console.log('Number(score) > computedScore * 1.1', Number(score), '>', computedScore, '* 1.1');
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious score: computed events and reported score don’t match' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
               // Static x position games check ship x position
               // check ship start position
@@ -717,7 +789,7 @@ export async function POST(request) {
                   statsShipX: stats.shipX,
                   shipX: stats.canvasWidth * 0.15,
               });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship start position' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
               // check each frame event ship position
               for (const event of frameEvents) {
@@ -731,7 +803,7 @@ export async function POST(request) {
                     statsShipPosition: stats.shipX,
                     eventShipPosition: event.data.x,
                   });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship size' }), { status: 400 });
+                  return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                 }
               }
 
@@ -761,7 +833,7 @@ export async function POST(request) {
                 );
                 if (!cluster) {
                   console.log('Invalid cluster configuration', { frameId, xCount: uniqueX.length, yCount: uniqueY.length, obstacleCount });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Invalid obstacle cluster configuration' }), { status: 400 });
+                  return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                 }
                 // Increment cluster count
                 const clusterKey = `${uniqueX.length}x${uniqueY.length}`;
@@ -779,11 +851,11 @@ export async function POST(request) {
 
               //JUMP SPAWN RELATED VALIDATIONS
               // validate that all types of cluster sizes are present at least once
-              if (clusterCounts['1x1'] > 0 &&
-                  clusterCounts['1x2'] > 0 &&
-                  clusterCounts['2x2'] > 0 &&
-                  clusterCounts['2x3'] > 0 &&
-                  clusterCounts['2x4'] > 0 ) {
+              if (clusterCounts['1x1'] >= 6 &&
+                  clusterCounts['1x2'] >= 4 &&
+                  clusterCounts['2x2'] >= 2 &&
+                  clusterCounts['2x3'] >= 1 &&
+                  clusterCounts['2x4'] >= 1 ) {
                 //positive case do nothing
               } else {
                 console.log('All cluster types are not present', {
@@ -791,8 +863,7 @@ export async function POST(request) {
                   address,
                   clusterCounts,
                 });
-                // endable in prod after testing ***************
-                //return new Response(JSON.stringify({ status: 'error', message: 'Sus for cheating! Or maybe you got waaay to lucky with that one! Sorry!' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: tooLuckyMessage }), { status: 400 });
               }
               // Check y-position of obstacles and count clusters (Jump only)
               const GROUND_Y = avgCanvH * gameParams.GROUND_HEIGHT_RATIO - gameParams.SHIP_HEIGHT;
@@ -827,10 +898,9 @@ export async function POST(request) {
                     yCountD++;
                 } else {
                     console.log('Invalid obstacle y position', { frameId: event.frameId, y, validYPositions: [yPosA, yPosB, yPosC, yPosD] });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle y position' }), { status: 400 });
+                    return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                 }
               }
-              console.log('spawnEventY', spawnEventY);
               // Compare positional counts
               if (yCountA === yCountAA &&
                   yCountB === yCountBB &&
@@ -839,7 +909,7 @@ export async function POST(request) {
                 //positive case do nothing
               } else {
                 console.log('Invalid y-position counts', {yCountA, yCountAA, yCountB, yCountBB, yCountC, yCountCC, yCountD, yCountDD});
-                return new Response(JSON.stringify({ status: 'error', message: 'Invalid y-position counts' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
 
               //validate that spawn events and y position counts are equal
@@ -849,7 +919,7 @@ export async function POST(request) {
                 console.log('Invalid spawn events and y position counts', 
                   { spawnEventsLength: spawnEvents.length,
                     yPosCounts: yCountA + yCountB + yCountC + yCountD});
-                return new Response(JSON.stringify({ status: 'error', message: 'Invalid spawn events and y position counts' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
               //end JUMP SPAWN RELATED VALIDATIONS
               //JUMPING RELATED VALIDATIONS
@@ -864,7 +934,7 @@ export async function POST(request) {
                   statsJumps: stats.jumps,
                   jumpEventsLength: jumpEvents.length,
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious stats jumpEvents vs stats.jumps' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
               // Count jumps using both methods
               let posSingleJumpCount = 0;
@@ -885,7 +955,7 @@ export async function POST(request) {
                       shipY: event.data.y,
                       GROUND_Y,
                     });
-                    return new Response(JSON.stringify({ status: 'error', message: 'first jump must be on the ground' }), { status: 400 });    
+                    return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });    
                   }
                   posSingleJumpCount++;
                   timeSingleJumpCount++;
@@ -915,7 +985,7 @@ export async function POST(request) {
                     timeDiff: event.time - prevTime,
                     lastJumpEvent,
                   });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously fast jump timing' }), { status: 400 });
+                  return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                 }
                 //set previous time before closing the loop
                 prevTime = event.time;
@@ -932,7 +1002,7 @@ export async function POST(request) {
                   timeSingleJumpCount,
                   timeDoubleJumpCount
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Inconsistent single/double jump counts' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
               // Validate total jumps
               if (jumpEvents.length === posSingleJumpCount + posDoubleJumpCount) {
@@ -944,7 +1014,7 @@ export async function POST(request) {
                   posSingleJumpCount,
                   posDoubleJumpCount
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Total jump count mismatch' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
               // Validate double jump intervals variance
               // Check variance of double jump intervals
@@ -965,7 +1035,7 @@ export async function POST(request) {
                   doubleJumpIntervals,
                   mean: dJmean,
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously consistent double jump timing' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
               
               
@@ -979,7 +1049,7 @@ export async function POST(request) {
                   statsJumpsPerSec: stats.jumpsPerSec,
                   expectedJumpsPerSec,
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious jumpsPerSec vs jump events patterns' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
 
               // Existing jumpsPerSec vs inputsPerSec check more inputs since some triple jumps not counted
@@ -990,7 +1060,7 @@ export async function POST(request) {
                   statsJumpsPerSec: stats.jumpsPerSec,
                   statsInputsPerSec: stats.inputsPerSec,
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious stats jumpsPerSec vs inputsPerSec' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
 
               // Existing min/max jumps per second checks
@@ -1002,7 +1072,7 @@ export async function POST(request) {
                   minJumpsPerSec: 0.2,
                   maxJumpsPerSec: 1.4,
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay jumpsPerSec out of range' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
               //end JUMPING RELATED VALIDATIONS
 
@@ -1033,7 +1103,7 @@ export async function POST(request) {
                 lastFrameId: stopFrame.frameId,
                 statsFramesCount: stats.framesCount,
               });
-              return new Response(JSON.stringify({ status: 'error', message: 'Suspicious last frame is out of range of stats.framesCount' }), { status: 400 });
+              return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
 
               // Initialize obstacles
@@ -1052,7 +1122,7 @@ export async function POST(request) {
                   // Positive case
                 } else {
                   console.log('Time inconsistency', { event, lastFrameId, actualTime, expectedTime });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious event timing' }), { status: 400 });
+                  return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                 }
 
                 // Simulate frame by frame physics
@@ -1084,7 +1154,7 @@ export async function POST(request) {
                       // Positive case
                     } else {
                       console.log('Suspicious unreported obstacle collision', { frameId: event.frameId + i, shipX: shipStartX, shipY: currentY, obs });
-                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious unreported obstacle collision' }), { status: 400 });
+                      return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                     }
                   }
                 }
@@ -1104,20 +1174,20 @@ export async function POST(request) {
                     // Positive case
                   } else {
                     console.log('Ship out of start x position', { event, shipStartX });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Ship out of start x position' }), { status: 400 });
+                    return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                   }
                   currentVy = gameParams.JUMP_VELOCITY;
                   if (Math.abs(event.data.y - currentY) < 0.001) {
                     // Positive case
                   } else {
                     console.log('Jump position check failed', { event, expectedY: currentY, actualY: event.data.y });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious jump position' }), { status: 400 });
+                    return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                   }
                   if (Math.abs(event.data.vy - gameParams.JUMP_VELOCITY) < 0.001) {
                     // Positive case
                   } else {
                     console.log('Jump velocity check failed', { event, expectedVy: gameParams.JUMP_VELOCITY, actualVy: event.data.vy });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious jump velocity' }), { status: 400 });
+                    return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                   }
                   // Calculate distance to closest obstacle
                   if (activeObstacles.length > 0) {
@@ -1142,13 +1212,13 @@ export async function POST(request) {
                     // Positive case
                   } else {
                     console.log('Frame position check failed', { event, expectedY: currentY, actualY: event.data.y });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
+                    return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                   }
                   if (Math.abs(event.data.vy - currentVy) < 0.001) {
                     // Positive case
                   } else {
                     console.log('Frame velocity check failed', { event, expectedVy: currentVy, actualVy: event.data.vy });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame velocity' }), { status: 400 });
+                    return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                   }
                   const reportedObstacles = event.obsData.obstacles;
                   for (const activeObs of activeObstacles) {
@@ -1167,7 +1237,7 @@ export async function POST(request) {
                           reportedObstacles,
                           activeObstacles,
                         });
-                        return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle disappearance' }), { status: 400 });
+                        return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                       }
                     }
                   }
@@ -1191,7 +1261,7 @@ export async function POST(request) {
                   jumpObstacleDistances,
                   mean
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspiciously consistent jump distances' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
               
               //end JUMP GAME
@@ -1222,14 +1292,14 @@ export async function POST(request) {
                 //positive case do nothing
               } else {
                 console.log('uniqueYPositions',uniqueYPositions,'uniqueYPositionsSpawn',uniqueYPositionsSpawn,'size not equal');
-                return new Response(JSON.stringify({ status: 'error', message: 'Invalid y position count spawns and obstacles' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
               uniqueYPositions.forEach(y => {
                 if (uniqueYPositionsSpawn.has(y)) {
                   //positive case do nothing
                 } else {
-                  console.log(`Mismatch: y position ${y} from uniqueYPositions not found in uniqueYPositionsSpawn`);
-                  return new Response(JSON.stringify({ status: 'error', message: 'Invalid y positions spawns and obstacles' }), { status: 400 });
+                  console.log(`Mismatch: y position ${y} from uniqueYPositions not found in uniqueYPositionsSpawn`, uniqueYPositionsSpawn);
+                  return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                 }
               });
               // Additional check to ensure all elements in uniqueYPositionsSpawn are in uniqueYPositions
@@ -1241,8 +1311,8 @@ export async function POST(request) {
               if (spawnMissing <= 2){
                 //positive case do nothing
               } else {
-                console.log('Too many Missing y positions from uniqueYPositionsSpawn not found in uniqueYPositions');
-                return new Response(JSON.stringify({ status: 'error', message: 'Invalid y positions obstacles and spawns' }), { status: 400 });
+                console.log('Missing y positions from uniqueYPositionsSpawn not found in uniqueYPositions', {uniqueYPositionsSpawn, uniqueYPositions});
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
 
               //check that the nuber of spawn events is equal to unique obsdata positions with 1 cluster frame event variance
@@ -1255,7 +1325,7 @@ export async function POST(request) {
                   uniqueYPositions: uniqueYPositions.size,
                   spawns: spawnEvents.length,
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'uniqueYPositions and spawns mismatch' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
               // Perform chi-squared test for uniform distribution
               const playableHeight = avgCanvH - gameParams.OBSTACLE_SIZE;
@@ -1276,7 +1346,7 @@ export async function POST(request) {
                 }
               });
               if (isInvalidYPosition)
-                return new Response(JSON.stringify({ status: 'error', message: 'Invalid obstacle y-position detected' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               
               console.log('Observed frequencies:', observedFrequencies);
 
@@ -1293,8 +1363,7 @@ export async function POST(request) {
                   minObserved,
                   maxObserved,
                 });
-                // enable after more testing *******************
-                //return new Response(JSON.stringify({ status: 'error', message: 'Insufficient obstacle y position spawns in min bin' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: tooLuckyMessage }), { status: 400 });
               }
               if(minObserved >= 3) {
                 //positive case do nothing
@@ -1306,8 +1375,7 @@ export async function POST(request) {
                   minObserved,
                   maxObserved,
                 });
-                // enable after more testing *******************
-                //return new Response(JSON.stringify({ status: 'error', message: 'Insufficient obstacle y position spawns in min bin' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: tooLuckyMessage }), { status: 400 });
               }
 
               // Calculate chi-squared statistic
@@ -1375,7 +1443,7 @@ export async function POST(request) {
                     expectedSpawns,
                     gameTimeSec
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious spawn count' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: tooLuckyMessage }), { status: 400 });
               }
               // Expected Double spawn calculations and validations
               const doubleSpawnStdDev = Math.sqrt(expectedDoubleSpawns * gameParams.CLUSTER_CHANCE * (1 - gameParams.CLUSTER_CHANCE)); // Variance for double spawns
@@ -1393,7 +1461,7 @@ export async function POST(request) {
                     minExpectedDoubleSpawns,
                     maxExpectedDoubleSpawns,
                 });
-                return new Response(JSON.stringify({status: 'error', message: 'Suspicious double spawn count' }), { status: 400 });
+                return new Response(JSON.stringify({status: 'error', message: tooLuckyMessage }), { status: 400 });
               }
               // expected maxObstacles range calcuations and validations
               const maxObstaclesStdDev = Math.sqrt(Math.abs(expectedMaxObstacles * (1 + gameParams.CLUSTER_CHANCE) * (1 - (1 + gameParams.CLUSTER_CHANCE))));
@@ -1409,7 +1477,7 @@ export async function POST(request) {
                       minExpectedMaxObstacles,
                       maxExpectedMaxObstacles
                   });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious maxObstacles: outside expected range' }), { status: 400 });
+                  return new Response(JSON.stringify({ status: 'error', message: tooLuckyMessage }), { status: 400 });
               }
               // END SPAWN RELATED VALIDATION
               
@@ -1424,7 +1492,7 @@ export async function POST(request) {
                   statsFlaps: stats.flaps,
                   flapEventsLength: flapEvents.length,
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious stats flapEvents vs stats.flaps' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
               // 1. Flap Interval Variance
               const flapIntervals = [];
@@ -1439,7 +1507,7 @@ export async function POST(request) {
                 //positive case do nothing
               } else {
                 console.log('Suspicious flap interval variance not between 2< >6', variance);
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap interval variance' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
 
               // 2. Validate Flap Frequency
@@ -1452,7 +1520,7 @@ export async function POST(request) {
                   statsFlapsPerSec: stats.flapsPerSec,
                   expectedFlapsPerSec,
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flapsPerSec vs flap events patterns' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
 
               // 3. Existing flapsPerSec vs inputsPerSec check
@@ -1463,7 +1531,7 @@ export async function POST(request) {
                   statsFlapsPerSec: stats.flapsPerSec,
                   statsInputsPerSec: stats.inputsPerSec,
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious stats flapsPerSec vs inputsPerSec' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
 
               // 4. Existing min/max flaps per second checks
@@ -1475,7 +1543,7 @@ export async function POST(request) {
                   minFlapsPerSec: 1,
                   maxFlapsPerSec: 3,
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious gameplay flapsPerSec out of range' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
 
 
@@ -1499,7 +1567,7 @@ export async function POST(request) {
                   lastFrameId: stopFrame.frameId,
                   statsFramesCount: stats.framesCount,
                 });
-                return new Response(JSON.stringify({ status: 'error', message: 'Suspicious last frame  is out of range of stats.framesCount' }), { status: 400 });
+                return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
               }
               // Initialize obstacles from the first frame's obsData or spawn events
               if (lastFrame.obsData && lastFrame.obsData.obstacles) {
@@ -1518,7 +1586,7 @@ export async function POST(request) {
                   //positive case do nothing
                 } else {
                   console.log('Time inconsistency', { event, lastFrameId, actualTime, expectedTime });
-                  return new Response(JSON.stringify({ status: 'error', message: 'Suspicious event timing' }), { status: 400 });
+                  return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                 }
 
                 // Simulate frame by frame physics and obstacle movement
@@ -1538,7 +1606,7 @@ export async function POST(request) {
                       frameId: i,
                       currentY,
                     });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious ship no collision with ground or top' }), { status: 400 });
+                    return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                   }
                   // Update obstacle positions
                   activeObstacles.forEach(obs => {
@@ -1559,7 +1627,7 @@ export async function POST(request) {
                       //positive case do nothing
                     } else {
                       console.log('Suspicious unreported obstacle collision', { frameId: event.frameId + i, shipX: shipStartX, shipY: currentY, obs });
-                      return new Response(JSON.stringify({ status: 'error', message: 'Suspicious unreported obstacle collision' }), { status: 400 });
+                      return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                     }
                   }
                 }
@@ -1579,7 +1647,7 @@ export async function POST(request) {
                     //positive case do nothing
                   } else {
                     console.log('Ship out of start x position', { event, shipStartX });
-                      return new Response(JSON.stringify({ status: 'error', message: 'Ship out of start x position' }), { status: 400 });
+                      return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                   }
                   // Apply flap velocity
                   currentVy = gameParams.FLAP_VELOCITY;
@@ -1588,13 +1656,13 @@ export async function POST(request) {
                     //positive case do nothing
                   } else {
                     console.log('Flap position check failed', { event, expectedY: currentY, actualY: event.data.y });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap position' }), { status: 400 });
+                    return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                   }
                   if (Math.abs(event.data.vy - gameParams.FLAP_VELOCITY) < 0.001) {
                     //positive case do nothing
                   } else {
                     console.log('Flap velocity check failed', { event, expectedVy: gameParams.FLAP_VELOCITY, actualVy: event.data.vy });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious flap velocity' }), { status: 400 });
+                    return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                   }
 
                 } else if (event.event === 'frame') {
@@ -1603,13 +1671,13 @@ export async function POST(request) {
                     //positive case do nothing
                   } else {
                     console.log('Frame position check failed', { event, expectedY: currentY, actualY: event.data.y });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame position' }), { status: 400 });
+                    return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                   }
                   if (Math.abs(event.data.vy - currentVy) < 0.001) {
                     //positive case do nothing
                   } else {
                     console.log('Frame velocity check failed', { event, expectedVy: currentVy, actualVy: event.data.vy });
-                    return new Response(JSON.stringify({ status: 'error', message: 'Suspicious frame velocity' }), { status: 400 });
+                    return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                   }
 
                   // Validate that obstacles haven't disappeared prematurely
@@ -1632,7 +1700,7 @@ export async function POST(request) {
                           reportedObstacles,
                           activeObstacles,
                         });
-                        return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle disappearance' }), { status: 400 });
+                        return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 });
                       }
                     }
                   }
@@ -1648,8 +1716,6 @@ export async function POST(request) {
               // END FLY GAME VALIDATIONS
               
 
-
-
               // SHOOT GAME
             } else if (stats.game === 'shoot') {
               
@@ -1661,11 +1727,6 @@ export async function POST(request) {
             }
 
               
-            
-
-
-
-
             
         } //end if score >= telemetry threshold and > contractHighScore
         //now submit the validated high score to the contract
@@ -1700,75 +1761,6 @@ export async function POST(request) {
           status: 500,
         });
       }
-
-      case 'start-game':
-        if (!gameId || !address) {
-          return new Response(
-            JSON.stringify({ status: 'error', message: 'Missing gameId or address' }),
-            { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
-          );
-        }
-        
-        try {
-          const recaptchaResponse = await fetch(
-            `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaTokenStart}`
-          );
-          const recaptchaData = await recaptchaResponse.json();
-          console.log('reCAPTCHA START data:', recaptchaData);
-          if (!recaptchaData.success || recaptchaData.score < RECAPTCHA_START_THRESHOLD) {
-            return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA failed. Move mouse around and try again' }), {
-              status: 403,
-            });
-          }
-        } catch (error) {
-          console.error('reCAPTCHA error:', error);
-          return new Response(JSON.stringify({ status: 'error', message: 'CAPTCHA verification error' }), {
-            status: 500,
-          });
-        }
-        // Verify signature and recover address
-        let playerAddress;
-        console.log('gameSigRaw',gameSigRaw);
-        if (gameSigRaw) {
-          try {
-            const { message: signedMessage, signature } = JSON.parse(gameSigRaw);
-            if (signedMessage !== message) { // Verify the message matches the expected constant
-              return new Response(JSON.stringify({ status: 'error', message: 'Invalid signed message' }), {
-                status: 403,
-                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } },
-              );
-            }
-            playerAddress = ethers.verifyMessage(message, signature);
-            if (playerAddress.toLowerCase() !== address.toLowerCase()) {
-              return new Response(JSON.stringify({ status: 'error', message: 'Cookie Signature does not match player address' }), {
-                status: 403,
-                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
-              });
-            }
-          } catch (error) {
-            console.error('Signature verification failed:', error);
-            return new Response(JSON.stringify({ status: 'error', message: 'Invalid signature' }), {
-              status: 403,
-              headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
-            });
-          }
-        } else {
-          return new Response(JSON.stringify({ status: 'error', message: 'Missing or invalid signature' }), {
-            status: 403,
-            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
-          });
-        }
-
-        console.log('playerAddress',playerAddress);
-        result = await sendTransaction(async (txOptions) => {
-          return await contract.startGame(BigInt(gameId), playerAddress, txOptions);
-        });
-        gameDurationStore.set(address, Date.now());
-        console.log('Start game successful:', result.tx.hash);
-        return new Response(
-          JSON.stringify({ status: 'success', txHash: result.tx.hash }),
-          { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } }
-        );
       
       default:
         return new Response(

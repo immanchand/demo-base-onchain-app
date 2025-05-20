@@ -850,6 +850,7 @@ export async function POST(request) {
                   { spawnEventsLength: spawnEvents.length,
                     yPosCounts: yCountA + yCountB + yCountC + yCountD});
                 return new Response(JSON.stringify({ status: 'error', message: 'Invalid spawn events and y position counts' }), { status: 400 });
+              }
               //end JUMP SPAWN RELATED VALIDATIONS
               //JUMPING RELATED VALIDATIONS
               const jumpEvents = telemetry.filter(e => e.event === 'jump');

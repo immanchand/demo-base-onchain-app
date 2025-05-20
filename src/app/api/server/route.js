@@ -1355,7 +1355,8 @@ export async function POST(request) {
                   minObserved,
                   maxObserved,
                 });
-                return new Response(JSON.stringify({ status: 'error', message: tooLuckyMessage }), { status: 400 });
+                // enable after more testing ********* doesnt seem to work
+                //return new Response(JSON.stringify({ status: 'error', message: tooLuckyMessage }), { status: 400 });
               }
               if(minObserved >= 3) {
                 //positive case do nothing
@@ -1439,7 +1440,7 @@ export async function POST(request) {
               }
               // Expected Double spawn calculations and validations
               const doubleSpawnStdDev = Math.sqrt(expectedDoubleSpawns * gameParams.CLUSTER_CHANCE * (1 - gameParams.CLUSTER_CHANCE)); // Variance for double spawns
-              const doubleSpawnTolerance = 1.7 * doubleSpawnStdDev;
+              const doubleSpawnTolerance = 2 * doubleSpawnStdDev;
               const minExpectedDoubleSpawns = Math.floor(expectedDoubleSpawns - doubleSpawnTolerance);
               const maxExpectedDoubleSpawns = Math.ceil(expectedDoubleSpawns + doubleSpawnTolerance*2);
               console.log('min',minExpectedDoubleSpawns,'max',maxExpectedDoubleSpawns,'and actual double spawns',doubleSpawnCount);

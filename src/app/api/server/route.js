@@ -811,8 +811,11 @@ export async function POST(request) {
               let yCountCC = clusterCounts['2x3'] * 2 + clusterCounts['2x4'] * 2; // GROUND_Y - 2 * OBSTACLE_SIZE
               let yCountDD = clusterCounts['2x4'] * 2; // GROUND_Y - 3 * OBSTACLE_SIZE
               const yTolerance = 0.01; // For floating-point comparison
+
+              const spawnEventY = [];
               for (const event of spawnEvents) {
                 // Validate y-position
+                spawnEventY.push(event.data.y);
                 const y = event.data.y;
                 if (Math.abs(y - yPosA) < yTolerance) {
                     yCountA++;
@@ -827,6 +830,7 @@ export async function POST(request) {
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle y position' }), { status: 400 });
                 }
               }
+              console.log('spawnEventY', spawnEventY);
               // Compare positional counts
               if (yCountA === yCountAA &&
                   yCountB === yCountBB &&

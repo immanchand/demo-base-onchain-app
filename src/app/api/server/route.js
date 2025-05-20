@@ -794,7 +794,7 @@ export async function POST(request) {
                 // endable in prod after testing ***************
                 //return new Response(JSON.stringify({ status: 'error', message: 'Sus for cheating! Or maybe you got waaay to lucky with that one! Sorry!' }), { status: 400 });
               }
-
+              console.log('*****************1');
               // Check y-position of obstacles and count clusters (Jump only)
               const yPosA = GROUND_Y;
               const yPosB = GROUND_Y - gameParams.OBSTACLE_SIZE;
@@ -810,6 +810,7 @@ export async function POST(request) {
               let yCountCC = clusterCounts['2x3'] * 2 + clusterCounts['2x4'] * 2; // GROUND_Y - 2 * OBSTACLE_SIZE
               let yCountDD = clusterCounts['2x4'] * 2; // GROUND_Y - 3 * OBSTACLE_SIZE
               const yTolerance = 1e-3; // For floating-point comparison
+              console.log('*****************2');
               for (const event of spawnEvents) {
                 // Validate y-position
                 const y = event.data.y;
@@ -826,6 +827,7 @@ export async function POST(request) {
                     return new Response(JSON.stringify({ status: 'error', message: 'Suspicious obstacle y position' }), { status: 400 });
                 }
               }
+              console.log('*****************3');
               // Compare positional counts
               if (yCountA === yCountAA &&
                   yCountB === yCountBB &&
@@ -836,6 +838,7 @@ export async function POST(request) {
                 console.log('Invalid y-position counts', {yCountA, yCountAA, yCountB, yCountBB, yCountC, yCountCC, yCountD, yCountDD});
                 return new Response(JSON.stringify({ status: 'error', message: 'Invalid y-position counts' }), { status: 400 });
               }
+              console.log('*****************4');
               //end JUMP SPAWN RELATED VALIDATIONS
               //JUMPING RELATED VALIDATIONS
               const jumpEvents = telemetry.filter(e => e.event === 'jump');
@@ -851,6 +854,7 @@ export async function POST(request) {
                 });
                 return new Response(JSON.stringify({ status: 'error', message: 'Suspicious stats jumpEvents vs stats.jumps' }), { status: 400 });
               }
+              console.log('*****************5');
               // Count jumps using both methods
               const GROUND_Y = avgCanvH * gameParams.GROUND_HEIGHT_RATIO - gameParams.SHIP_HEIGHT;
               console.log('GROUND_Y', GROUND_Y);
@@ -861,6 +865,7 @@ export async function POST(request) {
               let lastJumpEvent = jumpEvents[0];
               let prevTime = lastJumpEvent.time;
               const doubleJumpIntervals = [];
+              console.log('*****************6');
               // Process remaining jumps
               for (const event of jumpEvents) {
                 //handle differently for first jump event
@@ -878,6 +883,7 @@ export async function POST(request) {
                   timeSingleJumpCount++;
                   continue;
                 }
+                console.log('*****************7');
                 //for all other jump events, check ground position
                 if (Math.abs(event.data.y - GROUND_Y) < 2) {
                   //on the ground first of double jump or only jump
@@ -1142,7 +1148,7 @@ export async function POST(request) {
                     if (activeObs.x + gameParams.OBSTACLE_SIZE >= 0) {
                       const matchingObs = reportedObstacles.find(obs =>
                         Math.abs(obs.y - activeObs.y) < 0.001 &&
-                        Math.abs(obs.x - activeObs.x) < Math.abs(activeObs.dx) * 2 &&
+                        Math.abs(obs.x - activeObs.x) < Math.abs(activeObs.dx) &&
                         Math.abs(obs.dx - activeObs.dx) < 0.001
                       );
                       if (matchingObs) {
@@ -1464,7 +1470,7 @@ export async function POST(request) {
               }
 
 
-              //5. FULL GAME PHYSICS SIMULATION
+              //5. FLY FULL GAME PHYSICS SIMULATION
               let activeObstacles = []; // Track active obstacles
               let lastFrame = telemetry.find(e => e.event === 'frame');
               let stopFrame = telemetry.reverse().find(e => e.event === 'frame');

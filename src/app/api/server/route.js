@@ -796,6 +796,7 @@ export async function POST(request) {
               }
               console.log('*****************1');
               // Check y-position of obstacles and count clusters (Jump only)
+              const GROUND_Y = avgCanvH * gameParams.GROUND_HEIGHT_RATIO - gameParams.SHIP_HEIGHT;
               const yPosA = GROUND_Y;
               const yPosB = GROUND_Y - gameParams.OBSTACLE_SIZE;
               const yPosC = GROUND_Y - 2 * gameParams.OBSTACLE_SIZE;
@@ -859,7 +860,6 @@ export async function POST(request) {
               }
               console.log('*****************5');
               // Count jumps using both methods
-              const GROUND_Y = avgCanvH * gameParams.GROUND_HEIGHT_RATIO - gameParams.SHIP_HEIGHT;
               console.log('GROUND_Y', GROUND_Y);
               let posSingleJumpCount = 0;
               let posDoubleJumpCount = 0;

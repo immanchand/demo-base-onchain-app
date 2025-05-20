@@ -47,7 +47,7 @@ export const SHOOT_PARAMETERS = {
   MAX_ENEMY_COUNT: 10, // Higher (e.g., 15) = more enemies, harder; Lower (e.g., 5) = easier
   MIN_SPAWN_INTERVAL: 1000, // Lower (e.g., 500) = faster spawns, harder; Higher (e.g., 1500) = easier
   BULLET_SPEED: 5, // Higher (e.g., 6) = faster bullets, easier; Lower (e.g., 4) = harder
-  SCORE_MULTIPLIER: 321, 
+  SCORE_MULTIPLIER: 123, 
   DIFFICULTY_FACTOR_TIME: 90, //seonds till max difficulty
 };
 export const GAME_COUNT = 3;

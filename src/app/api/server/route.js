@@ -800,17 +800,20 @@ export async function POST(request) {
               const yPosB = GROUND_Y - gameParams.OBSTACLE_SIZE;
               const yPosC = GROUND_Y - 2 * gameParams.OBSTACLE_SIZE;
               const yPosD = GROUND_Y - 3 * gameParams.OBSTACLE_SIZE;
+              console.log('*****************2');
               let yCountA = 0; // GROUND_Y
               let yCountB = 0; // GROUND_Y - OBSTACLE_SIZE
               let yCountC = 0; // GROUND_Y - 2 * OBSTACLE_SIZE
               let yCountD = 0; // GROUND_Y - 3 * OBSTACLE_SIZE
               // for clusterCounts measurement
+              console.log('*****************3');
               let yCountAA = clusterCounts['1x1'] + clusterCounts['1x2'] + clusterCounts['2x2'] * 2 + clusterCounts['2x3'] * 2 + clusterCounts['2x4'] * 2; // GROUND_Y
               let yCountBB = clusterCounts['1x2'] + clusterCounts['2x2'] * 2 + clusterCounts['2x3'] * 2 + clusterCounts['2x4'] * 2; // GROUND_Y - OBSTACLE_SIZE
               let yCountCC = clusterCounts['2x3'] * 2 + clusterCounts['2x4'] * 2; // GROUND_Y - 2 * OBSTACLE_SIZE
               let yCountDD = clusterCounts['2x4'] * 2; // GROUND_Y - 3 * OBSTACLE_SIZE
+              console.log('*****************4');
               const yTolerance = 1e-3; // For floating-point comparison
-              console.log('*****************2');
+              console.log('*****************5');
               for (const event of spawnEvents) {
                 // Validate y-position
                 const y = event.data.y;

@@ -1,9 +1,9 @@
 import { createPublicClient, http } from "viem";
 import { baseSepolia } from "viem/chains";
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
-export const message = 'Please sign this message to approve paying tickets to start the game session. This is not a transaction and there is no fee. It is only used to verify your identity and protect your own tickts.';
+export const message = 'Please sign this message to approve paying tickets to start the game session. This is not a transaction and there is no fee. It is only used to verify your identity and protect your own tickts. Nonce: 1';
 export const TELEMETRY_LIMIT = 20000; // Max telemetry data points
-export const TELEMETRY_SCORE_THRESHOLD = 2000; // Min score for telemetry data to be 20000 in prod
+export const TELEMETRY_SCORE_THRESHOLD = 8000; // Min score for telemetry data to be 20000 in prod
 // Scoring multipliers
 export const SCORE_DIVISOR_TIME = 10; // should be SCORE_MULTIPLIER/10
 // Difficulty parameters

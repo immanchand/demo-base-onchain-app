@@ -604,6 +604,13 @@ export async function POST(request) {
               console.log('maxCanvH - minCanvH > 1 || avgCanvH - stats.canvasHeight > 1 ',maxCanvH - minCanvH,' > 1 || ',avgCanvH - stats.canvasHeight,' > 1 ');
               return new Response(JSON.stringify({ status: 'error', message: browserPerfMessage }), { status: 400 });                
             }
+            // check min max canvas size
+            if (avgCanvH < 900 && avgCanvH > 400 && avgCanvW < 1008 && avgCanvW > 300) {
+              //positive case do nothing
+            } else {
+              console.log('avgCanvH < 900 && avgCanvH > 400 && avgCanvW < 1008 && avgCanvW > 300',avgCanvH,'< 900 &&', avgCanvH,'> 400 &&', avgCanvW,'< 1008 &&', avgCanvW,'> 300');
+              return new Response(JSON.stringify({ status: 'error', message: browserPerfMessage }), { status: 400 });
+            }
             
             // check screen scaling factor against stats.scale
             const screenScalingFactor = Math.max(avgCanvW/scaleBaseW, avgCanvH/scaleBaseH);
@@ -1390,7 +1397,7 @@ export async function POST(request) {
                 // enable after more testing ********* doesnt seem to work
                 //return new Response(JSON.stringify({ status: 'error', message: tooLuckyMessage }), { status: 400 });
               }
-              if(minObserved >= 3) {
+              if(minObserved >= 2) {
                 //positive case do nothing
               } else {
                 console.log('Insufficient fixed obstacle y position spawns in min bin', {

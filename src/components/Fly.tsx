@@ -107,6 +107,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         inputsPerSec: 0,
         canvasWidth: canvasRef.current?.width || 1008,
         canvasHeight: canvasRef.current?.height || 900,
+        scale: 1,
         framesCount: 0,
         shipX: 0,
     });
@@ -419,6 +420,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 inputsPerSec: 0,
                 canvasWidth: canvasRef.current.width,
                 canvasHeight: canvasRef.current.height,
+                scale: scale,
                 framesCount: 0,
                 shipX: canvasRef.current.width * 0.15,
             });
@@ -438,6 +440,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 inputsPerSec: 0,
                 canvasWidth: canvasRef.current.width,
                 canvasHeight: canvasRef.current.height,
+                scale: scale,
                 framesCount: 0,
                 shipX: canvasRef.current.width * 0.15,
             };

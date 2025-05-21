@@ -110,6 +110,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         inputsPerSec: 0,
         canvasWidth: canvasRef.current?.width || 1008,
         canvasHeight: canvasRef.current?.height || 900,
+        scale: 1,
         framesCount: 0,
         shipX: 0,
     });
@@ -418,7 +419,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     pendingStatsUpdate = { ...pendingStatsUpdate, jumps: pendingStatsUpdate.jumps + 1 };
                 } else if (jumpCountRef.current === 1 && 
                             timeSinceLastPress < JUMP_PARAMETERS.DOUBLE_PRESS_THRESHOLD &&
-                            timeSinceLastPress > 50 &&
+                            timeSinceLastPress > 50 && //50 ms minimum for double jump
                             lastKeyPressRef.current !== 0) {
                     // Valid double jump
                     ship.vy = JUMP_PARAMETERS.JUMP_VELOCITY;
@@ -465,6 +466,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 inputsPerSec: 0,
                 canvasWidth: canvasRef.current.width,
                 canvasHeight: canvasRef.current.height,
+                scale: 1,
                 framesCount: 0,
                 shipX: canvasRef.current.width * 0.15,
             });
@@ -484,6 +486,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 inputsPerSec: 0,
                 canvasWidth: canvasRef.current.width,
                 canvasHeight: canvasRef.current.height,
+                scale: 1,
                 framesCount: 0,
                 shipX: canvasRef.current.width * 0.15,
             };

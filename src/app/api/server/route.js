@@ -20,12 +20,7 @@ const gameDurationStore = new Map();
 const GAME_MASTER_PRIVATE_KEY = process.env.GAME_MASTER_PRIVATE_KEY;
 const PROVIDER_URL = process.env.API_URL;
 const RECAPTCHA_START_THRESHOLD = process.env.RECAPTCHA_START_THRESHOLD;
-// Map game names to their parameter sets
-const GAME_PARAMETERS = {
-  fly: FLY_PARAMETERS,
-  shoot: SHOOT_PARAMETERS,
-  jump: JUMP_PARAMETERS,
-};
+
 const GAME_RECAPTCHA_END_THRESHOLD = {
   fly: process.env.FLY_RECAPTCHA_END_THRESHOLD,
   shoot: process.env.SHOOT_RECAPTCHA_END_THRESHOLD,
@@ -149,6 +144,13 @@ export async function POST(request) {
   const gameSigRaw = gameSigMatch ? decodeURIComponent(gameSigMatch[1]) : null;
 
   const csrfTokens = getCsrfTokens();
+
+  // Map game names to their parameter sets
+  const GAME_PARAMETERS = {
+    fly: FLY_PARAMETERS,
+    shoot: SHOOT_PARAMETERS,
+    jump: JUMP_PARAMETERS,
+  };
 
   if (!csrfToken || !sessionId || csrfTokens.get(sessionId) !== csrfToken) {
     console.log('!csrfToken || !sessionId || csrfTokens.get(sessionId) !== csrfToken', !csrfToken,'||',!sessionId,' ||', csrfTokens.get(sessionId),'!==', csrfToken);
@@ -599,6 +601,7 @@ export async function POST(request) {
             
             // check screen scaling factor against stats.scale
             const screenScalingFactor = Math.max(avgCanvW/scaleBaseW, avgCanvH/scaleBaseH);
+            console.log('screenScalingFactor',screenScalingFactor, 'stats.scale', stats.scale);
             if (Math.abs(stats.scale - screenScalingFactor) < 0.001) {
               //positive case do nothing
             } else {
@@ -869,10 +872,9 @@ export async function POST(request) {
 
               //JUMP SPAWN RELATED VALIDATIONS
               // validate that all types of cluster sizes are present at least once
-              if (clusterCounts['1x1'] >= 6 &&
+              if (clusterCounts['1x1'] >= 4 &&
                   clusterCounts['1x2'] >= 4 &&
-                  clusterCounts['2x2'] >= 2 &&
-                  clusterCounts['2x3'] >= 1 &&
+                  clusterCounts['2x2'] >= 4 &&
                   clusterCounts['2x4'] >= 1 ) {
                 //positive case do nothing
               } else {

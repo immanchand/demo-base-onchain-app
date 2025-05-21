@@ -1249,7 +1249,7 @@ export async function POST(request) {
                     if (activeObs.x + gameParams.OBSTACLE_SIZE >= 0) {
                       const matchingObs = reportedObstacles.find(obs =>
                         Math.abs(obs.y - activeObs.y) < 0.001 &&
-                        Math.abs(obs.x - activeObs.x) < Math.abs(activeObs.dx) &&
+                        Math.abs(obs.x - activeObs.x) < Math.abs(activeObs.dx)*1.5 &&
                         Math.abs(obs.dx - activeObs.dx) < 0.001
                       );
                       if (matchingObs) {
@@ -1617,7 +1617,7 @@ export async function POST(request) {
                 }
 
                 // Simulate frame by frame physics and obstacle movement
-                for (let i = lastFrameId +1; i <= event.frameId; i++) {
+                for (let i = lastFrameId + 1; i <= event.frameId; i++) {
                   //if (event.frameId + i >= stats.framesCount) console.log('event.frameId + i', event.frameId + i);
                   // Update ship physics
                   currentVy += gameParams.GRAVITY;

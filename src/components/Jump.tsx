@@ -4,7 +4,7 @@ import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
-import { GameStats, Entity, JUMP_PARAMETERS, TELEMETRY_LIMIT, TELEMETRY_SCORE_THRESHOLD } from 'src/constants';
+import { GameStats, Entity, scaleBaseW, scaleBaseH, JUMP_PARAMETERS, TELEMETRY_LIMIT, TELEMETRY_SCORE_THRESHOLD } from 'src/constants';
 import { useAccount } from 'wagmi';
 import LoginButton from './LoginButton';
 
@@ -259,6 +259,14 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         resizeCanvas();
         const resizeObserver = new ResizeObserver(resizeCanvas);
         resizeObserver.observe(container);
+        // scaling factor for different screen sizes
+                const scale = Math.max(canvas.width/scaleBaseW, canvas.height/scaleBaseH);
+                JUMP_PARAMETERS.SHIP_WIDTH = JUMP_PARAMETERS.SHIP_WIDTH * scale;
+                JUMP_PARAMETERS.SHIP_HEIGHT = JUMP_PARAMETERS.SHIP_HEIGHT * scale;
+                JUMP_PARAMETERS.OBSTACLE_SIZE = JUMP_PARAMETERS.OBSTACLE_SIZE * scale;
+                JUMP_PARAMETERS.BASE_OBSTACLE_SPEED = JUMP_PARAMETERS.BASE_OBSTACLE_SPEED * scale;
+                JUMP_PARAMETERS.GRAVITY = JUMP_PARAMETERS.GRAVITY * scale;
+                JUMP_PARAMETERS.JUMP_VELOCITY = JUMP_PARAMETERS.JUMP_VELOCITY * scale;
 
         let ship = {
             x: canvasRef.current.width * 0.15,
@@ -466,7 +474,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 inputsPerSec: 0,
                 canvasWidth: canvasRef.current.width,
                 canvasHeight: canvasRef.current.height,
-                scale: 1,
+                scale: scale,
                 framesCount: 0,
                 shipX: canvasRef.current.width * 0.15,
             });
@@ -486,7 +494,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 inputsPerSec: 0,
                 canvasWidth: canvasRef.current.width,
                 canvasHeight: canvasRef.current.height,
-                scale: 1,
+                scale: scale,
                 framesCount: 0,
                 shipX: canvasRef.current.width * 0.15,
             };

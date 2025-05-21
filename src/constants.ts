@@ -489,6 +489,7 @@ export interface GameStats {
   inputsPerSec: number;
   canvasWidth: number;
   canvasHeight: number;
+  scale: number;
   framesCount: number;
   shipX: number,
 };

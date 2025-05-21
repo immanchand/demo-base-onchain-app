@@ -9,7 +9,8 @@ import {  message,
           SCORE_DIVISOR_TIME,
           FLY_PARAMETERS,
           SHOOT_PARAMETERS, 
-          JUMP_PARAMETERS,   } from '../../../constants';
+          JUMP_PARAMETERS,
+          scaleBaseW, scaleBaseH,   } from '../../../constants';
 
 const banMessage = "Yo, not cool! We sniffed out some sus moves. Keep it legit to avoid the banhammer. Play fair and HODL the leaderboard!";
 const tooLuckyMessage = "Whoa! Either you're the luckiest player in the crypto-verse or something's fishy. Give it another shot, but keep it real, fam!";
@@ -596,6 +597,15 @@ export async function POST(request) {
               return new Response(JSON.stringify({ status: 'error', message: browserPerfMessage }), { status: 400 });                
             }
             
+            // check screen scaling factor against stats.scale
+            const screenScalingFactor = Math.max(avgCanvW/scaleBaseW, avgCanvH/scaleBaseH);
+            if (Math.abs(stats.scale - screenScalingFactor) < 0.001) {
+              //positive case do nothing
+            } else {
+              console.log('screenScalingFactor',screenScalingFactor, 'doesnt match stats.scale', stats.scale);
+              return new Response(JSON.stringify({ status: 'error', message: banMessage }), { status: 400 }); 
+            }
+
             // All games check that difficultyFactor progresses correctly.
             const gameStartTime = telemetry[0].time;
             // loop over frame events and check difficulty factor progress

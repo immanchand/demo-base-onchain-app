@@ -174,7 +174,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
     // Game logic
     const spawnObstacle = useCallback((canvas: HTMLCanvasElement, speed: number, frameCount: number, scale: number): Obstacle => {
-        const y = Math.random() * (canvas.height - FLY_PARAMETERS.OBSTACLE_SIZE * scale);
+        const y = Math.random() * (canvas.height - FLY_PARAMETERS.OBSTACLE_SIZE);
         const newEvent = { event: 'spawn' as const, time: performance.now(), frameId: frameCount, data: { y, speed, width: FLY_PARAMETERS.OBSTACLE_SIZE, height: FLY_PARAMETERS.OBSTACLE_SIZE } };
         telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
             ? [...telemetryRef.current.slice(1), newEvent]
@@ -228,11 +228,18 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         resizeObserver.observe(container);
         // scaling factor for different screen sizes
         const scale = Math.max(canvas.width/scaleBaseW, canvas.height/scaleBaseH);
+        FLY_PARAMETERS.SHIP_WIDTH = FLY_PARAMETERS.SHIP_WIDTH * scale;
+        FLY_PARAMETERS.SHIP_HEIGHT = FLY_PARAMETERS.SHIP_HEIGHT * scale;
+        FLY_PARAMETERS.OBSTACLE_SIZE = FLY_PARAMETERS.OBSTACLE_SIZE * scale;
+        FLY_PARAMETERS.BASE_OBSTACLE_SPEED = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * scale;
+        FLY_PARAMETERS.GRAVITY = FLY_PARAMETERS.GRAVITY * scale;
+        FLY_PARAMETERS.FLAP_VELOCITY = FLY_PARAMETERS.FLAP_VELOCITY * scale;
+
         let ship = {
             x: canvas.width * 0.15,
             y: 0,
-            width: FLY_PARAMETERS.SHIP_WIDTH * scale,
-            height: FLY_PARAMETERS.SHIP_HEIGHT * scale,
+            width: FLY_PARAMETERS.SHIP_WIDTH,
+            height: FLY_PARAMETERS.SHIP_HEIGHT,
             vy: 0,
         };
         
@@ -266,12 +273,12 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
             const difficultyFactor = Math.min(elapsedTime / FLY_PARAMETERS.DIFFICULTY_FACTOR_TIME, 1);
             const spawnInterval = FLY_PARAMETERS.MAX_SPAWN_INTERVAL * (1 - difficultyFactor) + FLY_PARAMETERS.MIN_SPAWN_INTERVAL;
-            const obstacleSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor) * scale;
+            const obstacleSpeed = FLY_PARAMETERS.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
             const clusterChance = difficultyFactor * FLY_PARAMETERS.CLUSTER_CHANCE;
-            const obstacleSize = FLY_PARAMETERS.OBSTACLE_SIZE * scale;
+            const obstacleSize = FLY_PARAMETERS.OBSTACLE_SIZE;
 
             if (!gameOver) {
-                ship.vy += FLY_PARAMETERS.GRAVITY * scale;
+                ship.vy += FLY_PARAMETERS.GRAVITY;
                 ship.y += ship.vy;
                 if (ship.y > canvas.height - FLY_PARAMETERS.SHIP_HEIGHT || ship.y <= 0) {
                     setGameOver(true);
@@ -305,7 +312,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                             width: canvas.width,
                             height: canvas.height
                         },
-                        parameters: { ...FLY_PARAMETERS, scale }, // Snapshot of all constants
+                        parameters: { ...FLY_PARAMETERS }, // Snapshot of all constants
                     };
                     telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
                         ? [...telemetryRef.current.slice(1), newEvent]
@@ -378,7 +385,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
         const handleFlap = () => {
             if (!gameOver) {
-                ship.vy = FLY_PARAMETERS.FLAP_VELOCITY * scale;
+                ship.vy = FLY_PARAMETERS.FLAP_VELOCITY;
                 const currentTime = performance.now();
                 const deltaTime = (currentTime - lastFrameTimeRef.current) / 1000;
                 const newEvent = { event: 'flap' as const, time: currentTime, frameId: frameCount, data: { x: ship.x, y: ship.y, vy: ship.vy, deltaTime } };
@@ -444,7 +451,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 framesCount: 0,
                 shipX: canvasRef.current.width * 0.15,
             };
-            obstaclePool = [spawnObstacle(canvas, FLY_PARAMETERS.BASE_OBSTACLE_SPEED * scale, 0, scale)];
+            obstaclePool = [spawnObstacle(canvas, FLY_PARAMETERS.BASE_OBSTACLE_SPEED, 0, scale)];
             lastSpawnTimeRef.current = performance.now();
             startTimeRef.current = performance.now();
 

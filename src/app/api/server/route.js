@@ -679,7 +679,7 @@ export async function POST(request) {
             }
             console.log('maxObstaclesInPool',maxObstaclesInPool);
 
-            // ALL Games Combined loop for size and speed checks
+            // ALL Games Combined loop for size, speed and spawn frequency checks
             let prevSpawnEvent = null;
             for (const event of spawnEvents) {
               // Size check
@@ -836,6 +836,7 @@ export async function POST(request) {
                 clusterCounts[clusterKey]++;
               }
               // Log cluster counts for debugging
+              console.log('Spawn groups', spawnGroups);
               console.log('Cluster counts', clusterCounts);
 
             } // end if FLY or JUMP only

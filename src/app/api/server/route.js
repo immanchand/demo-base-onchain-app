@@ -432,6 +432,7 @@ export async function POST(request) {
                   address,
                   gameId,
                   gameName: stats.game,
+                  event,
                   shipHeight: gameParams.SHIP_HEIGHT,
                   shipWidth: gameParams.SHIP_WIDTH,
                   eventShipHeight: event.data.height,

@@ -4,7 +4,7 @@ import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
-import { GameStats, Entity, scaleBase, FLY_PARAMETERS, TELEMETRY_LIMIT, TELEMETRY_SCORE_THRESHOLD } from 'src/constants';
+import { GameStats, Entity, scaleBaseW, scaleBaseH, FLY_PARAMETERS, TELEMETRY_LIMIT, TELEMETRY_SCORE_THRESHOLD } from 'src/constants';
 import { useAccount } from 'wagmi';
 import LoginButton from './LoginButton';
 
@@ -225,7 +225,8 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         resizeCanvas();
         const resizeObserver = new ResizeObserver(resizeCanvas);
         resizeObserver.observe(container);
-        const scale = canvas.width / scaleBase; // Base width of 1008px
+        // scaling factor for different screen sizes
+        const scale = Math.max(canvas.width/scaleBaseW, canvas.height/scaleBaseH);
         let ship = {
             x: canvas.width * 0.15,
             y: 0,
@@ -241,7 +242,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             stars.push({
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
-                dx: -0.5,
+                dx: -0.5 * scale,
             });
         }
 

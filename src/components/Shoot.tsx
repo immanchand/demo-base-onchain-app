@@ -105,6 +105,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
         inputsPerSec: 0,
         canvasWidth: canvasRef.current?.width || 1008,
         canvasHeight: canvasRef.current?.height || 900,
+        scale: 1,
         framesCount: 0,
         shipX: 0,
     });
@@ -499,6 +500,7 @@ const Shoot: React.FC<ShootProps> = ({ gameId, existingHighScore, updateTickets 
                 inputsPerSec: 0,
                 canvasWidth: canvasRef.current.width,
                 canvasHeight: canvasRef.current.height,
+                scale: 1,
                 framesCount: 0,
                 shipX: 0,
             });

@@ -7,7 +7,8 @@ export const TELEMETRY_SCORE_THRESHOLD = 2000; // Min score for telemetry data t
 // Scoring multipliers
 export const SCORE_DIVISOR_TIME = 10; // should be SCORE_MULTIPLIER/10
 // screen size sclaning base
-export const scaleBase = 1008;
+export const scaleBaseW = 1008;
+export const scaleBaseH = 600;
 // Difficulty parameters
 export const FLY_PARAMETERS = {
   SHIP_WIDTH: 40,

@@ -94,7 +94,6 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     const [telemetry, setTelemetry] = useState<TelemetryEvent[]>([]);
     const telemetryRef = useRef<TelemetryEvent[]>([]);
     const [isTelemetrySyncing, setIsTelemetrySyncing] = useState<boolean>(false);
-    let JUMP_PARAMETERS_SCALE = JUMP_PARAMETERS;
     const [stats, setStats] = useState<GameStats>({
         game: 'jump',
         score: 0,
@@ -189,23 +188,24 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
     }, []);
 
     // Game logic
-    const spawnObstacles = useCallback((canvas: HTMLCanvasElement, speed: number, frameCount: number, widthCount: number, heightCount: number): Obstacle[] => {
+    const spawnObstacles = useCallback((canvas: HTMLCanvasElement, speed: number, frameCount: number, widthCount: number, heightCount: number, scaledParameters: typeof JUMP_PARAMETERS): Obstacle[] => {
         const obstacles: Obstacle[] = [];
+        const obstacleSize = scaledParameters.OBSTACLE_SIZE;
         const baseX = canvas.width;
-        const baseY = canvas.height * JUMP_PARAMETERS_SCALE.GROUND_HEIGHT_RATIO - JUMP_PARAMETERS_SCALE.SHIP_HEIGHT;
+        const baseY = canvas.height * scaledParameters.GROUND_HEIGHT_RATIO - scaledParameters.SHIP_HEIGHT;
 
         for (let w = 0; w < widthCount; w++) {
             for (let h = 0; h < heightCount; h++) {
                 const newEvent = { event: 'spawn' as const, time: performance.now(), frameId: frameCount, 
-                    data: {x: baseX + w * JUMP_PARAMETERS_SCALE.OBSTACLE_SIZE, y: baseY - h * JUMP_PARAMETERS_SCALE.OBSTACLE_SIZE, speed, width: JUMP_PARAMETERS_SCALE.OBSTACLE_SIZE, height: JUMP_PARAMETERS_SCALE.OBSTACLE_SIZE, w } };
+                    data: {x: baseX + w * obstacleSize, y: baseY - h * obstacleSize, speed, width: obstacleSize, height: obstacleSize, w } };
                         telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
                             ? [...telemetryRef.current.slice(1), newEvent]
                             : [...telemetryRef.current, newEvent];
                 obstacles.push({
-                    x: baseX + w * JUMP_PARAMETERS_SCALE.OBSTACLE_SIZE,
-                    y: baseY - h * JUMP_PARAMETERS_SCALE.OBSTACLE_SIZE,
-                    width: JUMP_PARAMETERS_SCALE.OBSTACLE_SIZE,
-                    height: JUMP_PARAMETERS_SCALE.OBSTACLE_SIZE,
+                    x: baseX + w * obstacleSize,
+                    y: baseY - h * obstacleSize,
+                    width: obstacleSize,
+                    height: obstacleSize,
                     dx: speed,
                     dodged: false
                 });
@@ -214,33 +214,33 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         return obstacles;
     }, []);
 
-    const drawBackground = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, offset: number) => {
+    const drawBackground = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, offset: number, scaledParameters: typeof JUMP_PARAMETERS) => {
         if (!backgroundImage) return;
         const bgWidth = backgroundImage.width;
-        const bgHeight = canvas.height * JUMP_PARAMETERS_SCALE.GROUND_HEIGHT_RATIO;
+        const bgHeight = canvas.height * scaledParameters.GROUND_HEIGHT_RATIO;
         let x = -offset % bgWidth;
         ctx.drawImage(backgroundImage, x, 0, bgWidth, bgHeight);
         ctx.drawImage(backgroundImage, x + bgWidth, 0, bgWidth, bgHeight);
     };
 
-    const drawGround = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, offset: number) => {
+    const drawGround = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, offset: number, scaledParameters: typeof JUMP_PARAMETERS) => {
         if (!groundImage) return;
         const groundWidth = groundImage.width;
-        const groundHeight = canvas.height - canvas.height * JUMP_PARAMETERS_SCALE.GROUND_HEIGHT_RATIO;
+        const groundHeight = canvas.height - canvas.height * scaledParameters.GROUND_HEIGHT_RATIO;
         let x = -offset % groundWidth;
         ctx.drawImage(groundImage, x, canvas.height - groundHeight, groundWidth, groundHeight);
         ctx.drawImage(groundImage, x + groundWidth, canvas.height - groundHeight, groundWidth, groundHeight);
     };
 
-    const drawShip = (ctx: CanvasRenderingContext2D, ship: { x: number; y: number }) => {
+    const drawShip = (ctx: CanvasRenderingContext2D, ship: { x: number; y: number }, scaledParameters: typeof JUMP_PARAMETERS) => {
         const image = shipImages[shipType] || shipImages.runner;
-        ctx.drawImage(image, ship.x, ship.y, JUMP_PARAMETERS_SCALE.SHIP_WIDTH, JUMP_PARAMETERS_SCALE.SHIP_HEIGHT);
+        ctx.drawImage(image, ship.x, ship.y, scaledParameters.SHIP_WIDTH, scaledParameters.SHIP_HEIGHT);
     };
 
-    const drawObstacles = (ctx: CanvasRenderingContext2D, obstaclePool: Obstacle[]) => {
+    const drawObstacles = (ctx: CanvasRenderingContext2D, obstaclePool: Obstacle[], scaledParameters: typeof JUMP_PARAMETERS) => {
         obstaclePool.forEach((obstacle) => {
             const image = enemyImages[enemyType] || enemyImages.obstacle;
-            ctx.drawImage(image, obstacle.x, obstacle.y, JUMP_PARAMETERS_SCALE.OBSTACLE_SIZE, JUMP_PARAMETERS_SCALE.OBSTACLE_SIZE);
+            ctx.drawImage(image, obstacle.x, obstacle.y, scaledParameters.OBSTACLE_SIZE, scaledParameters.OBSTACLE_SIZE);
         });
     };
 
@@ -261,19 +261,30 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         const resizeObserver = new ResizeObserver(resizeCanvas);
         resizeObserver.observe(container);
         // scaling factor for different screen sizes
-                const scale = Math.max(canvas.width/scaleBaseW, canvas.height/scaleBaseH);
-                JUMP_PARAMETERS_SCALE.SHIP_WIDTH = JUMP_PARAMETERS.SHIP_WIDTH * scale;
-                JUMP_PARAMETERS_SCALE.SHIP_HEIGHT = JUMP_PARAMETERS.SHIP_HEIGHT * scale;
-                JUMP_PARAMETERS_SCALE.OBSTACLE_SIZE = JUMP_PARAMETERS.OBSTACLE_SIZE * scale;
-                JUMP_PARAMETERS_SCALE.BASE_OBSTACLE_SPEED = JUMP_PARAMETERS.BASE_OBSTACLE_SPEED * scale;
-                JUMP_PARAMETERS_SCALE.GRAVITY = JUMP_PARAMETERS.GRAVITY * scale;
-                JUMP_PARAMETERS_SCALE.JUMP_VELOCITY = JUMP_PARAMETERS.JUMP_VELOCITY * scale;
+        const scale = Math.max(canvas.width/scaleBaseW, canvas.height/scaleBaseH);
+        const scaledParameters = {
+            ...JUMP_PARAMETERS,
+            SHIP_WIDTH: JUMP_PARAMETERS.SHIP_WIDTH * scale,
+            SHIP_HEIGHT: JUMP_PARAMETERS.SHIP_HEIGHT * scale,
+            OBSTACLE_SIZE: JUMP_PARAMETERS.OBSTACLE_SIZE * scale,
+            BASE_OBSTACLE_SPEED: JUMP_PARAMETERS.BASE_OBSTACLE_SPEED * scale,
+            MIN_SPAWN_INTERVAL: JUMP_PARAMETERS.MIN_SPAWN_INTERVAL,
+            MAX_SPAWN_INTERVAL: JUMP_PARAMETERS.MAX_SPAWN_INTERVAL,
+            GRAVITY: JUMP_PARAMETERS.GRAVITY * scale,
+            JUMP_VELOCITY: JUMP_PARAMETERS.JUMP_VELOCITY * scale,
+            SCORE_MULTIPLIER: JUMP_PARAMETERS.SCORE_MULTIPLIER,
+            DIFFICULTY_FACTOR_TIME: JUMP_PARAMETERS.DIFFICULTY_FACTOR_TIME,
+            DOUBLE_PRESS_THRESHOLD: JUMP_PARAMETERS.DOUBLE_PRESS_THRESHOLD,
+            GROUND_HEIGHT_RATIO: JUMP_PARAMETERS.GROUND_HEIGHT_RATIO,
+            CLUSTER_CHANCE: JUMP_PARAMETERS.CLUSTER_CHANCE,
+
+        };
 
         let ship = {
             x: canvasRef.current.width * 0.15,
-            y: canvas.height * JUMP_PARAMETERS_SCALE.GROUND_HEIGHT_RATIO - JUMP_PARAMETERS_SCALE.SHIP_HEIGHT,
-            width: JUMP_PARAMETERS_SCALE.SHIP_WIDTH,
-            height: JUMP_PARAMETERS_SCALE.SHIP_HEIGHT,
+            y: canvas.height * scaledParameters.GROUND_HEIGHT_RATIO - scaledParameters.SHIP_HEIGHT,
+            width: scaledParameters.SHIP_WIDTH,
+            height: scaledParameters.SHIP_HEIGHT,
             vy: 0,
         };
         let obstaclePool: Obstacle[] = [];
@@ -284,12 +295,12 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         if (!ctx) return;
 
         const draw = () => {
-            drawBackground(ctx, canvas, cloudOffset);
-            drawGround(ctx, canvas, backgroundOffset);
+            drawBackground(ctx, canvas, cloudOffset, scaledParameters);
+            drawGround(ctx, canvas, backgroundOffset, scaledParameters);
             if (!gameOver) {
-                drawShip(ctx, ship);
+                drawShip(ctx, ship, scaledParameters);
             }
-            drawObstacles(ctx, obstaclePool);
+            drawObstacles(ctx, obstaclePool, scaledParameters);
         };
 
         let frameCount = 0;
@@ -298,25 +309,25 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         let maxObstacles = 0;
         const update = (deltaTime: number) => {
             const elapsedTime = (performance.now() - startTimeRef.current) / 1000;
-            const difficultyFactor = Math.min(elapsedTime / JUMP_PARAMETERS_SCALE.DIFFICULTY_FACTOR_TIME, 1);
-            const clusterChance = difficultyFactor * JUMP_PARAMETERS_SCALE.CLUSTER_CHANCE;
-            const obstacleSpeed = JUMP_PARAMETERS_SCALE.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
-            const minGap = JUMP_PARAMETERS_SCALE.MAX_SPAWN_INTERVAL * (1 - difficultyFactor) + JUMP_PARAMETERS_SCALE.MIN_SPAWN_INTERVAL;
+            const difficultyFactor = Math.min(elapsedTime / scaledParameters.DIFFICULTY_FACTOR_TIME, 1);
+            const clusterChance = difficultyFactor * scaledParameters.CLUSTER_CHANCE;
+            const obstacleSpeed = scaledParameters.BASE_OBSTACLE_SPEED * (1 + difficultyFactor);
+            const minGap = scaledParameters.MAX_SPAWN_INTERVAL * (1 - difficultyFactor) + scaledParameters.MIN_SPAWN_INTERVAL;
             
-            const obstacleSize = JUMP_PARAMETERS_SCALE.OBSTACLE_SIZE;
+            const obstacleSize = scaledParameters.OBSTACLE_SIZE;
 
             cloudOffset += 0.3 * deltaTime * 60; //sky speed 0.3
             backgroundOffset += Math.abs(obstacleSpeed) * deltaTime * 60;
 
             if (!gameOver) {
-                ship.vy += JUMP_PARAMETERS_SCALE.GRAVITY;
+                ship.vy += scaledParameters.GRAVITY;
                 ship.y += ship.vy;
-                if (ship.y > canvas.height * JUMP_PARAMETERS_SCALE.GROUND_HEIGHT_RATIO - JUMP_PARAMETERS_SCALE.SHIP_HEIGHT) {
-                    ship.y = canvas.height * JUMP_PARAMETERS_SCALE.GROUND_HEIGHT_RATIO - JUMP_PARAMETERS_SCALE.SHIP_HEIGHT;
+                if (ship.y > canvas.height * scaledParameters.GROUND_HEIGHT_RATIO - scaledParameters.SHIP_HEIGHT) {
+                    ship.y = canvas.height * scaledParameters.GROUND_HEIGHT_RATIO - scaledParameters.SHIP_HEIGHT;
                     ship.vy = 0;
                     jumpCountRef.current = 0;
                 }
-                setScore((prev) => prev + deltaTime * JUMP_PARAMETERS_SCALE.SCORE_MULTIPLIER);
+                setScore((prev) => prev + deltaTime * scaledParameters.SCORE_MULTIPLIER);
                 frameCount++;
                 if (frameCount % 10 === 0) {
                     const newEvent: TelemetryEvent = {
@@ -341,7 +352,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                             width: canvas.width,
                             height: canvas.height
                         },
-                        parameters: { ...JUMP_PARAMETERS_SCALE }, // Snapshot of all constants
+                        parameters: { ...scaledParameters }, // Snapshot of all constants
                     };
                     telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
                         ? [...telemetryRef.current.slice(1), newEvent]
@@ -380,16 +391,16 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                                     randNumber < clusterChance/4 ? 3 :
                                     randNumber < clusterChance*2 ? 2 : 1;
 
-                obstaclePool.push(...spawnObstacles(canvas, obstacleSpeed, frameCount, widthCount, heightCount));
+                obstaclePool.push(...spawnObstacles(canvas, obstacleSpeed, frameCount, widthCount, heightCount, scaledParameters));
                 lastSpawnTimeRef.current = currentTime; // Update spawn time
             }
 
             if (!gameOver) {
                 obstaclePool.forEach((obstacle) => {
-                    const dx = ship.x + JUMP_PARAMETERS_SCALE.SHIP_WIDTH / 2 - (obstacle.x + obstacleSize / 2);
-                    const dy = ship.y + JUMP_PARAMETERS_SCALE.SHIP_HEIGHT / 2 - (obstacle.y + obstacleSize / 2);
+                    const dx = ship.x + scaledParameters.SHIP_WIDTH / 2 - (obstacle.x + obstacleSize / 2);
+                    const dy = ship.y + scaledParameters.SHIP_HEIGHT / 2 - (obstacle.y + obstacleSize / 2);
                     const distance = Math.sqrt(dx * dx + dy * dy);
-                    if (distance < (JUMP_PARAMETERS_SCALE.SHIP_WIDTH + obstacleSize) / 2) {
+                    if (distance < (scaledParameters.SHIP_WIDTH + obstacleSize) / 2) {
                         setGameOver(true);
                         const newEvent = { event: 'collision' as const, time: performance.now() };
                         telemetryRef.current = telemetryRef.current.length >= TELEMETRY_LIMIT
@@ -418,7 +429,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         
                 if (jumpCountRef.current === 0) {
                     // First jump
-                    ship.vy = JUMP_PARAMETERS_SCALE.JUMP_VELOCITY;
+                    ship.vy = scaledParameters.JUMP_VELOCITY;
                     jumpCountRef.current += 1;
                     lastKeyPressRef.current = now; // Update timestamp
                     const newEvent = { event: 'jump' as const, time: currentTime, frameId: frameCount, data: { x: ship.x, y: ship.y, vy: ship.vy, deltaTime } };
@@ -427,11 +438,11 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                         : [...telemetryRef.current, newEvent];
                     pendingStatsUpdate = { ...pendingStatsUpdate, jumps: pendingStatsUpdate.jumps + 1 };
                 } else if (jumpCountRef.current === 1 && 
-                            timeSinceLastPress < JUMP_PARAMETERS_SCALE.DOUBLE_PRESS_THRESHOLD &&
+                            timeSinceLastPress < scaledParameters.DOUBLE_PRESS_THRESHOLD &&
                             timeSinceLastPress > 50 && //50 ms minimum for double jump
                             lastKeyPressRef.current !== 0) {
                     // Valid double jump
-                    ship.vy = JUMP_PARAMETERS_SCALE.JUMP_VELOCITY;
+                    ship.vy = scaledParameters.JUMP_VELOCITY;
                     jumpCountRef.current += 1;
                     lastKeyPressRef.current = now; // Update timestamp
                     const newEvent = { event: 'jump' as const, time: currentTime, frameId: frameCount, data: { x: ship.x, y: ship.y, vy: ship.vy, deltaTime } };
@@ -499,10 +510,10 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 framesCount: 0,
                 shipX: canvasRef.current.width * 0.15,
             };
-            ship.y = canvas.height * JUMP_PARAMETERS_SCALE.GROUND_HEIGHT_RATIO - JUMP_PARAMETERS_SCALE.SHIP_HEIGHT;
+            ship.y = canvas.height * scaledParameters.GROUND_HEIGHT_RATIO - scaledParameters.SHIP_HEIGHT;
             ship.vy = 0;
             jumpCountRef.current = 0;
-            obstaclePool = spawnObstacles(canvas, JUMP_PARAMETERS_SCALE.BASE_OBSTACLE_SPEED, 0, 0, 0);
+            obstaclePool = spawnObstacles(canvas, scaledParameters.BASE_OBSTACLE_SPEED, 0, 0, 0, scaledParameters);
             lastSpawnTimeRef.current = performance.now()- 4000;
             startTimeRef.current = performance.now();
             backgroundOffset = 0;

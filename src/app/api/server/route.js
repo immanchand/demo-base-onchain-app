@@ -357,20 +357,25 @@ export async function POST(request) {
               console.log('Invalid game name', stats.game);
               return new Response(JSON.stringify({ status: 'error', message: 'Invalid game name' }), { status: 400 });
             }
+
             //get the game parameters for this specific game
-            const gameParams = GAME_PARAMETERS[stats.game];
-            // scale all game parameters by the scale factor
-            gameParams.OBSTACLE_SIZE = gameParams.OBSTACLE_SIZE * stats.scale;
-            gameParams.SHIP_HEIGHT = gameParams.SHIP_HEIGHT * stats.scale;
-            gameParams.SHIP_WIDTH = gameParams.SHIP_WIDTH * stats.scale;
-            gameParams.BASE_OBSTACLE_SPEED = gameParams.BASE_OBSTACLE_SPEED * stats.scale;
-            gameParams.GRAVITY = gameParams.GRAVITY * stats.scale;
-            if (stats.game === 'fly')
-              gameParams.FLAP_VELOCITY = gameParams.FLAP_VELOCITY * stats.scale;
-            if (stats.game === 'jump')
-            gameParams.JUMP_VELOCITY = gameParams.JUMP_VELOCITY * stats.scale;
-            
             const RECAPTCHA_END_THRESHOLD = GAME_RECAPTCHA_END_THRESHOLD[stats.game];
+            //const gameParams = GAME_PARAMETERS[stats.game];
+            const baseGameParams = GAME_PARAMETERS[stats.game];
+            // Create a local copy of game parameters with scaling applied
+            const gameParams = { ...baseGameParams };
+            // scale all game parameters by the scale factor
+            gameParams.OBSTACLE_SIZE = baseGameParams.OBSTACLE_SIZE * stats.scale;
+            gameParams.SHIP_HEIGHT = baseGameParams.SHIP_HEIGHT * stats.scale;
+            gameParams.SHIP_WIDTH = baseGameParams.SHIP_WIDTH * stats.scale;
+            gameParams.BASE_OBSTACLE_SPEED = baseGameParams.BASE_OBSTACLE_SPEED * stats.scale;
+            gameParams.GRAVITY = baseGameParams.GRAVITY * stats.scale;
+            if (stats.game === 'fly') {
+              gameParams.FLAP_VELOCITY = baseGameParams.FLAP_VELOCITY * stats.scale;
+            }
+            if (stats.game === 'jump') {
+              gameParams.JUMP_VELOCITY = baseGameParams.JUMP_VELOCITY * stats.scale;
+            }            
 
             try {
               const recaptchaResponse = await fetch(

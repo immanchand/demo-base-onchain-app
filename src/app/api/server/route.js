@@ -589,20 +589,20 @@ export async function POST(request) {
               //positive case do nothing
             } else {
               console.log('minFps',minFps, 'is invalid');
-              //*****************return new Response(JSON.stringify({ status: 'error', message: browserPerfMessage }), { status: 400 });
+              return new Response(JSON.stringify({ status: 'error', message: browserPerfMessage }), { status: 400 });
             }
             // Check for suspicious FPS variance (e.g., >10 FPS change)
             if (maxFps - minFps <= 7) {
               //positive case do nothing
             } else {
               console.log('maxFps - minFps > 7',maxFps,' -', minFps, '>',' 7');
-              //*****************return new Response(JSON.stringify({ status: 'error', message: browserPerfMessage }), { status: 400 });
+              return new Response(JSON.stringify({ status: 'error', message: browserPerfMessage }), { status: 400 });
             }
             if (maxCanvH - minCanvH < 1 && avgCanvH - stats.canvasHeight < 1 ) {
               //positive case do nothing
             } else {
               console.log('maxCanvH - minCanvH > 1 || avgCanvH - stats.canvasHeight > 1 ',maxCanvH - minCanvH,' > 1 || ',avgCanvH - stats.canvasHeight,' > 1 ');
-              //*****************return new Response(JSON.stringify({ status: 'error', message: browserPerfMessage }), { status: 400 });                
+              return new Response(JSON.stringify({ status: 'error', message: browserPerfMessage }), { status: 400 });                
             }
             // check min max canvas size
             if (avgCanvH < 900 && avgCanvH > 400 && avgCanvW < 1008 && avgCanvW > 300) {

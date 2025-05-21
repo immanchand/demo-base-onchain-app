@@ -356,6 +356,14 @@ export async function POST(request) {
             }
             //get the game parameters for this specific game
             const gameParams = GAME_PARAMETERS[stats.game];
+            // scale all game parameters by the scale factor
+            gameParams.OBSTACLE_SIZE = gameParams.OBSTACLE_SIZE * stats.scale;
+            gameParams.SHIP_HEIGHT = gameParams.SHIP_HEIGHT * stats.scale;
+            gameParams.SHIP_WIDTH = gameParams.SHIP_WIDTH * stats.scale;
+            gameParams.BASE_OBSTACLE_SPEED = gameParams.BASE_OBSTACLE_SPEED * stats.scale;
+            gameParams.GRAVITY = gameParams.GRAVITY * stats.scale;
+            gameParams.FLAP_VELOCITY = gameParams.FLAP_VELOCITY * stats.scale;
+            gameParams.JUMP_VELOCITY = gameParams.JUMP_VELOCITY * stats.scale;
             const RECAPTCHA_END_THRESHOLD = GAME_RECAPTCHA_END_THRESHOLD[stats.game];
 
             try {

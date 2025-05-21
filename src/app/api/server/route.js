@@ -414,6 +414,7 @@ export async function POST(request) {
                     address,
                     gameId,
                     gameName: stats.game,
+                    event,
                     parameter: key,
                     received: event.parameters[key],
                     expected: expectedValue,

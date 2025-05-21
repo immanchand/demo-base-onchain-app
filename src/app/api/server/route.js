@@ -407,7 +407,7 @@ export async function POST(request) {
                   console.log('Game parameter mismatch', {
                     address,
                     gameId,
-                    gameName,
+                    gameName: stats.game,
                     parameter: key,
                     received: event.parameters[key],
                     expected: expectedValue,
@@ -637,7 +637,7 @@ export async function POST(request) {
               console.log('Frame delta time and stats total time mismatch', {
                 address,
                 gameId,
-                gameName: stats.gameName,
+                gameName: stats.game,
                 totalFrameDeltaTime,
                 gameTimeSec,
               })

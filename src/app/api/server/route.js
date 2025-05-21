@@ -151,7 +151,7 @@ export async function POST(request) {
 
   if (!csrfToken || !sessionId || csrfTokens.get(sessionId) !== csrfToken) {
     console.log('!csrfToken || !sessionId || csrfTokens.get(sessionId) !== csrfToken', !csrfToken,'||',!sessionId,' ||', csrfTokens.get(sessionId),'!==', csrfToken);
-    return new Response(JSON.stringify({ status: 'error', message: "CSRF token's gone AWOL or acting sus. Hit F5 to refresh and get back to dominating the leaderboard!" }), {
+    return new Response(JSON.stringify({ status: 'error', message: "Security token's gone AWOL or acting sus. Hit F5 to refresh and get back to dominating the leaderboard!" }), {
       status: 403,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
     });
@@ -549,10 +549,10 @@ export async function POST(request) {
             const maxFps = Math.max(...fpsValues);
             const avgFps = fpsValues.reduce((sum, fps) => sum + fps, 0) / fpsValues.length;
             const minCanvH = Math.min(...canvasHeightValues);
-            const maxCanvH = Math.min(...canvasHeightValues);
+            const maxCanvH = Math.max(...canvasHeightValues);
             const avgCanvH = canvasHeightValues.reduce((sum, fps) => sum + fps, 0) / canvasHeightValues.length;
             const minCanvW = Math.min(...canvasWidthValues);
-            const maxCanvW = Math.min(...canvasWidthValues);
+            const maxCanvW = Math.max(...canvasWidthValues);
             const avgCanvW = canvasWidthValues.reduce((sum, fps) => sum + fps, 0) / canvasWidthValues.length;
             console.log('minFps',minFps);
             console.log('maxFps',maxFps);
@@ -836,7 +836,6 @@ export async function POST(request) {
                 clusterCounts[clusterKey]++;
               }
               // Log cluster counts for debugging
-              console.log('Spawn groups', spawnGroups);
               console.log('Cluster counts', clusterCounts);
 
             } // end if FLY or JUMP only
@@ -1220,7 +1219,7 @@ export async function POST(request) {
                     if (activeObs.x + gameParams.OBSTACLE_SIZE >= 0) {
                       const matchingObs = reportedObstacles.find(obs =>
                         Math.abs(obs.y - activeObs.y) < 0.001 &&
-                        Math.abs(obs.x - activeObs.x) < Math.abs(activeObs.dx)*1.5 &&
+                        Math.abs(obs.x - activeObs.x) < Math.abs(activeObs.dx) &&
                         Math.abs(obs.dx - activeObs.dx) < 0.001
                       );
                       if (matchingObs) {

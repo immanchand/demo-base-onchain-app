@@ -362,8 +362,11 @@ export async function POST(request) {
             gameParams.SHIP_WIDTH = gameParams.SHIP_WIDTH * stats.scale;
             gameParams.BASE_OBSTACLE_SPEED = gameParams.BASE_OBSTACLE_SPEED * stats.scale;
             gameParams.GRAVITY = gameParams.GRAVITY * stats.scale;
-            gameParams.FLAP_VELOCITY = gameParams.FLAP_VELOCITY * stats.scale;
+            if (stats.game === 'fly')
+              gameParams.FLAP_VELOCITY = gameParams.FLAP_VELOCITY * stats.scale;
+            if (stats.game === 'jump')
             gameParams.JUMP_VELOCITY = gameParams.JUMP_VELOCITY * stats.scale;
+            
             const RECAPTCHA_END_THRESHOLD = GAME_RECAPTCHA_END_THRESHOLD[stats.game];
 
             try {

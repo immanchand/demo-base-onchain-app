@@ -218,8 +218,8 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
         const resizeCanvas = () => {
             const { width, height } = container.getBoundingClientRect();
-            canvas.width = Math.max(300, Math.min(1008, width));
-            canvas.height = Math.max(400, Math.min(900, height));
+            canvas.width = width;
+            canvas.height = height;
             setStats((prev) => ({ ...prev, canvasWidth: width, canvasHeight: height }));
         };
 

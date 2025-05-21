@@ -31,7 +31,7 @@ const GAME_RECAPTCHA_END_THRESHOLD = {
   jump: process.env.JUMP_RECAPTCHA_END_THRESHOLD,
 };
 // Cluster counts
-const clusterCounts = { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
+let clusterCounts = { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
 
 
 if (!GAME_MASTER_PRIVATE_KEY || !PROVIDER_URL) {
@@ -793,7 +793,7 @@ export async function POST(request) {
               // check later if this works for shoot. cluster is not important in shoot
               let clusterW = 0;
               let clusterH = 0;
-              // clusterCounts = { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
+              clusterCounts = { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
               // Group spawn events by frameId
               const spawnGroups = {};
               for (const event of spawnEvents) {
@@ -878,6 +878,8 @@ export async function POST(request) {
               let yCountBB = clusterCounts['1x2'] + clusterCounts['2x2'] * 2 + clusterCounts['2x3'] * 2 + clusterCounts['2x4'] * 2; // GROUND_Y - OBSTACLE_SIZE
               let yCountCC = clusterCounts['2x3'] * 2 + clusterCounts['2x4'] * 2; // GROUND_Y - 2 * OBSTACLE_SIZE
               let yCountDD = clusterCounts['2x4'] * 2; // GROUND_Y - 3 * OBSTACLE_SIZE
+              //reset cluster counts array
+              clusterCounts = { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
               const yTolerance = 0.01; // For floating-point comparison
               console.log('spawnEvents.length', spawnEvents.length);
               const spawnEventY = [];
@@ -1017,7 +1019,7 @@ export async function POST(request) {
               // Check variance of double jump intervals
               const dJmean = doubleJumpIntervals.reduce((sum, d) => sum + d, 0) / doubleJumpIntervals.length;
               const dJvariance = doubleJumpIntervals.reduce((sum, d) => sum + Math.pow(d - dJmean, 2), 0) / doubleJumpIntervals.length;
-              const dJvarianceThreshold = 300; // ms², to be adjusted with playtest data
+              const dJvarianceThreshold = 200; // ms², to be adjusted with playtest data
               console.log('Double jump interval variance check', { dJvariance, dJvarianceThreshold });
               if (dJvariance > dJvarianceThreshold) {
                 //positive case do nothing 
@@ -1404,6 +1406,8 @@ export async function POST(request) {
               
               // Dynamic spawn count, double spawn count, and max obstacle count caluculations 
               let doubleSpawnCount = clusterCounts['1x2'];
+              // reset cluster counts array
+              clusterCounts = { '1x1': 0, '1x2': 0, '2x2': 0, '2x3': 0, '2x4': 0 };
               let expectedSpawns = 0;
               let expectedDoubleSpawns = 0;
               let expectedMaxObstacles = 0;

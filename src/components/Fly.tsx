@@ -421,7 +421,6 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         };
 
         const handleMouseDown = (e: MouseEvent | TouchEvent) => {
-            e.preventDefault(); // Prevent scrolling
             handleFlap();
             inputCount++;
         };
@@ -475,16 +474,9 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('mousedown', handleMouseDown);
-            window.addEventListener('touchstart', handleMouseDown);
-
+            window.addEventListener('touchstart', handleMouseDown, { passive: true });
             lastFrameTimeRef.current = performance.now();
             animationFrameIdRef.current = requestAnimationFrame(gameLoop);
-            // Cleanup
-            return () => {
-                window.removeEventListener('keydown', handleKeyDown);
-                window.removeEventListener('mousedown', handleMouseDown);
-                window.removeEventListener('touchstart', handleMouseDown);
-            };
         }
 
         return () => {

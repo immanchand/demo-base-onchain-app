@@ -178,9 +178,9 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                         Cookies.set('gameSig', cookieValue, {
                             expires: 1,
                             secure: true,
-                            sameSite: 'Lax',
+                            sameSite: 'strict',
                             path: '/',
-                            httpOnly: true,
+                            httpOnly: false,
                         });
                         console.log('Signature set in cookies');
                         setHasSigned(true);

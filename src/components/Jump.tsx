@@ -4,7 +4,7 @@ import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
-import { GameStats, Entity, scaleBaseW, scaleBaseH, JUMP_PARAMETERS, TELEMETRY_LIMIT, TELEMETRY_SCORE_THRESHOLD } from 'src/constants';
+import { GameStats, Entity, scaleBaseW, scaleBaseH, minScale, JUMP_PARAMETERS, TELEMETRY_LIMIT, TELEMETRY_SCORE_THRESHOLD } from 'src/constants';
 import { useAccount } from 'wagmi';
 import LoginButton from './LoginButton';
 
@@ -267,7 +267,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
         const resizeObserver = new ResizeObserver(resizeCanvas);
         resizeObserver.observe(container);
         // scaling factor for different screen sizes
-        const scale = Math.max(canvas.width/scaleBaseW, canvas.height/scaleBaseH);
+        const scale = Math.max(canvas.width/scaleBaseW, canvas.height/scaleBaseH, minScale);
         const scaledParameters = {
             ...JUMP_PARAMETERS,
             SHIP_WIDTH: JUMP_PARAMETERS.SHIP_WIDTH * scale,
@@ -468,7 +468,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                 inputCount++;
             }
         };
-        const handleMouseDown = () => {
+        const handleMouseDown = (e: MouseEvent | TouchEvent) => {
             handleJump();
             inputCount++;
         };
@@ -527,6 +527,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('mousedown', handleMouseDown);
+            window.addEventListener('touchstart', handleMouseDown, { passive: true });
             lastFrameTimeRef.current = performance.now();
             animationFrameIdRef.current = requestAnimationFrame(gameLoop);
         }
@@ -535,6 +536,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             resizeObserver.disconnect();
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('mousedown', handleMouseDown);
+            window.removeEventListener('touchstart', handleMouseDown);
             cancelAnimationFrame(animationFrameIdRef.current);
         };
     }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnObstacles, backgroundImage, groundImage]);

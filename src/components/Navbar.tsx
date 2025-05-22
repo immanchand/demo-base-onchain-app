@@ -126,19 +126,21 @@ const Navbar = React.memo(() => {
               >
                 CREW
               </Link>
-              {address && (
-                <Link
-                  href="/tickets"
-                  className="px-3 py-1 text-base font-bold text-primary-text hover:text-accent-yellow transition-all duration-300 hover:-translate-y-0.5"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  CHIPS ({ticketCount})
-                </Link>
-              )}
               <div className="px-3 py-1">
                 <LoginButton />
               </div>
             </div>
+          </div>
+
+          {/* Ticket Count (Mobile Only, Right Side) */}
+          <div className="flex items-center gap-2 sm:hidden">
+            {address && (
+              <Link href="/tickets">
+                <div className="w-10 h-10 bg-primary-bg flex items-center justify-center text-lg font-bold text-primary-text border-2 border-primary-border transition-all duration-300 hover:scale-105 hover:shadow-[0_0_8px_rgba(255,255,0,0.5)]">
+                  {ticketCount}
+                </div>
+              </Link>
+            )}
           </div>
         </div>
       </div>

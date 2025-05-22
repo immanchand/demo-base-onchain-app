@@ -5,7 +5,6 @@ import { useCsrf } from 'src/context/CsrfContext';
 import { useAccount } from 'wagmi';
 import { createWalletClient, custom } from 'viem';
 import Cookies from 'js-cookie';
-import { ethers } from 'ethers';
 import { baseSepolia } from 'viem/chains';
 
 
@@ -179,7 +178,7 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                         Cookies.set('gameSig', cookieValue, {
                             expires: 1,
                             secure: true,
-                            sameSite: 'strict',
+                            sameSite: 'Lax',
                             path: '/',
                             httpOnly: true,
                         });

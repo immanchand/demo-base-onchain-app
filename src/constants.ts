@@ -6,8 +6,8 @@ export const TELEMETRY_SCORE_THRESHOLD = 2000; // Min score for telemetry data t
 // Scoring multipliers
 export const SCORE_DIVISOR_TIME = 10; // should be SCORE_MULTIPLIER/10
 // screen size sclaning base
-export const scaleBaseW = 1008;
-export const scaleBaseH = 600;
+export const scaleBaseW = 900;
+export const scaleBaseH = 500;
 export const minScale = 0.8; // min scale for canvas
 // Difficulty parameters
 export const FLY_PARAMETERS = {

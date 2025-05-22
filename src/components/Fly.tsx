@@ -646,7 +646,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 </div>
             ) : (
                 <div ref={containerRef} className={`game-active w-full max-w-[1008px] min-w-[300px] h-[80vh] max-h-[900px] min-h-[400px] relative`}>
-                    <div className="text-primary-text mb-1 text-center font-mono">
+                    <div className="text-primary-text mb-1 text-center font-mono hidden md:block">
                         <span className="text-2xl text-accent-yellow">SCORE: {Math.floor(score)}</span>
                         <span className="text-2xl text-accent-yellow ml-8">TOP SCORE: {existingHighScore}</span>
                     </div>

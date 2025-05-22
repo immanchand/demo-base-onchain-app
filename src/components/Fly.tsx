@@ -645,13 +645,13 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                     )}
                 </div>
             ) : (
-                <div ref={containerRef} className={`game-active w-full max-w-[1008px] min-w-[300px] h-[80vh] max-h-[900px] min-h-[400px] relative pt-8 md:pt-0`}>
-                    <div className="md:relative absolute top-0 left-0 w-full text-primary-text mb-1 text-center font-mono z-10">
+                <div ref={containerRef} className={`game-active w-full max-w-[1008px] min-w-[300px] h-[80vh] max-h-[900px] min-h-[400px] relative`}>
+                    <div className="md:relative absolute top-2 left-0 w-full text-primary-text text-center font-mono z-10 md:mb-1">
                         <span className="text-2xl text-accent-yellow">SCORE: {Math.floor(score)}</span>
                         <span className="text-2xl text-accent-yellow ml-8">TOP SCORE: {existingHighScore}</span>
                     </div>
                     {gameOver && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-primary-text text-2xl font-mono">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-primary-text text-2xl font-mono z-20">
                             <p>SMASHED! YOUR SCORE: {Math.floor(score)}</p>
                             {gameOverMessages[endGameStatus]}
                             <Button
@@ -662,8 +662,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                                 {startGameStatus === 'pending' ? 'launching...' : 'TRY AGAIN'}
                             </Button>
                             {startGameStatus === 'error' && startGameError && (
-                                <p className="text-error-red mt-2">
-                                    {startGameError}</p>
+                                <p className="text-error-red mt-2">{startGameError}</p>
                             )}
                         </div>
                     )}

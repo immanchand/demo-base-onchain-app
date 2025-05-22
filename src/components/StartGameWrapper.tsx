@@ -85,10 +85,14 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                 try {
                     const { message: signedMessage, signature, timestamp } = JSON.parse(gameSigRaw);
                     const expectedMessage = `Yo, no gas, no cash, just legit vibes! Sign to lock in your chips for Stupid Games. Timestamp ${timestamp}. Let's game on!`;
+                    
+                    if (signedMessage !== expectedMessage) {
+                        console.log('Signature mismatch. Clearing cookies.');
+                        Cookies.remove('gameSig');
+                        setHasSigned(false);
+                        await getSignature();
+                    }
                     const playerAddress = ethers.verifyMessage(expectedMessage, signature);
-                    console.log('Signature details:', { signedMessage, signature, timestamp });
-                    console.log('gameSigRaw:', gameSigRaw);
-                    console.log('Cookies.get gameSig', Cookies.get('gameSig'));
                     if (!address || playerAddress.toLowerCase() !== address.toLowerCase()) {
                         console.log('Signature and player mismatch. Clearing cookies.');
                         Cookies.remove('gameSig');

@@ -9,7 +9,8 @@ import {  contractABI,
           FLY_PARAMETERS,
           SHOOT_PARAMETERS, 
           JUMP_PARAMETERS,
-          scaleBaseW, scaleBaseH,   } from '../../../constants';
+          scaleBaseW, scaleBaseH, minScale,
+         } from '../../../constants';
 
 const banMessage = "Yo, not cool! We sniffed out some sus moves. Keep it legit to avoid the banhammer. Play fair and HODL the leaderboard!";
 const tooLuckyMessage = "Whoa! Either you're the luckiest player in the crypto-verse or something's fishy. Give it another shot, but keep it real, fam!";
@@ -622,7 +623,7 @@ export async function POST(request) {
             }
             
             // check screen scaling factor against stats.scale
-            const screenScalingFactor = Math.max(avgCanvW/scaleBaseW, avgCanvH/scaleBaseH);
+            const screenScalingFactor = Math.max(avgCanvW/scaleBaseW, avgCanvH/scaleBaseH, minScale);
             console.log('screenScalingFactor',screenScalingFactor, 'stats.scale', stats.scale);
             if (Math.abs(stats.scale - screenScalingFactor) < 0.001) {
               //positive case do nothing
@@ -759,7 +760,7 @@ export async function POST(request) {
               if (prevSpawnEvent) {
                 const timeGap = event.time - prevSpawnEvent.time; // ms
                 const expectedMinGap = gameParams.MAX_SPAWN_INTERVAL * (1 - difficultyFactor) + gameParams.MIN_SPAWN_INTERVAL;
-                const tolerance = 50; // ms, for timing jitter
+                const tolerance = 34; // ms, for timing jitter approx 2 frames
                 if (Math.abs(timeGap - expectedMinGap) <= tolerance || timeGap < tolerance) {
                   //positive case do nothing
                 } else {

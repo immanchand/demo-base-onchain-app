@@ -3,7 +3,6 @@ import './global.css';
 import '@coinbase/onchainkit/styles.css';
 import '@rainbow-me/rainbowkit/styles.css';
 import dynamic from 'next/dynamic';
-import { NEXT_PUBLIC_URL } from '../config';
 import { useEffect, useState } from 'react';
 
 const OnchainProviders = dynamic(() => import('src/components/OnchainProviders'), { ssr: false });
@@ -19,14 +18,14 @@ export const metadata = {
   openGraph: {
     title: 'Stupid Games',
     description: 'Play Stupid Games, Win Awesome Prizes!',
-    images: [`${NEXT_PUBLIC_URL}/vibes/vibes-19.png`],
+    images: ['/vibes/vibes-19.png'], // Static path, update after setting NEXT_PUBLIC_URL
   },
 };
 
 import { ReactNode } from 'react';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  const [isPortrait, setIsPortrait] = useState(false);
+  const [isPortrait, setIsPortrait] = useState<boolean | null>(null);
 
   useEffect(() => {
     const updateOrientation = () => {
@@ -39,6 +38,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     window.addEventListener('resize', updateOrientation);
     return () => window.removeEventListener('resize', updateOrientation);
   }, []);
+
+  // Skip rendering until isPortrait is determined to avoid hydration mismatch
+  if (isPortrait === null) {
+    return null;
+  }
 
   return (
     <html lang="en" className={isPortrait ? 'rotate-portrait' : ''}>

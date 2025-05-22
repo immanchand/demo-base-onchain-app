@@ -83,8 +83,6 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
 
                 // Validate the cookie signature with logged in player account address
                 try {
-                    //const { message, signature } = JSON.parse(gameSigRaw);
-                    console.log('gameSigRaw:', gameSigRaw);
                     const { message: signedMessage, signature, timestamp } = JSON.parse(gameSigRaw);
                     const expectedMessage = `Yo, no gas, no cash, just legit vibes! Sign to lock in your chips for Stupid Games. Timestamp ${timestamp}. Let's game on!`;
                     const playerAddress = ethers.verifyMessage(expectedMessage, signature);
@@ -171,13 +169,12 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                             account,
                             message: messageToSign,
                         });
-                        Cookies.set('gameSig', JSON.stringify({ messageToSign, signature, timestamp }), {
+                        Cookies.set('gameSig', JSON.stringify({ message: messageToSign, signature, timestamp }), {
                             expires: 1,
                             secure: true,
                             sameSite: 'strict',
                             httpOnly: false,
                         });
-                        console.log('in getSignature() Cookies.get gameSig', Cookies.get('gameSig'));
                         console.log('Signature set in cookies');
                         setHasSigned(true);
                         gameSigRaw = decodeURIComponent(Cookies.get('gameSig') || '');

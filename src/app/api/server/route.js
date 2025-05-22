@@ -228,7 +228,7 @@ export async function POST(request) {
             const { message: signedMessage, signature, timestamp } = JSON.parse(gameSigRaw);
             // Verify timestamp is within 2 days (172,800,000 ms = 2 days)
             const currentTime = Date.now();
-            const maxAge = 1 * 24 * 60 * 60 * 1000; // 1 days in milliseconds
+            const maxAge = 0.5 * 24 * 60 * 60 * 1000; // 0.5 days in milliseconds
             if (Math.abs(currentTime - timestamp) < maxAge) {
               //positive case do nothing
             } else {

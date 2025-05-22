@@ -259,7 +259,7 @@ export async function POST(request) {
             });
           }
         } else {
-          return new Response(JSON.stringify({ status: 'error', message: 'Your signature is invalid or missing' }), {
+          return new Response(JSON.stringify({ status: 'error', message: 'No sig, no game! Drop your signature to moon with Stupid Games!' }), {
             status: 403,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
           });

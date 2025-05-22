@@ -1,8 +1,7 @@
 // src/app/api/server/route.js
 import { ethers } from 'ethers';
 import { getCsrfTokens } from 'src/lib/csrfStore';
-import {  message,
-          contractABI,
+import {  contractABI,
           CONTRACT_ADDRESS,
           TELEMETRY_SCORE_THRESHOLD,
           TELEMETRY_LIMIT,

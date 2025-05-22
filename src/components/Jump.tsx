@@ -463,7 +463,6 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             }
         };
         const handleMouseDown = (e: MouseEvent | TouchEvent) => {
-            e.preventDefault();
             handleJump();
             inputCount++;
         };
@@ -522,9 +521,15 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('mousedown', handleMouseDown);
-            window.addEventListener('touchstart', handleMouseDown);
+            window.addEventListener('touchstart', handleMouseDown, { passive: true });
             lastFrameTimeRef.current = performance.now();
             animationFrameIdRef.current = requestAnimationFrame(gameLoop);
+            //clean up events
+            return () => {
+                window.removeEventListener('keydown', handleKeyDown);
+                window.removeEventListener('mousedown', handleMouseDown);
+                window.removeEventListener('touchstart', handleMouseDown);
+            };
         }
 
         return () => {
@@ -637,7 +642,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     <p className="mb-2">Spacebar: Leap (Double-tap for higher)</p>
                     <p className="mb-4">Mouse Click: Leap (Double-click for higher)</p>
                     <div className="mb-4 flex items-center justify-center">
-                        <p classsName="mr-2">PICK YOUR RUNNER:</p>
+                        <p className="mr-2">PICK YOUR RUNNER:</p>
                         {imagesLoaded && shipImages[shipType] && (
                             <img src={shipImages[shipType].src} alt={shipType} className="w-10 h-15 mr-2" />
                         )}

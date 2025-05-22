@@ -178,9 +178,10 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                         Cookies.set('gameSig', cookieValue, {
                             expires: 1,
                             secure: true,
-                            sameSite: 'Lax',
+                            sameSite: 'None',
                             path: '/',
                             httpOnly: true,
+                            domain: 'demo-base-onchain-app.vercel.app',
                         });
                         console.log('Signature set in cookies');
                         setHasSigned(true);

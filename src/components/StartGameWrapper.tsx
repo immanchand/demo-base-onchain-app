@@ -75,53 +75,53 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                     return;
                 }
 
-                if (hasSigned) {
-                    gameSigRaw = decodeURIComponent(Cookies.get('gameSig') || '');
-                }
+                // if (hasSigned) {
+                //     gameSigRaw = decodeURIComponent(Cookies.get('gameSig') || '');
+                // }
                 if (!hasSigned) {
                     await getSignature();
                 }
 
                 // Validate the cookie signature with logged in player account address
-                try {
-                    const { message: signedMessage, signature, timestamp } = JSON.parse(gameSigRaw);
-                    const expectedMessage = `Yo, no gas, no cash, just legit vibes! Sign to lock in your chips for Stupid Games. Timestamp ${timestamp}. Let's game on!`;
+                //try {
+                //     const { message: signedMessage, signature, timestamp } = JSON.parse(gameSigRaw);
+                //     const expectedMessage = `Yo, no gas, no cash, just legit vibes! Sign to lock in your chips for Stupid Games. Timestamp ${timestamp}. Let's game on!`;
                     
-                    if (signedMessage !== expectedMessage) {
-                        console.log('Signature mismatch. Clearing cookies.');
-                        Cookies.remove('gameSig');
-                        setHasSigned(false);
-                        await getSignature();
-                    }
-                    const playerAddress = ethers.verifyMessage(expectedMessage, signature);
-                    if (!address || playerAddress.toLowerCase() !== address.toLowerCase()) {
-                        console.log('Signature and player mismatch. Clearing cookies.');
-                        Cookies.remove('gameSig');
-                        setHasSigned(false);
-                        await getSignature();
-                    }
-                } catch (error) {
-                    console.log('Signature error. Clearing cookies.');
-                    Cookies.remove('gameSig');
-                    setHasSigned(false);
-                    onStatusChange('error', 'Your signature has gone stale!. Please refresh and try again.');
-                }    
+                //     if (signedMessage !== expectedMessage) {
+                //         console.log('Signature mismatch. Clearing cookies.');
+                //         Cookies.remove('gameSig');
+                //         setHasSigned(false);
+                //         await getSignature();
+                //     }
+                //     const playerAddress = ethers.verifyMessage(expectedMessage, signature);
+                //     if (!address || playerAddress.toLowerCase() !== address.toLowerCase()) {
+                //         console.log('Signature and player mismatch. Clearing cookies.');
+                //         Cookies.remove('gameSig');
+                //         setHasSigned(false);
+                //         await getSignature();
+                //     }
+                // } catch (error) {
+                //     console.log('Signature error. Clearing cookies.');
+                //     Cookies.remove('gameSig');
+                //     setHasSigned(false);
+                //     onStatusChange('error', 'Your signature has gone stale!. Please refresh and try again.');
+                // }    
                 if (!address) {
                     onStatusChange('error', 'Player address not detected');
                     return;
                 }
-                if (!gameSigRaw || gameSigRaw === '') {
-                    Cookies.remove('gameSig');
-                    setHasSigned(false);
-                    onStatusChange('error', 'Game signature not found. Please refresh and sign again to keep the vibes legit!');
-                    return;
-                }
-                if (!gameSigRaw.includes('signature')) {
-                    Cookies.remove('gameSig');
-                    setHasSigned(false);
-                    onStatusChange('error', 'Ah oh! Signature vide check failed. Please refresh and sign again to keep it legit!');
-                    return;
-                }
+                // if (!gameSigRaw || gameSigRaw === '') {
+                //     Cookies.remove('gameSig');
+                //     setHasSigned(false);
+                //     onStatusChange('error', 'Game signature not found. Please refresh and sign again to keep the vibes legit!');
+                //     return;
+                // }
+                // if (!gameSigRaw.includes('signature')) {
+                //     Cookies.remove('gameSig');
+                //     setHasSigned(false);
+                //     onStatusChange('error', 'Ah oh! Signature vide check failed. Please refresh and sign again to keep it legit!');
+                //     return;
+                // }
                 try {
                     onStatusChange('pending');
                     const response = await fetch('/api/server', {

@@ -4,7 +4,7 @@ import { useTicketContext } from 'src/context/TicketContext';
 import StartGameWrapper from 'src/components/StartGameWrapper';
 import EndGameWrapper from 'src/components/EndGameWrapper';
 import Button from './Button';
-import { GameStats, Entity, scaleBaseW, scaleBaseH, FLY_PARAMETERS, TELEMETRY_LIMIT, TELEMETRY_SCORE_THRESHOLD } from 'src/constants';
+import { GameStats, Entity, scaleBaseW, scaleBaseH, minScale, FLY_PARAMETERS, TELEMETRY_LIMIT, TELEMETRY_SCORE_THRESHOLD } from 'src/constants';
 import { useAccount } from 'wagmi';
 import LoginButton from './LoginButton';
 
@@ -236,7 +236,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         resizeObserver.observe(container);
 
         // scaling factor for different screen sizes
-        const scale = Math.max(canvas.width/scaleBaseW, canvas.height/scaleBaseH);
+        const scale = Math.max(canvas.width/scaleBaseW, canvas.height/scaleBaseH, minScale);
         const scaledParameters = {
             ...FLY_PARAMETERS,
             SHIP_WIDTH: FLY_PARAMETERS.SHIP_WIDTH * scale,
@@ -420,7 +420,8 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             }
         };
 
-        const handleMouseDown = () => {
+        const handleMouseDown = (e: MouseEvent | TouchEvent) => {
+            e.preventDefault(); // Prevent scrolling
             handleFlap();
             inputCount++;
         };
@@ -474,14 +475,23 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('mousedown', handleMouseDown);
+            window.addEventListener('touchstart', handleMouseDown);
+
             lastFrameTimeRef.current = performance.now();
             animationFrameIdRef.current = requestAnimationFrame(gameLoop);
+            // Cleanup
+            return () => {
+                window.removeEventListener('keydown', handleKeyDown);
+                window.removeEventListener('mousedown', handleMouseDown);
+                window.removeEventListener('touchstart', handleMouseDown);
+            };
         }
 
         return () => {
             resizeObserver.disconnect();
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('mousedown', handleMouseDown);
+            window.removeEventListener('touchstart', handleMouseDown);
             cancelAnimationFrame(animationFrameIdRef.current);
         };
     }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnObstacle]);

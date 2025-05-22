@@ -95,7 +95,7 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                     console.log('Signature error. Clearing cookies.');
                     Cookies.remove('gameSig');
                     setHasSigned(false);
-                    onStatusChange('error', 'Signature error. Please refresh and try again.');
+                    onStatusChange('error', 'Your signature has gone stale!. Please refresh and try again.');
                 }    
                 if (!address) {
                     onStatusChange('error', 'Player address not detected');
@@ -104,13 +104,13 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                 if (!gameSigRaw || gameSigRaw === '') {
                     Cookies.remove('gameSig');
                     setHasSigned(false);
-                    onStatusChange('error', 'Game signature not found. Sign then refresh or try again.');
+                    onStatusChange('error', 'Game signature not found. Please refresh and sign again to keep the vibes legit!');
                     return;
                 }
                 if (!gameSigRaw.includes('signature')) {
                     Cookies.remove('gameSig');
                     setHasSigned(false);
-                    onStatusChange('error', 'Invalid game signature. Sign then refresh or try again.');
+                    onStatusChange('error', 'Ah oh! Signature vide check failed. Please refresh and sign again to keep it legit!');
                     return;
                 }
                 try {
@@ -135,12 +135,16 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                 } catch (error) {
                     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
                     if (errorMsg.includes('CAPTCHA failed')) {
-                        onStatusChange('error', 'Please move your mouse around the page and try again.');
+                        onStatusChange('error', 'Yo! Act more human with your mouse and try again.');
                     } else if (errorMsg.includes('Invalid or missing CSRF token') && !isRetry) {
                         console.log('Refreshing CSRF token due to invalid token');
                         await refreshCsrfToken();
                         console.log('Retrying startGame with new CSRF token');
                         return startGame(true);
+                    } else if (errorMsg.includes('your signature')) {
+                        Cookies.remove('gameSig');
+                        setHasSigned(false);
+                        onStatusChange('error', errorMsg);
                     } else {
                         onStatusChange('error', errorMsg);
                     }
@@ -165,7 +169,7 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                             expires: 1,
                             secure: true,
                             sameSite: 'strict',
-                            httpOnly: false,
+                            httpOnly: true,
                         });
                         console.log('Signature set in cookies');
                         setHasSigned(true);

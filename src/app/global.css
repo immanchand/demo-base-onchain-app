@@ -71,13 +71,15 @@ body {
     position: fixed;
     top: 0;
     left: 0;
-    overflow: auto; /* Handle content overflow */
+    overflow-x: auto; /* Allow horizontal scrolling */
+    overflow-y: hidden; /* Prevent vertical scrolling */
   }
   /* Adjust navbar dropdown for rotated view */
   .rotate-portrait .nav-dropdown,
   html.rotate-portrait .nav-dropdown {
     top: 100vw; /* Position below rotated navbar */
     width: 100vh; /* Match rotated width */
+    left: 0;
   }
   /* Game controls for touch in rotated view */
   .rotate-portrait .game-container button,
@@ -86,10 +88,17 @@ body {
   html.rotate-portrait .game-controls {
     padding: 1rem; /* Larger touch areas */
     font-size: 1rem;
+    min-width: 3rem; /* Ensure touchable size */
+  }
+  /* Ensure canvas fits in rotated view */
+  .rotate-portrait .game-container canvas,
+  html.rotate-portrait .game-container canvas {
+    max-width: 100vh; /* Fit rotated width */
+    max-height: 100vw; /* Fit rotated height */
   }
 }
 
-/* Landscape adjustments for mobile */
+/* Landscape adjustments for mobile (if physical rotation occurs) */
 @media screen and (max-width: 640px) and (orientation: landscape) {
   .flex-col {
     flex-direction: row;
@@ -127,7 +136,7 @@ body {
     font-size: 0.875rem;
   }
   .nav-dropdown {
-    flex-direction: row; /* Horizontal links in landscape */
+    flex-direction: row; /* Horizontal links */
     flex-wrap: wrap;
     gap: 0.5rem;
   }

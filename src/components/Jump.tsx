@@ -445,7 +445,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     pendingStatsUpdate = { ...pendingStatsUpdate, jumps: pendingStatsUpdate.jumps + 1 };
                 } else if (jumpCountRef.current === 1 && 
                             timeSinceLastPress < scaledParameters.DOUBLE_PRESS_THRESHOLD &&
-                            timeSinceLastPress > 150 && //50 ms minimum for double jump
+                            timeSinceLastPress > 100 && //50 ms minimum for double jump
                             lastKeyPressRef.current !== 0) {
                     // Valid double jump
                     ship.vy = scaledParameters.JUMP_VELOCITY;

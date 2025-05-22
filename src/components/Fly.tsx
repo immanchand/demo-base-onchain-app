@@ -218,16 +218,13 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         if (!canvas || !container || !imagesLoaded) return;
 
         const resizeCanvas = () => {
-            // Check if in portrait mode and game is started
             const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth <= 640;
             const { width, height } = container.getBoundingClientRect();
             
             if (gameStarted && isPortrait) {
-                // Use viewport dimensions for rotated canvas
                 canvas.width = Math.max(300, Math.min(1008, window.innerHeight));
                 canvas.height = Math.max(400, Math.min(900, window.innerWidth));
             } else {
-                // Normal resizing
                 canvas.width = Math.max(300, Math.min(1008, width));
                 canvas.height = Math.max(400, Math.min(900, height));
             }
@@ -237,23 +234,6 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         resizeCanvas();
         const resizeObserver = new ResizeObserver(resizeCanvas);
         resizeObserver.observe(container);
-
-        // Fallback for viewport sizing
-        const handleResize = () => {
-            if (gameStarted && window.innerHeight > window.innerWidth && window.innerWidth <= 640) {
-                if (container) {
-                    container.style.width = `${window.innerHeight}px`;
-                    container.style.height = `${window.innerWidth}px`;
-                }
-                resizeCanvas();
-            } else if (container) {
-                container.style.width = '';
-                container.style.height = '';
-            }
-        };
-
-        window.addEventListener('resize', handleResize);
-        window.addEventListener('orientationchange', handleResize);
 
         // scaling factor for different screen sizes
         const scale = Math.max(canvas.width/scaleBaseW, canvas.height/scaleBaseH);
@@ -502,8 +482,6 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             resizeObserver.disconnect();
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('mousedown', handleMouseDown);
-            window.removeEventListener('resize', handleResize);
-            window.removeEventListener('orientationchange', handleResize);
             cancelAnimationFrame(animationFrameIdRef.current);
         };
     }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnObstacle]);
@@ -520,18 +498,16 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
 
     const endGame = useCallback(async () => {
         if (endGameRef.current && gameStarted) {
-            // Sync telemetry and update stats.score before ending the game
-            setTelemetry(telemetryRef.current); // Update telemetry state
-            setIsTelemetrySyncing(true); // Indicate that syncing is in progress
+            setTelemetry(telemetryRef.current);
+            setIsTelemetrySyncing(true);
             setEndGameStatus('pending');
-            }
+        }
     }, [gameStarted]);
 
-    // Add useEffect to detect telemetry update and call endGame
     useEffect(() => {
         if (isTelemetrySyncing && telemetry.length > 0 && endGameRef.current) {
             endGameRef.current.endGame();
-            setIsTelemetrySyncing(false); // Reset syncing flag
+            setIsTelemetrySyncing(false);
         }
     }, [telemetry, isTelemetrySyncing]);
 
@@ -566,7 +542,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             } else if (status === 'leader') {
                 setEndGameMessage('WAGMI! You smashed a new TOP SCORE, degen legend!');
                 console.log('New leader score:', Math.floor(score));
-            } else if (status === 'loser') {
+            } else if (status == 'loser') {
                 setEndGameMessage(`No moon yet! TOP SCORE still ${highScore}, keep grinding, degen!`);
                 console.log('Game ended, not the leader. Player Score:', Math.floor(score), 'High Score:', highScore);
             } else if (status === 'error') {

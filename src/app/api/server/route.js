@@ -659,7 +659,7 @@ export async function POST(request) {
             const avgFrameDeltaTime = totalFrameDeltaTime / frameDeltaTimes.length;
             const frameDeltaTimieVariance = frameDeltaTimes.reduce((a, b) => a + Math.pow(b - avgFrameDeltaTime, 2), 0) / frameDeltaTimes.length;
             console.log('frameDeltaTimieVariance',frameDeltaTimieVariance.toString());
-            if (frameDeltaTimieVariance > 0.0000001 && frameDeltaTimieVariance < 0.001) { // 0.0000001 to 0.001 s²
+            if (frameDeltaTimieVariance > 0.0000001 && frameDeltaTimieVariance < 0.006) { // 0.0000001 to 0.001 s²
               //positive case do nothing
             } else {
               console.log('Delta time variance check failed for',{ 

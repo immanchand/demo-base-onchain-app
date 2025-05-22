@@ -3,7 +3,7 @@ import '@coinbase/onchainkit/styles.css';
 import '@rainbow-me/rainbowkit/styles.css';
 import dynamic from 'next/dynamic';
 import { NEXT_PUBLIC_URL } from '../config';
-import OrientationWrapper from 'src/components/OrientationWrapper';
+import OrientationWrapper from '../components/OrientationWrapper';
 
 const OnchainProviders = dynamic(() => import('src/components/OnchainProviders'), { ssr: false });
 

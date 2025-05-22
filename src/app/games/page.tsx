@@ -8,6 +8,8 @@ import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import WinnerWithdrawWrapper from 'src/components/WinnerWithdrawWrapper';
 import Button from 'src/components/Button';
+import { Name } from '@coinbase/onchainkit/identity';
+import { baseSepolia } from 'viem/chains';
 
 interface GameData {
   gameId: number;
@@ -62,16 +64,23 @@ const GameCard = React.memo(({ game, userAddress }: { game: GameData; userAddres
             <div className="relative group">
               <p className="text-primary-text">
                 <span className="font-bold">{isGameOver ? 'CHAMP' : 'BOSS'}</span>{' '}
-                <Link
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigator.clipboard.writeText(game.leader).then(() => setIsCopied(true)).then(() => setTimeout(() => setIsCopied(false), 2000));
-                  }}
-                  className={`${isUserLeader ? 'text-success-green text-2xl' : 'text-accent-yellow'} hover:underline cursor-pointer font-bold`}
-                >
-                  {isUserLeader ? 'YOU!' : `${game.leader.slice(0, 5)}...${game.leader.slice(-3)}`}
-                </Link>
+                {isUserLeader ? (
+                  <span className="text-success-green text-2xl font-bold">YOU!</span>
+                ) : (
+                  <Name
+                    address={game.leader}
+                    chain={baseSepolia}
+                    className={
+                      `text-accent-yellow hover:underline cursor-pointer font-bold ${
+                        isUserLeader ? 'text-success-green text-2xl' : 'text-accent-yellow'
+                      }`
+                    }
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigator.clipboard.writeText(game.leader).then(() => setIsCopied(true)).then(() => setTimeout(() => setIsCopied(false), 2000));
+                    }}
+                  />
+                )}
                 <span className="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-primary-bg text-accent-yellow text-xs py-1 px-2 border border-primary-border z-10">
                   {game.leader}
                 </span>

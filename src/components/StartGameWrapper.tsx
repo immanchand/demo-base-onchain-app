@@ -171,7 +171,7 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                             account,
                             message: messageToSign,
                         });
-                        Cookies.set('gameSig', JSON.stringify({ messageToSign, signature }), {
+                        Cookies.set('gameSig', JSON.stringify({ messageToSign, signature, timestamp }), {
                             expires: 1,
                             secure: true,
                             sameSite: 'strict',

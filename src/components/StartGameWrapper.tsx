@@ -175,7 +175,7 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                             expires: 1,
                             secure: true,
                             sameSite: 'strict',
-                            httpOnly: true,
+                            httpOnly: false,
                         });
                         console.log('in getSignature() Cookies.get gameSig', Cookies.get('gameSig'));
                         console.log('Signature set in cookies');

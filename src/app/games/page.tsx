@@ -174,7 +174,7 @@ export default function Games() {
               value={gameIdInput}
               onChange={(e) => setGameIdInput(e.target.value)}
               placeholder="enter game #"
-              className="input-field"
+              className="input-field w-20 sm:w-32"
               min="1"
               disabled={isLoading}
             />

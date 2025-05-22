@@ -347,7 +347,10 @@ export async function POST(request) {
             
             console.log('telemetry (first 100 events): ', telemetry.slice(0, 100));
             console.log('telemetry (last 100 events): ', telemetry.slice(-100));
-            console.log('stats: ', stats);
+            console.log('stats for game: ', {
+              address,
+              gameId,
+              stats, });
             const telemetryLength = telemetry.length;
             console.log('telemetryLength', telemetryLength);
             
@@ -575,15 +578,9 @@ export async function POST(request) {
             const minCanvW = Math.min(...canvasWidthValues);
             const maxCanvW = Math.max(...canvasWidthValues);
             const avgCanvW = canvasWidthValues.reduce((sum, fps) => sum + fps, 0) / canvasWidthValues.length;
-            console.log('minFps',minFps);
-            console.log('maxFps',maxFps);
-            console.log('avgFps',avgFps);
-            console.log('minCanvH',minCanvH);
-            console.log('maxCanvH',maxCanvH);
-            console.log('avgCanvH',avgCanvH);
-            console.log('minCanvW',minCanvW);
-            console.log('maxCanvW',maxCanvW);
-            console.log('avgCanvW',avgCanvW);
+            console.log('minFps',minFps, 'maxFps',maxFps, 'avgFps',avgFps);
+            console.log('minCanvH',minCanvH, 'maxCanvH',maxCanvH, 'avgCanvH',avgCanvH);
+            console.log('minCanvW',minCanvW, 'maxCanvW',maxCanvW, 'avgCanvW',avgCanvW);
             // Allow 40–72 FPS for mobile compatibility. No upper bound as game is harder when faster.
             if (minFps > 55) {
               //positive case do nothing
@@ -1464,9 +1461,7 @@ export async function POST(request) {
               const spawnTolerance = 1.2 * spawnStdDev;
               const minExpectedSpawns = Math.floor(expectedSpawns - spawnTolerance);
               const maxExpectedSpawns = Math.ceil(expectedSpawns + spawnTolerance*2);
-              console.log('minExpectedSpawns',minExpectedSpawns);
-              console.log('maxExpectedSpawns',maxExpectedSpawns);
-              console.log('actual spawns',spawnEvents.length);
+              console.log('minExpectedSpawns',minExpectedSpawns, 'maxExpectedSpawns',maxExpectedSpawns, 'actual spawns',spawnEvents.length);
               if (spawnEvents.length >= minExpectedSpawns && spawnEvents.length <= maxExpectedSpawns) {
                 //positive case do nothing
               } else {

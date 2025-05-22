@@ -598,14 +598,14 @@ export async function POST(request) {
               console.log('maxFps - minFps > 7',maxFps,' -', minFps, '>',' 7');
               return new Response(JSON.stringify({ status: 'error', message: browserPerfMessage }), { status: 400 });
             }
-            if (maxCanvH - minCanvH < 1 && avgCanvH - stats.canvasHeight < 1 ) {
+            if (Math.abs(maxCanvH - minCanvH) < 1 && Math.abs(avgCanvH - stats.canvasHeight) < 1 ) {
               //positive case do nothing
             } else {
               console.log('maxCanvH - minCanvH > 1 || avgCanvH - stats.canvasHeight > 1 ',maxCanvH - minCanvH,' > 1 || ',avgCanvH - stats.canvasHeight,' > 1 ');
               return new Response(JSON.stringify({ status: 'error', message: browserPerfMessage }), { status: 400 });                
             }
             // check min max canvas size
-            if (avgCanvH < 900 && avgCanvH > 400 && avgCanvW < 1008 && avgCanvW > 300) {
+            if (avgCanvH-1 <= 900 && avgCanvH+1 >= 400 && avgCanvW-1 <= 1008 && avgCanvW+1 >= 300) {
               //positive case do nothing
             } else {
               console.log('avgCanvH < 900 && avgCanvH > 400 && avgCanvW < 1008 && avgCanvW > 300',avgCanvH,'< 900 &&', avgCanvH,'> 400 &&', avgCanvW,'< 1008 &&', avgCanvW,'> 300');
@@ -1483,8 +1483,9 @@ export async function POST(request) {
               const doubleSpawnStdDev = Math.sqrt(expectedDoubleSpawns * gameParams.CLUSTER_CHANCE * (1 - gameParams.CLUSTER_CHANCE)); // Variance for double spawns
               const doubleSpawnTolerance = 2 * doubleSpawnStdDev;
               const minExpectedDoubleSpawns = Math.floor(expectedDoubleSpawns - doubleSpawnTolerance);
-              const maxExpectedDoubleSpawns = Math.ceil(expectedDoubleSpawns + doubleSpawnTolerance*2);
-              console.log('min',minExpectedDoubleSpawns,'max',maxExpectedDoubleSpawns,'and actual double spawns',doubleSpawnCount);
+              //const maxExpectedDoubleSpawns = Math.ceil(expectedDoubleSpawns + doubleSpawnTolerance*2);
+              //console.log('min',minExpectedDoubleSpawns,'max',maxExpectedDoubleSpawns,'and actual double spawns',doubleSpawnCount);
+              console.log('min',minExpectedDoubleSpawns,' actual double spawns',doubleSpawnCount);
               if (doubleSpawnCount >= minExpectedDoubleSpawns && doubleSpawnCount <= maxExpectedDoubleSpawns) {
                 //positive case do nothing
               } else {
@@ -1493,7 +1494,7 @@ export async function POST(request) {
                     expectedDoubleSpawns,
                     doubleSpawnTolerance,
                     minExpectedDoubleSpawns,
-                    maxExpectedDoubleSpawns,
+                    //maxExpectedDoubleSpawns,
                 });
                 return new Response(JSON.stringify({status: 'error', message: tooLuckyMessage }), { status: 400 });
               }

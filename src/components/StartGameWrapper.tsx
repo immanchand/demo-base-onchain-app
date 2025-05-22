@@ -150,8 +150,8 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                         console.log('Retrying startGame with new CSRF token');
                         return startGame(true);
                     } else if (errorMsg.includes('Your signature')) {
-                        Cookies.remove('gameSig');
-                        setHasSigned(false);
+                        //***********Cookies.remove('gameSig');
+                        //**********setHasSigned(false);
                         onStatusChange('error', errorMsg);
                     } else {
                         onStatusChange('error', errorMsg);

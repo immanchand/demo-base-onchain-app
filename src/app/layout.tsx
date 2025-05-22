@@ -1,22 +1,24 @@
+'use client';
 import './global.css';
 import '@coinbase/onchainkit/styles.css';
 import '@rainbow-me/rainbowkit/styles.css';
 import dynamic from 'next/dynamic';
 import { NEXT_PUBLIC_URL } from '../config';
+import { useEffect, useState } from 'react';
 
 const OnchainProviders = dynamic(() => import('src/components/OnchainProviders'), { ssr: false });
 
 export const viewport = {
-  width: 'device-width',
+  width: 568, // Default to landscape-like width for mobile
   initialScale: 1.0,
 };
 
 export const metadata = {
-  title: 'Onchain App Template',
-  description: 'Built with OnchainKit',
+  title: 'Stupid Games',
+  description: 'Play Stupid Games, Win Awesome Prizes!',
   openGraph: {
-    title: 'Onchain App Template',
-    description: 'Built with OnchainKit',
+    title: 'Stupid Games',
+    description: 'Play Stupid Games, Win Awesome Prizes!',
     images: [`${NEXT_PUBLIC_URL}/vibes/vibes-19.png`],
   },
 };
@@ -24,10 +26,34 @@ export const metadata = {
 import { ReactNode } from 'react';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  const [isPortrait, setIsPortrait] = useState(false);
+
+  useEffect(() => {
+    const updateOrientation = () => {
+      const wToHRatio = window.innerWidth / window.innerHeight;
+      const isMobile = window.innerWidth <= 640; // Tailwind 'sm' breakpoint
+      setIsPortrait(isMobile && wToHRatio < 1); // Portrait if mobile and w/h < 1
+    };
+
+    updateOrientation();
+    window.addEventListener('resize', updateOrientation);
+    return () => window.removeEventListener('resize', updateOrientation);
+  }, []);
+
   return (
-    <html lang="en">
-      <body className="flex items-center justify-center">
-        <OnchainProviders>{children}</OnchainProviders>
+    <html lang="en" className={isPortrait ? 'rotate-portrait' : ''}>
+      <body>
+        <OnchainProviders>
+          {isPortrait && (
+            <div className="fixed inset-0 bg-[var(--primary-bg)] bg-opacity-90 flex items-center justify-center z-[1000]">
+              <div className="text-center p-4">
+                <h2 className="text-2xl font-bold text-[var(--accent-yellow)]">Rotate Your Device</h2>
+                <p className="text-[var(--primary-text)] mt-2">Please rotate to landscape mode for the best Stupid Games experience!</p>
+              </div>
+            </div>
+          )}
+          {children}
+        </OnchainProviders>
       </body>
     </html>
   );

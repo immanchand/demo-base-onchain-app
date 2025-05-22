@@ -1055,7 +1055,7 @@ export async function POST(request) {
               // Check variance of double jump intervals
               const dJmean = doubleJumpIntervals.reduce((sum, d) => sum + d, 0) / doubleJumpIntervals.length;
               const dJvariance = doubleJumpIntervals.reduce((sum, d) => sum + Math.pow(d - dJmean, 2), 0) / doubleJumpIntervals.length;
-              const dJvarianceThreshold = 200; // ms², to be adjusted with playtest data
+              const dJvarianceThreshold = 100; // ms², to be adjusted with playtest data
               console.log('Double jump interval variance check', { dJvariance, dJvarianceThreshold });
               if (dJvariance > dJvarianceThreshold) {
                 //positive case do nothing 

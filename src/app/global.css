@@ -62,7 +62,8 @@ body {
 
 /* Rotate UI for mobile portrait (w/h < 1) */
 @media screen and (max-width: 640px) {
-  .rotate-portrait {
+  .rotate-portrait,
+  html.rotate-portrait {
     transform: rotate(90deg);
     transform-origin: center;
     width: 100vh; /* Swap width/height for rotated view */
@@ -73,13 +74,16 @@ body {
     overflow: auto; /* Handle content overflow */
   }
   /* Adjust navbar dropdown for rotated view */
-  .rotate-portrait .nav-dropdown {
+  .rotate-portrait .nav-dropdown,
+  html.rotate-portrait .nav-dropdown {
     top: 100vw; /* Position below rotated navbar */
     width: 100vh; /* Match rotated width */
   }
   /* Game controls for touch in rotated view */
   .rotate-portrait .game-container button,
-  .rotate-portrait .game-controls {
+  .rotate-portrait .game-controls,
+  html.rotate-portrait .game-container button,
+  html.rotate-portrait .game-controls {
     padding: 1rem; /* Larger touch areas */
     font-size: 1rem;
   }

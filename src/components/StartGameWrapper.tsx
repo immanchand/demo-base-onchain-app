@@ -83,8 +83,10 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
 
                 // Validate the cookie signature with logged in player account address
                 try {
-                    const { message, signature } = JSON.parse(gameSigRaw);
-                    const playerAddress = ethers.verifyMessage(message, signature);
+                    //const { message, signature } = JSON.parse(gameSigRaw);
+                    const { message: signedMessage, signature, timestamp } = JSON.parse(gameSigRaw);
+                    const expectedMessage = `Yo, no gas, no cash, just legit vibes! Sign to lock in your chips for Stupid Games, address ${address}, timestamp ${timestamp}. Let's game on!`;
+                    const playerAddress = ethers.verifyMessage(expectedMessage, signature);
                     if (!address || playerAddress.toLowerCase() !== address.toLowerCase()) {
                         console.log('Signature and player mismatch. Clearing cookies.');
                         Cookies.remove('gameSig');

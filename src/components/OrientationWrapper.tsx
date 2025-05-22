@@ -23,16 +23,8 @@ export default function OrientationWrapper({ children }: { children: ReactNode }
   }
 
   return (
-    <>
-      {isPortrait && (
-        <div className="fixed inset-0 bg-[var(--primary-bg)] bg-opacity-90 flex items-center justify-center z-[1000]">
-          <div className="text-center p-4">
-            <h2 className="text-2xl font-bold text-[var(--accent-yellow)]">Rotate Your Device</h2>
-            <p className="text-[var(--primary-text)] mt-2">Please rotate to landscape mode for the best Stupid Games experience!</p>
-          </div>
-        </div>
-      )}
-      <div className={isPortrait ? 'rotate-portrait' : ''}>{children}</div>
-    </>
+    <div className={isPortrait ? 'rotate-portrait' : ''}>
+      {children}
+    </div>
   );
 }

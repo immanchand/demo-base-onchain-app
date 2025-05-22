@@ -237,7 +237,7 @@ export async function POST(request) {
                   headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
               });
             }
-            const expectedMessage = `Yo, no gas, no cash, just legit vibes! Sign to lock in your chips for Stupid Games, address ${address}, timestamp ${timestamp}. Let's game on!`;
+            const expectedMessage = `Yo, no gas, no cash, just legit vibes! Sign to lock in your chips for Stupid Games. Timestamp ${timestamp}. Let's game on!`;
             if (signedMessage !== expectedMessage) { // Verify the message matches the expected constant
               return new Response(JSON.stringify({ status: 'error', message: "Your signature is out of sync! Sus!" }), {
                 status: 403,
@@ -259,7 +259,7 @@ export async function POST(request) {
             });
           }
         } else {
-          return new Response(JSON.stringify({ status: 'error', message: 'No sig, no game! Drop your signature to moon with Stupid Games!' }), {
+          return new Response(JSON.stringify({ status: 'error', message: 'No sig, no game! Drop Your signature to moon with Stupid Games!' }), {
             status: 403,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
           });

@@ -8,7 +8,7 @@ import OrientationWrapper from '../components/OrientationWrapper';
 const OnchainProviders = dynamic(() => import('src/components/OnchainProviders'), { ssr: false });
 
 export const viewport = {
-  width: 568, // Landscape-like width for mobile
+  width: 'device-width',
   initialScale: 1.0,
 };
 

@@ -24,7 +24,6 @@ const Navbar = React.memo(() => {
                 <StupidGamesSvg />
               </Link>
             </div>
-            {/* Hamburger Icon (Mobile) */}
             <button
               className="sm:hidden ml-4 p-2 text-primary-text hover:text-accent-yellow focus:outline-none"
               onClick={toggleMenu}
@@ -78,14 +77,14 @@ const Navbar = React.memo(() => {
 
           {/* Mobile Dropdown Menu */}
           <div
-            className={`absolute top-16 left-0 w-full bg-primary-bg border-4 border-primary-border sm:hidden transition-all duration-300 ease-in-out ${
+            className={`nav-dropdown absolute top-16 left-0 w-full bg-primary-bg border-4 border-primary-border sm:hidden transition-all duration-300 ease-in-out ${
               isMenuOpen ? 'opacity-100 max-h-64' : 'opacity-0 max-h-0 overflow-hidden'
             }`}
           >
-            <div className="flex flex-col space-y-2 px-4 py-4">
+            <div className="flex flex-row flex-wrap space-x-2 px-4 py-4 landscape:flex-row landscape:space-x-4 landscape:space-y-0">
               <Link
                 href="/active-game"
-                className="px-3 py-2 text-lg font-bold text-primary-text hover:text-accent-yellow transition-all duration-300 hover:-translate-y-0.5"
+                className="px-3 py-1 text-base font-bold text-primary-text hover:text-accent-yellow transition-all duration-300 hover:-translate-y-0.5"
                 onClick={() => setIsMenuOpen(false)}
               >
                 GAME
@@ -93,7 +92,7 @@ const Navbar = React.memo(() => {
               {address && (
                 <Link
                   href="/tickets"
-                  className="px-3 py-2 text-lg font-bold text-primary-text hover:text-accent-yellow transition-all duration-300 hover:-translate-y-0.5"
+                  className="px-3 py-1 text-base font-bold text-primary-text hover:text-accent-yellow transition-all duration-300 hover:-translate-y-0.5"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   CHIPS
@@ -101,14 +100,14 @@ const Navbar = React.memo(() => {
               )}
               <Link
                 href="/games"
-                className="px-3 py-2 text-lg font-bold text-primary-text hover:text-accent-yellow transition-all duration-300 hover:-translate-y-0.5"
+                className="px-3 py-1 text-base font-bold text-primary-text hover:text-accent-yellow transition-all duration-300 hover:-translate-y-0.5"
                 onClick={() => setIsMenuOpen(false)}
               >
                 WINS
               </Link>
               <Link
                 href="/private"
-                className="px-3 py-2 text-lg font-bold text-primary-text hover:text-accent-yellow transition-all duration-300 hover:-translate-y-0.5"
+                className="px-3 py-1 text-base font-bold text-primary-text hover:text-accent-yellow transition-all duration-300 hover:-translate-y-0.5"
                 onClick={() => setIsMenuOpen(false)}
               >
                 CREW

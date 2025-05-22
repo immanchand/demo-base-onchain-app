@@ -659,6 +659,7 @@ export async function POST(request) {
             const avgFrameDeltaTime = totalFrameDeltaTime / frameDeltaTimes.length;
             const frameDeltaTimieVariance = frameDeltaTimes.reduce((a, b) => a + Math.pow(b - avgFrameDeltaTime, 2), 0) / frameDeltaTimes.length;
             console.log('frameDeltaTimieVariance',frameDeltaTimieVariance.toString());
+            //***************for mobile 0.006 but for desktop 0.0000001 to 0.001
             if (frameDeltaTimieVariance > 0.0000001 && frameDeltaTimieVariance < 0.006) { // 0.0000001 to 0.001 s²
               //positive case do nothing
             } else {
@@ -1066,7 +1067,7 @@ export async function POST(request) {
               const dJmean = doubleJumpIntervals.reduce((sum, d) => sum + d, 0) / doubleJumpIntervals.length;
               const dJvariance = doubleJumpIntervals.reduce((sum, d) => sum + Math.pow(d - dJmean, 2), 0) / doubleJumpIntervals.length;
               const dJvarianceThreshold = 100; // ms², to be adjusted with playtest data
-              console.log('Double jump interval variance check', { dJvariance, dJvarianceThreshold });
+              console.log('Double jump interval variance check', { dJvariance, dJvarianceThreshold, dJmean });
               if (dJvariance > dJvarianceThreshold) {
                 //positive case do nothing 
               } else {

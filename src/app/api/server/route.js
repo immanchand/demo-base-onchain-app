@@ -244,7 +244,8 @@ export async function POST(request) {
                 headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } },
               );
             }
-            playerAddress = ethers.verifyMessage(message, signature);
+            playerAddress = ethers.verifyMessage(signedMessage, signature);
+            console.log('playerAddress',playerAddress, 'address', address);
             if (playerAddress.toLowerCase() !== address.toLowerCase()) {
               return new Response(JSON.stringify({ status: 'error', message: "Your signature is out of sync. Refresh the page and make sure you're logged in with the right wallet to keep the vibes legit!" }), {
                 status: 403,

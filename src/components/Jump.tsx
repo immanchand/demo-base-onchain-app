@@ -463,6 +463,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
             }
         };
         const handleMouseDown = (e: MouseEvent | TouchEvent) => {
+            e.preventDefault();
             handleJump();
             inputCount++;
         };
@@ -521,7 +522,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
 
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('mousedown', handleMouseDown);
-            window.addEventListener('touchstart', handleMouseDown, { passive: true });
+            window.addEventListener('touchstart', handleMouseDown);
             lastFrameTimeRef.current = performance.now();
             animationFrameIdRef.current = requestAnimationFrame(gameLoop);
         }

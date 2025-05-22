@@ -211,22 +211,50 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         });
     };
 
-    // Game loop setup
+    // Game loop setup and canvas resizing
     useEffect(() => {
         const canvas = canvasRef.current;
         const container = containerRef.current;
         if (!canvas || !container || !imagesLoaded) return;
 
         const resizeCanvas = () => {
+            // Check if in portrait mode and game is started
+            const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth <= 640;
             const { width, height } = container.getBoundingClientRect();
-            canvas.width = Math.max(300, Math.min(1008, width));
-            canvas.height = Math.max(400, Math.min(900, height));
-            setStats((prev) => ({ ...prev, canvasWidth: width, canvasHeight: height }));
+            
+            if (gameStarted && isPortrait) {
+                // Use viewport dimensions for rotated canvas
+                canvas.width = Math.max(300, Math.min(1008, window.innerHeight));
+                canvas.height = Math.max(400, Math.min(900, window.innerWidth));
+            } else {
+                // Normal resizing
+                canvas.width = Math.max(300, Math.min(1008, width));
+                canvas.height = Math.max(400, Math.min(900, height));
+            }
+            setStats((prev) => ({ ...prev, canvasWidth: canvas.width, canvasHeight: canvas.height }));
         };
 
         resizeCanvas();
         const resizeObserver = new ResizeObserver(resizeCanvas);
         resizeObserver.observe(container);
+
+        // Fallback for viewport sizing
+        const handleResize = () => {
+            if (gameStarted && window.innerHeight > window.innerWidth && window.innerWidth <= 640) {
+                if (container) {
+                    container.style.width = `${window.innerHeight}px`;
+                    container.style.height = `${window.innerWidth}px`;
+                }
+                resizeCanvas();
+            } else if (container) {
+                container.style.width = '';
+                container.style.height = '';
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('orientationchange', handleResize);
+
         // scaling factor for different screen sizes
         const scale = Math.max(canvas.width/scaleBaseW, canvas.height/scaleBaseH);
         const scaledParameters = {
@@ -474,6 +502,8 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
             resizeObserver.disconnect();
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('mousedown', handleMouseDown);
+            window.removeEventListener('resize', handleResize);
+            window.removeEventListener('orientationchange', handleResize);
             cancelAnimationFrame(animationFrameIdRef.current);
         };
     }, [gameStarted, gameOver, imagesLoaded, shipType, enemyType, spawnObstacle]);
@@ -577,7 +607,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                 stats={score >= TELEMETRY_SCORE_THRESHOLD && score > existingHighScore ? stats : null}
             />
             {!gameStarted ? (
-                <div className="text-center text-primary-text font-mono">
+                <div className="game-instructions text-center text-primary-text font-mono">
                     <h1 className="text-3xl text-accent-yellow mb-4">FLY</h1>
                     <p className="text-xl mb-2">DEGEN BRIEFING:</p>
                     <p className="mb-2">Tap spacebar or click to flap your rocket through crypto FUD, fam!</p>
@@ -639,7 +669,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
                     )}
                 </div>
             ) : (
-                <div ref={containerRef} className="w-full max-w-[1008px] min-w-[300px] h-[80vh] max-h-[900px] min-h-[400px] relative">
+                <div ref={containerRef} className={`game-active w-full max-w-[1008px] min-w-[300px] h-[80vh] max-h-[900px] min-h-[400px] relative`}>
                     <div className="text-primary-text mb-1 text-center font-mono">
                         <span className="text-2xl text-accent-yellow">SCORE: {Math.floor(score)}</span>
                         <span className="text-2xl text-accent-yellow ml-8">TOP SCORE: {existingHighScore}</span>

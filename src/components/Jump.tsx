@@ -637,7 +637,7 @@ const Jump: React.FC<JumpProps> = ({ gameId, existingHighScore, updateTickets })
                     <p className="mb-2">Spacebar: Leap (Double-tap for higher)</p>
                     <p className="mb-4">Mouse Click: Leap (Double-click for higher)</p>
                     <div className="mb-4 flex items-center justify-center">
-                        <p class saloname="mr-2">PICK YOUR RUNNER:</p>
+                        <p classsName="mr-2">PICK YOUR RUNNER:</p>
                         {imagesLoaded && shipImages[shipType] && (
                             <img src={shipImages[shipType].src} alt={shipType} className="w-10 h-15 mr-2" />
                         )}

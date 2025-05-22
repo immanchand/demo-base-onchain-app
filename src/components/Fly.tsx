@@ -254,7 +254,7 @@ const FlyGame: React.FC<FlyProps> = ({ gameId, existingHighScore, updateTickets 
         
         let obstaclePool: Obstacle[] = [];
         const stars: { x: number; y: number; dx: number }[] = [];
-        const starCount = 100 * scale; // Adjust the number of stars based on the scale
+        const starCount = 150 * scale; // Adjust the number of stars based on the scale
         for (let i = 0; i < starCount; i++) {
             stars.push({
                 x: Math.random() * canvas.width,

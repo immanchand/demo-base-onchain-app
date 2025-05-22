@@ -84,36 +84,25 @@ body {
 @media screen and (max-width: 640px) and (orientation: portrait) {
   .game-active {
     transform: rotate(90deg);
+    transform-origin: center;
     width: 100dvh;
     height: 100dvw;
     position: fixed;
-    top: 0;
-    left: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    top: calc(50% - 50dvw);
+    left: calc(50% - 50dvh);
     z-index: 100; /* Below navbar (z-[500]) */
   }
   /* Fallback for browsers without dvh/dvw */
   .game-active {
     width: 100vh;
     height: 100vw;
+    top: calc(50% - 50vw);
+    left: calc(50% - 50vh);
   }
-  /* Counter-rotate instructions and navbar */
+  /* Ensure instructions and navbar stay unrotated */
   .game-instructions,
   .navbar {
-    transform: rotate(-90deg);
+    transform: rotate(0deg);
     transform-origin: center;
-    width: 100dvw;
-    height: 100dvh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  /* Fallback for instructions and navbar */
-  .game-instructions,
-  .navbar {
-    width: 100vw;
-    height: 100vh;
   }
 }

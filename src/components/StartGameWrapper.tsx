@@ -85,8 +85,11 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                 try {
                     //const { message, signature } = JSON.parse(gameSigRaw);
                     const { message: signedMessage, signature, timestamp } = JSON.parse(gameSigRaw);
-                    const expectedMessage = `Yo, no gas, no cash, just legit vibes! Sign to lock in your chips for Stupid Games, address ${address}, timestamp ${timestamp}. Let's game on!`;
+                    const expectedMessage = `Yo, no gas, no cash, just legit vibes! Sign to lock in your chips for Stupid Games. Timestamp ${timestamp}. Let's game on!`;
                     const playerAddress = ethers.verifyMessage(expectedMessage, signature);
+                    console.log('Signature details:', { signedMessage, signature, timestamp });
+                    console.log('gameSigRaw:', gameSigRaw);
+                    console.log('Cookies.get gameSig', Cookies.get('gameSig'));
                     if (!address || playerAddress.toLowerCase() !== address.toLowerCase()) {
                         console.log('Signature and player mismatch. Clearing cookies.');
                         Cookies.remove('gameSig');
@@ -161,7 +164,7 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                     // Generate UTC timestamp (milliseconds since epoch, UTC)
                     const timestamp = Date.now();
                     // Construct message with address and timestamp
-                    const messageToSign = `Yo, no gas, no cash, just legit vibes! Sign to lock in your chips for Stupid Games, address ${account}, timestamp ${timestamp}. Let's game on!`;
+                    const messageToSign = `Yo, no gas, no cash, just legit vibes! Sign to lock in your chips for Stupid Games. Timestamp ${timestamp}. Let's game on!`;
                     try {
                         const signature = await walletClient.signMessage({
                             account,

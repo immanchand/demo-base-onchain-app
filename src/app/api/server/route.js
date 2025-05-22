@@ -1483,10 +1483,8 @@ export async function POST(request) {
               const doubleSpawnStdDev = Math.sqrt(expectedDoubleSpawns * gameParams.CLUSTER_CHANCE * (1 - gameParams.CLUSTER_CHANCE)); // Variance for double spawns
               const doubleSpawnTolerance = 2 * doubleSpawnStdDev;
               const minExpectedDoubleSpawns = Math.floor(expectedDoubleSpawns - doubleSpawnTolerance);
-              //const maxExpectedDoubleSpawns = Math.ceil(expectedDoubleSpawns + doubleSpawnTolerance*2);
-              //console.log('min',minExpectedDoubleSpawns,'max',maxExpectedDoubleSpawns,'and actual double spawns',doubleSpawnCount);
               console.log('min',minExpectedDoubleSpawns,' actual double spawns',doubleSpawnCount);
-              if (doubleSpawnCount >= minExpectedDoubleSpawns && doubleSpawnCount <= maxExpectedDoubleSpawns) {
+              if (doubleSpawnCount >= minExpectedDoubleSpawns) {
                 //positive case do nothing
               } else {
                 console.log('Suspicious double spawn count', {

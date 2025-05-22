@@ -225,8 +225,20 @@ export async function POST(request) {
         console.log('gameSigRaw',gameSigRaw);
         if (gameSigRaw) {
           try {
-            const { message: signedMessage, signature } = JSON.parse(gameSigRaw);
-            if (signedMessage !== message) { // Verify the message matches the expected constant
+            const { message: signedMessage, signature, timestamp } = JSON.parse(gameSigRaw);
+            // Verify timestamp is within 2 days (172,800,000 ms = 2 days)
+            const currentTime = Date.now();
+            const maxAge = 1 * 24 * 60 * 60 * 1000; // 1 days in milliseconds
+            if (Math.abs(currentTime - timestamp) < maxAge) {
+              //positive case do nothing
+            } else {
+              return new Response(JSON.stringify({ status: 'error', message: 'Your signature has gone stale!. Please sign again to keep the vibes legit!' }), {
+                  status: 403,
+                  headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
+              });
+            }
+            const expectedMessage = `Yo, no gas, no cash, just legit vibes! Sign to lock in your chips for Stupid Games, address ${address}, timestamp ${timestamp}. Let's game on!`;
+            if (signedMessage !== expectedMessage) { // Verify the message matches the expected constant
               return new Response(JSON.stringify({ status: 'error', message: "Your signature is out of sync! Sus!" }), {
                 status: 403,
                 headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' } },
@@ -241,13 +253,13 @@ export async function POST(request) {
             }
           } catch (error) {
             console.error('Signature verification failed:', error);
-            return new Response(JSON.stringify({ status: 'error', message: 'Invalid signature' }), {
+            return new Response(JSON.stringify({ status: 'error', message: 'Your signature is invalid' }), {
               status: 403,
               headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
             });
           }
         } else {
-          return new Response(JSON.stringify({ status: 'error', message: 'Missing or invalid signature' }), {
+          return new Response(JSON.stringify({ status: 'error', message: 'Your signature is invalid or missing' }), {
             status: 403,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true' },
           });

@@ -24,9 +24,9 @@ export const FLY_PARAMETERS = {
   CLUSTER_CHANCE: 0.5,
 };
 export const JUMP_PARAMETERS = {
-  SHIP_WIDTH: 45 * (3/4),
-  SHIP_HEIGHT: 55,
-  OBSTACLE_SIZE: 50,
+  SHIP_WIDTH: 50 * (3/4),
+  SHIP_HEIGHT: 60,
+  OBSTACLE_SIZE: 60,
   BASE_OBSTACLE_SPEED: -3, // Higher (e.g., -5) = faster obstacles, harder; Lower (e.g., -2) = easier
   MIN_SPAWN_INTERVAL: 1000, // ms Lower (e.g., 400) = tighter gaps, harder; Higher (e.g., 800) = easier
   MAX_SPAWN_INTERVAL: 4200, // ms starting frequency of obstacles in ms

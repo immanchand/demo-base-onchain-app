@@ -37,7 +37,7 @@ body {
     @apply bg-[var(--primary-bg)] hover:text-[var(--accent-yellow)] border-2 border-[var(--primary-border)] font-bold px-4 py-2 hover:bg-[var(--primary-bg)] hover:text-[var(--accent-yellow)] transition-all duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-[var(--accent-yellow-dark)] disabled:text-[var(--primary-text)];
   }
   .btn-login {
-    @apply bg-[var(--accent-yellow-dark)] text-[var(--secondary-text)] border-2 border-[var(--primary-border)] font-bold px-4 py-2 hover:bg-[var(--primary-bg)] hover:text-[var(--accent-yellow)] transition-all duration-300 ease-in-out w-[450px] max-w-full;
+    @apply bg-[var(--accent-yellow-dark)] text-[var(--secondary-text)] border-2 border-[var(--primary-border)] font-bold px-4 py-2 hover:bg-[var(--primary-bg)] hover:text-[var(--accent-yellow)] transition-all duration-300 ease-in-out sm:w-[450px] sm:max-w-full;
   }
   .card-container {
     @apply bg-[var(--primary-bg)] border-2 border-[var(--primary-border)] p-4 transition-all duration-300 ease-in-out hover:scale-[1.02] hover:brightness-110 hover:shadow-[0_0_8px_rgba(255,255,0,0.5)];

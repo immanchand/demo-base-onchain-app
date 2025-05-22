@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 const OnchainProviders = dynamic(() => import('src/components/OnchainProviders'), { ssr: false });
 
 export const viewport = {
-  width: 'device-width',
+  width: 568, // Landscape-like width for mobile
   initialScale: 1.0,
 };
 
@@ -26,7 +26,6 @@ export const metadata = {
 import { ReactNode } from 'react';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-
   const [isPortrait, setIsPortrait] = useState(false);
 
   useEffect(() => {
@@ -43,8 +42,18 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
   return (
     <html lang="en" className={isPortrait ? 'rotate-portrait' : ''}>
-      <body className="flex items-center justify-center">
-        <OnchainProviders>{children}</OnchainProviders>
+      <body>
+        <OnchainProviders>
+          {isPortrait && (
+            <div className="fixed inset-0 bg-[var(--primary-bg)] bg-opacity-90 flex items-center justify-center z-[1000]">
+              <div className="text-center p-4">
+                <h2 className="text-2xl font-bold text-[var(--accent-yellow)]">Rotate Your Device</h2>
+                <p className="text-[var(--primary-text)] mt-2">Please rotate to landscape mode for the best Stupid Games experience!</p>
+              </div>
+            </div>
+          )}
+          {children}
+        </OnchainProviders>
       </body>
     </html>
   );

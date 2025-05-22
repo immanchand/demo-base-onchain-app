@@ -3,7 +3,6 @@ import '@coinbase/onchainkit/styles.css';
 import '@rainbow-me/rainbowkit/styles.css';
 import dynamic from 'next/dynamic';
 import { NEXT_PUBLIC_URL } from '../config';
-import OrientationWrapper from '../components/OrientationWrapper';
 
 const OnchainProviders = dynamic(() => import('src/components/OnchainProviders'), { ssr: false });
 
@@ -18,7 +17,7 @@ export const metadata = {
   openGraph: {
     title: 'Stupid Games',
     description: 'Play Stupid Games, Win Awesome Prizes!',
-    images: ['/vibes/vibes-19.png'], // Static path, update after setting NEXT_PUBLIC_URL
+    images: [`${NEXT_PUBLIC_URL}/vibes/vibes-19.png`],
   },
 };
 
@@ -27,10 +26,8 @@ import { ReactNode } from 'react';
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>
-        <OnchainProviders>
-          <OrientationWrapper>{children}</OrientationWrapper>
-        </OnchainProviders>
+      <body className="flex items-center justify-center">
+        <OnchainProviders>{children}</OnchainProviders>
       </body>
     </html>
   );

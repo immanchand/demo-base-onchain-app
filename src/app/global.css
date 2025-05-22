@@ -79,3 +79,41 @@ body {
 .animate-fade-in-out {
   animation: fadeInOut 2s ease-in-out forwards;
 }
+
+/* Rotation styles for game container */
+@media screen and (max-width: 640px) and (orientation: portrait) {
+  .game-active {
+    transform: rotate(90deg);
+    width: 100dvh;
+    height: 100dvw;
+    position: fixed;
+    top: 0;
+    left: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100; /* Below navbar (z-[500]) */
+  }
+  /* Fallback for browsers without dvh/dvw */
+  .game-active {
+    width: 100vh;
+    height: 100vw;
+  }
+  /* Counter-rotate instructions and navbar */
+  .game-instructions,
+  .navbar {
+    transform: rotate(-90deg);
+    transform-origin: center;
+    width: 100dvw;
+    height: 100dvh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  /* Fallback for instructions and navbar */
+  .game-instructions,
+  .navbar {
+    width: 100vw;
+    height: 100vh;
+  }
+}

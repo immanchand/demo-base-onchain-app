@@ -8,6 +8,7 @@ import Cookies from 'js-cookie';
 import { ethers } from 'ethers';
 import { baseSepolia } from 'viem/chains';
 
+
 // Extend the Window interface to include grecaptcha
 declare global {
     interface Window {
@@ -173,15 +174,23 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                             account,
                             message: messageToSign,
                         });
-                        Cookies.set('gameSig', JSON.stringify({ message: messageToSign, signature, timestamp }), {
+                        // Stringify the cookie value
+                        const cookieValue = JSON.stringify({ message: messageToSign, signature, timestamp });
+                        Cookies.set('gameSig', cookieValue, {
                             expires: 1,
                             secure: true,
                             sameSite: 'strict',
-                            httpOnly: false,
+                            path: '/',
+                            httpOnly: true,
                         });
                         console.log('Signature set in cookies');
                         setHasSigned(true);
                         gameSigRaw = decodeURIComponent(Cookies.get('gameSig') || '');
+                        // Debug: Log document.cookie to check raw cookie header
+                        console.log('document.cookie after set:', document.cookie);
+                        console.log('Attempted to set gameSig cookie with httpOnly: true, value:', cookieValue);
+                        console.log('Game signature:', gameSigRaw);
+
                     } catch (error) {
                         onStatusChange('error', 'Sign the vibe check to stack your chips and play Stupid Games!');
                         return;

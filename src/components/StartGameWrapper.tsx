@@ -179,17 +179,13 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                             expires: 1,
                             secure: true,
                             sameSite: 'None',
-                            path: '/',
+                            path: '/api/server',
                             httpOnly: true,
                             domain: 'demo-base-onchain-app.vercel.app',
                         });
                         console.log('Signature set in cookies');
                         setHasSigned(true);
-                        gameSigRaw = decodeURIComponent(Cookies.get('gameSig') || '');
-                        // Debug: Log document.cookie to check raw cookie header
-                        console.log('document.cookie after set:', document.cookie);
-                        console.log('Attempted to set gameSig cookie with httpOnly: true, value:', cookieValue);
-                        console.log('Game signature:', gameSigRaw);
+                        //gameSigRaw = decodeURIComponent(Cookies.get('gameSig') || '');
 
                     } catch (error) {
                         onStatusChange('error', 'Sign the vibe check to stack your chips and play Stupid Games!');

@@ -1,7 +1,6 @@
 // StartGameWrapper.tsx
 'use client';
 import { useCallback, useImperativeHandle, forwardRef, useState } from 'react';
-import { message } from 'src/constants';
 import { useCsrf } from 'src/context/CsrfContext';
 import { useAccount } from 'wagmi';
 import { createWalletClient, custom } from 'viem';
@@ -153,12 +152,16 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                         transport: custom(window.ethereum!),
                     });
                     const [account] = await walletClient.getAddresses();
+                    // Generate UTC timestamp (milliseconds since epoch, UTC)
+                    const timestamp = Date.now();
+                    // Construct message with address and timestamp
+                    const messageToSign = `Yo, no gas, no cash, just legit vibes! Sign to lock in your chips for Stupid Games, address ${account}, timestamp ${timestamp}. Let's game on!`;
                     try {
                         const signature = await walletClient.signMessage({
                             account,
-                            message: message,
+                            message: messageToSign,
                         });
-                        Cookies.set('gameSig', JSON.stringify({ message, signature }), {
+                        Cookies.set('gameSig', JSON.stringify({ messageToSign, signature }), {
                             expires: 1,
                             secure: true,
                             sameSite: 'strict',
@@ -168,7 +171,7 @@ const StartGameWrapper = forwardRef<{ startGame: () => Promise<void> }, StartGam
                         setHasSigned(true);
                         gameSigRaw = decodeURIComponent(Cookies.get('gameSig') || '');
                     } catch (error) {
-                        onStatusChange('error', 'Please sign game session to start the game');
+                        onStatusChange('error', 'Sign the vibe check to stack your chips and play Stupid Games!');
                         return;
                     }
                 }
